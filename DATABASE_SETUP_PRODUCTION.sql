@@ -1,0 +1,412 @@
+-- ============================================
+-- MARRYZEN PRODUCTION DATABASE SETUP
+-- ============================================
+-- Run this SQL script in Supabase Dashboard → SQL Editor
+-- This is the complete, production-ready database configuration
+-- ============================================
+
+-- ============================================
+-- PART 1: ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================
+
+-- Enable RLS on all tables
+ALTER TABLE IF EXISTS profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS user_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS user_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS user_reports ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- PROFILES TABLE POLICIES
+-- ============================================
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view approved profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins have full access" ON profiles;
+
+-- Policy: Users can INSERT their own profile
+CREATE POLICY "Users can insert their own profile"
+ON profiles
+FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = id);
+
+-- Policy: Users can SELECT their own profile
+CREATE POLICY "Users can view their own profile"
+ON profiles
+FOR SELECT
+TO authenticated
+USING (auth.uid() = id);
+
+-- Policy: Users can UPDATE their own profile
+CREATE POLICY "Users can update their own profile"
+ON profiles
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- Policy: Users can view other APPROVED profiles (for discovery/matching)
+CREATE POLICY "Users can view approved profiles"
+ON profiles
+FOR SELECT
+TO authenticated
+USING (
+  status = 'approved' 
+  AND id != auth.uid()
+);
+
+-- Policy: Admins have full access to all profiles
+CREATE POLICY "Admins have full access"
+ON profiles
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
+
+-- ============================================
+-- CONVERSATIONS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their conversations" ON conversations;
+DROP POLICY IF EXISTS "Users can create conversations" ON conversations;
+DROP POLICY IF EXISTS "Users can update their conversations" ON conversations;
+
+-- Policy: Users can view conversations they're part of
+CREATE POLICY "Users can view their conversations"
+ON conversations
+FOR SELECT
+TO authenticated
+USING (
+  user1_id = auth.uid() OR user2_id = auth.uid()
+);
+
+-- Policy: Users can create conversations
+CREATE POLICY "Users can create conversations"
+ON conversations
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  user1_id = auth.uid() OR user2_id = auth.uid()
+);
+
+-- Policy: Users can update their conversations
+CREATE POLICY "Users can update their conversations"
+ON conversations
+FOR UPDATE
+TO authenticated
+USING (
+  user1_id = auth.uid() OR user2_id = auth.uid()
+)
+WITH CHECK (
+  user1_id = auth.uid() OR user2_id = auth.uid()
+);
+
+-- ============================================
+-- MESSAGES TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view messages in their conversations" ON messages;
+DROP POLICY IF EXISTS "Users can send messages" ON messages;
+DROP POLICY IF EXISTS "Users can update their own messages" ON messages;
+
+-- Policy: Users can view messages in conversations they're part of
+CREATE POLICY "Users can view messages in their conversations"
+ON messages
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM conversations
+    WHERE conversations.id = messages.conversation_id
+    AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+  )
+);
+
+-- Policy: Users can send messages in their conversations
+CREATE POLICY "Users can send messages"
+ON messages
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  sender_id = auth.uid()
+  AND EXISTS (
+    SELECT 1 FROM conversations
+    WHERE conversations.id = messages.conversation_id
+    AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+  )
+);
+
+-- Policy: Users can update their own messages (for editing/deleting)
+CREATE POLICY "Users can update their own messages"
+ON messages
+FOR UPDATE
+TO authenticated
+USING (sender_id = auth.uid())
+WITH CHECK (sender_id = auth.uid());
+
+-- ============================================
+-- REFERRALS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their referrals" ON referrals;
+DROP POLICY IF EXISTS "Users can create referrals" ON referrals;
+
+-- Policy: Users can view referrals they made
+CREATE POLICY "Users can view their referrals"
+ON referrals
+FOR SELECT
+TO authenticated
+USING (referrer_id = auth.uid());
+
+-- Policy: System can create referrals (handled by Edge Functions or triggers)
+-- Note: Referrals are typically created by the system when a referred user signs up
+
+-- ============================================
+-- REWARDS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their rewards" ON rewards;
+DROP POLICY IF EXISTS "Users can update their rewards" ON rewards;
+
+-- Policy: Users can view their own rewards
+CREATE POLICY "Users can view their rewards"
+ON rewards
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
+
+-- Policy: Users can update their own rewards (e.g., claim rewards)
+CREATE POLICY "Users can update their rewards"
+ON rewards
+FOR UPDATE
+TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- ============================================
+-- USER_INTERACTIONS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their interactions" ON user_interactions;
+DROP POLICY IF EXISTS "Users can create interactions" ON user_interactions;
+
+-- Policy: Users can view their own interactions
+CREATE POLICY "Users can view their interactions"
+ON user_interactions
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
+
+-- Policy: Users can create their own interactions
+CREATE POLICY "Users can create interactions"
+ON user_interactions
+FOR INSERT
+TO authenticated
+WITH CHECK (user_id = auth.uid());
+
+-- ============================================
+-- USER_BLOCKS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their blocks" ON user_blocks;
+DROP POLICY IF EXISTS "Users can create blocks" ON user_blocks;
+DROP POLICY IF EXISTS "Users can delete their blocks" ON user_blocks;
+
+-- Policy: Users can view blocks they created
+CREATE POLICY "Users can view their blocks"
+ON user_blocks
+FOR SELECT
+TO authenticated
+USING (blocker_id = auth.uid());
+
+-- Policy: Users can block other users
+CREATE POLICY "Users can create blocks"
+ON user_blocks
+FOR INSERT
+TO authenticated
+WITH CHECK (blocker_id = auth.uid());
+
+-- Policy: Users can unblock (delete their blocks)
+CREATE POLICY "Users can delete their blocks"
+ON user_blocks
+FOR DELETE
+TO authenticated
+USING (blocker_id = auth.uid());
+
+-- ============================================
+-- USER_REPORTS TABLE POLICIES
+-- ============================================
+
+DROP POLICY IF EXISTS "Users can view their reports" ON user_reports;
+DROP POLICY IF EXISTS "Users can create reports" ON user_reports;
+
+-- Policy: Users can view reports they created
+CREATE POLICY "Users can view their reports"
+ON user_reports
+FOR SELECT
+TO authenticated
+USING (reporter_id = auth.uid());
+
+-- Policy: Users can create reports
+CREATE POLICY "Users can create reports"
+ON user_reports
+FOR INSERT
+TO authenticated
+WITH CHECK (reporter_id = auth.uid());
+
+-- Policy: Admins can view all reports
+CREATE POLICY "Admins can view all reports"
+ON user_reports
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
+
+-- Policy: Admins can update reports (for status changes)
+CREATE POLICY "Admins can update reports"
+ON user_reports
+FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
+
+-- ============================================
+-- PART 2: DATABASE TRIGGERS (OPTIONAL BUT RECOMMENDED)
+-- ============================================
+
+-- Function: Automatically create profile when user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, created_at, updated_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO NOTHING; -- Prevent errors if profile already exists
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Create profile on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- PART 3: PERFORMANCE INDEXES
+-- ============================================
+
+-- Profiles table indexes
+CREATE INDEX IF NOT EXISTS idx_profiles_status ON profiles(status);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_location_city ON profiles(location_city);
+CREATE INDEX IF NOT EXISTS idx_profiles_location_country ON profiles(location_country);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at);
+CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON profiles(updated_at);
+
+-- Conversations table indexes
+CREATE INDEX IF NOT EXISTS idx_conversations_user1_id ON conversations(user1_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_user2_id ON conversations(user2_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_last_message_at ON conversations(last_message_at);
+
+-- Messages table indexes
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+
+-- Referrals table indexes
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referred_user_id ON referrals(referred_user_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);
+
+-- Rewards table indexes
+CREATE INDEX IF NOT EXISTS idx_rewards_user_id ON rewards(user_id);
+CREATE INDEX IF NOT EXISTS idx_rewards_status ON rewards(status);
+
+-- User interactions indexes
+CREATE INDEX IF NOT EXISTS idx_user_interactions_user_id ON user_interactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_interactions_target_user_id ON user_interactions(target_user_id);
+
+-- User blocks indexes
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker_id ON user_blocks(blocker_id);
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked_user_id ON user_blocks(blocked_user_id);
+
+-- User reports indexes
+CREATE INDEX IF NOT EXISTS idx_user_reports_reporter_id ON user_reports(reporter_id);
+CREATE INDEX IF NOT EXISTS idx_user_reports_reported_user_id ON user_reports(reported_user_id);
+CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
+
+-- ============================================
+-- PART 4: VERIFICATION QUERIES
+-- ============================================
+
+-- Run these queries to verify the setup:
+
+-- Check RLS is enabled on all tables:
+-- SELECT tablename, rowsecurity 
+-- FROM pg_tables 
+-- WHERE schemaname = 'public' 
+-- AND tablename IN ('profiles', 'conversations', 'messages', 'referrals', 'rewards', 'user_interactions', 'user_blocks', 'user_reports');
+
+-- Check all policies:
+-- SELECT schemaname, tablename, policyname, permissive, roles, cmd 
+-- FROM pg_policies 
+-- WHERE schemaname = 'public'
+-- ORDER BY tablename, policyname;
+
+-- Check triggers:
+-- SELECT tgname, tgrelid::regclass, tgenabled 
+-- FROM pg_trigger 
+-- WHERE tgname = 'on_auth_user_created';
+
+-- Check indexes:
+-- SELECT tablename, indexname 
+-- FROM pg_indexes 
+-- WHERE schemaname = 'public' 
+-- AND indexname LIKE 'idx_%'
+-- ORDER BY tablename, indexname;
+
+-- ============================================
+-- SETUP COMPLETE
+-- ============================================
+-- Your database is now configured for production with:
+-- ✅ Row Level Security enabled on all tables
+-- ✅ Comprehensive RLS policies for data protection
+-- ✅ Automatic profile creation on user signup
+-- ✅ Performance indexes for fast queries
+-- ✅ Admin access controls
+-- 
+-- Next steps:
+-- 1. Verify all policies are created correctly
+-- 2. Test user signup and profile creation
+-- 3. Test admin access
+-- 4. Monitor query performance and adjust indexes as needed
+-- ============================================
+

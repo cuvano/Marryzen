@@ -136,7 +136,7 @@ const Step1 = ({ formData, updateFormData, errors = {} }) => {
             {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
             {!errors.password && (
                  <p className="text-[#706B67] text-xs font-medium">
-                    Minimum 8 characters, at least 1 letter and 1 number.
+                    Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
                  </p>
             )}
         </div>

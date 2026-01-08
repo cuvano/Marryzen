@@ -67,7 +67,7 @@ const OnboardingPage = () => {
                 .from('profiles')
                 .select('*')
                 .eq('id', existingSession.user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle() to handle case where profile doesn't exist yet
             
             if (profile) {
                 // Map DB fields back to formData
@@ -138,8 +138,8 @@ const OnboardingPage = () => {
     if (!formData.name.trim()) { errors.name = "Full Name is required."; isValid = false; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email)) { errors.email = "Please enter a valid email address."; isValid = false; }
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!formData.password || !passwordRegex.test(formData.password)) { errors.password = "Password must be at least 8 chars, with 1 letter and 1 number."; isValid = false; }
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+    if (!formData.password || !passwordRegex.test(formData.password)) { errors.password = "Password must be at least 8 characters, with at least 1 letter and 1 number."; isValid = false; }
     if (formData.password !== formData.confirmPassword) { errors.confirmPassword = "Passwords do not match."; isValid = false; }
     if (!formData.dateOfBirth) isValid = false;
     if (!formData.locationCountry) isValid = false;
@@ -195,6 +195,7 @@ const OnboardingPage = () => {
 
           // Check if user is already authenticated (resuming step 1?)
           let userId = session?.user?.id;
+          let currentSession = session;
 
           if (!userId) {
               const { data, error } = await supabase.auth.signUp({
@@ -218,14 +219,95 @@ const OnboardingPage = () => {
                   }
                   throw error;
               }
+              
               userId = data.user?.id;
-              setSession(data.session); // Update local session state
+              currentSession = data.session;
+              
+              // If no session (email confirmation required), wait a moment and check again
+              if (!currentSession && userId) {
+                  // Wait for session to be established
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  const { data: { session: newSession } } = await supabase.auth.getSession();
+                  currentSession = newSession;
+                  setSession(newSession);
+              } else {
+                  setSession(currentSession);
+              }
           }
           
           if (userId) {
-              // Create initial profile record
-              const { error: profileError } = await supabase.from('profiles').upsert({
-                  id: userId,
+              // Ensure we have an authenticated session for RLS
+              // RLS requires the user to be authenticated
+              if (!currentSession) {
+                  // Try to get session one more time
+                  const { data: { session: retrySession } } = await supabase.auth.getSession();
+                  if (retrySession) {
+                      currentSession = retrySession;
+                      setSession(retrySession);
+                  } else {
+                      // Email confirmation is required - save form data and redirect
+                      toast({ 
+                          title: "Check Your Email", 
+                          description: "We've sent you a confirmation email. Please click the link to verify your account, then return here to continue.",
+                          duration: 8000
+                      });
+                      
+                      // Store form data temporarily so user can resume after email confirmation
+                      localStorage.setItem('onboarding_pending', JSON.stringify({
+                          userId: userId,
+                          email: formData.email,
+                          step: 1,
+                          formData: formData
+                      }));
+                      
+                      // Redirect to email verification page
+                      navigate('/verify-email');
+                      setIsLoading(false);
+                      return;
+                  }
+              }
+              
+              const authenticatedUserId = currentSession.user.id;
+              
+              // Wait a moment for database trigger to create profile (if trigger exists)
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Check if profile exists (handle PGRST116 gracefully)
+              const { data: existingProfile, error: checkError } = await supabase
+                  .from('profiles')
+                  .select('id')
+                  .eq('id', authenticatedUserId)
+                  .maybeSingle(); // Use maybeSingle() instead of single() to avoid PGRST116
+              
+              let profileError = null;
+              
+              if (existingProfile && !checkError) {
+                  // Profile exists, update it
+                  const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({
+                          email: formData.email,
+                          full_name: formData.name,
+                          date_of_birth: formData.dateOfBirth,
+                          location_city: formData.locationCity,
+                          location_country: formData.locationCountry,
+                          location_state: formData.locationState,
+                          identify_as: formData.identifyAs,
+                          looking_for_gender: formData.lookingForGender,
+                          serious_relationship: formData.seriousRelationship,
+                          onboarding_step: 2,
+                          status: 'pending_review',
+                          updated_at: new Date().toISOString()
+                      })
+                      .eq('id', authenticatedUserId);
+                  profileError = updateError;
+              } else {
+                  // Profile doesn't exist, try to create it
+                  // Make sure we're authenticated before inserting
+                  const { error: insertError } = await supabase
+                      .from('profiles')
+                      .insert({
+                          id: authenticatedUserId,
                   email: formData.email,
                   full_name: formData.name,
                   date_of_birth: formData.dateOfBirth,
@@ -235,9 +317,36 @@ const OnboardingPage = () => {
                   identify_as: formData.identifyAs,
                   looking_for_gender: formData.lookingForGender,
                   serious_relationship: formData.seriousRelationship,
-                  onboarding_step: 2
-              });
-              if (profileError) throw profileError;
+                          onboarding_step: 2,
+                          status: 'pending_review'
+                      });
+                  profileError = insertError;
+              }
+              
+              if (profileError) {
+                  console.error('Profile creation/update error:', profileError);
+                  
+                  // Handle specific error codes
+                  if (profileError.code === '42501') {
+                      toast({ 
+                          title: "Profile Creation Failed", 
+                          description: "RLS policy not configured. Please run the SQL in Supabase Dashboard → SQL Editor. See SUPABASE_SETUP_COMPLETE.sql file.",
+                          variant: "destructive",
+                          duration: 10000
+                      });
+                  } else if (profileError.code === 'PGRST116') {
+                      // This shouldn't happen now with maybeSingle(), but handle it anyway
+                      console.warn('Profile check returned no rows, but this is expected for new users');
+                  } else {
+                      toast({ 
+                          title: "Profile Creation Failed", 
+                          description: profileError.message || "Please try again or contact support.",
+                          variant: "destructive"
+                      });
+                  }
+                  setIsLoading(false);
+                  return;
+              }
               
               toast({ title: "Account Created!", description: "Let's build your profile." });
               setCurrentStep(2);

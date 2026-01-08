@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,28 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is already logged in, redirect to dashboard
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_step')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (profile && profile.onboarding_step && profile.onboarding_step < 5) {
+          navigate('/onboarding', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -27,12 +49,18 @@ const LoginPage = () => {
       if (error) throw error;
 
       if (data.session) {
+        // Store session info in localStorage for quick access (optional, but helps)
+        localStorage.setItem('userProfile', JSON.stringify({
+          id: data.session.user.id,
+          email: data.session.user.email
+        }));
+
         // Check if profile exists and onboarding status
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_step')
           .eq('id', data.session.user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle to handle case where profile doesn't exist
 
         if (profileError && profileError.code !== 'PGRST116') {
            console.error("Profile fetch error:", profileError);
@@ -40,11 +68,26 @@ const LoginPage = () => {
 
         toast({ title: "Welcome back!", description: "Successfully logged in." });
         
+        // Wait for auth state to propagate and session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Double-check session is still valid before navigating
+        const { data: { session: verifySession } } = await supabase.auth.getSession();
+        if (!verifySession) {
+          toast({
+            title: "Session Error",
+            description: "Please try logging in again.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         // If profile is incomplete (e.g. step < 5), redirect to onboarding
-        if (profile && profile.onboarding_step < 5) {
-             navigate('/onboarding');
+        if (profile && profile.onboarding_step && profile.onboarding_step < 5) {
+             navigate('/onboarding', { replace: true });
         } else {
-             navigate('/dashboard');
+             navigate('/dashboard', { replace: true });
         }
       }
     } catch (error) {

@@ -16,35 +16,104 @@ const VerifyEmailPage = () => {
   useEffect(() => {
     const getUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
         if (user) {
             setEmail(user.email);
-            // Check if already verified in profile
-            const { data } = await supabase.from('profiles').select('email_verified').eq('id', user.id).single();
-            if (data?.email_verified) setStatus('verified');
+            
+            // Check if email is verified
+            if (user.email_confirmed_at || session) {
+                setStatus('verified');
+                
+                // Check if there's pending onboarding data
+                const pendingData = localStorage.getItem('onboarding_pending');
+                if (pendingData) {
+                    try {
+                        const pending = JSON.parse(pendingData);
+                        // User just confirmed email, redirect back to onboarding
+                        localStorage.removeItem('onboarding_pending');
+                        navigate('/onboarding');
+                        return;
+                    } catch (e) {
+                        console.error('Error parsing pending data:', e);
+                    }
+                }
+            } else {
+                setStatus('pending');
+            }
         } else {
-            navigate('/login');
+            // Check if there's pending onboarding (user signed up but not confirmed)
+            const pendingData = localStorage.getItem('onboarding_pending');
+            if (pendingData) {
+                try {
+                    const pending = JSON.parse(pendingData);
+                    setEmail(pending.email);
+                    setStatus('pending');
+                } catch (e) {
+                    navigate('/login');
+                }
+            } else {
+                navigate('/login');
+            }
         }
     };
     getUser();
+    
+    // Listen for auth state changes (when user confirms email)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            setStatus('verified');
+            // Check for pending onboarding
+            const pendingData = localStorage.getItem('onboarding_pending');
+            if (pendingData) {
+                localStorage.removeItem('onboarding_pending');
+                navigate('/onboarding');
+            }
+        }
+    });
+    
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleResend = async () => {
       setLoading(true);
-      // In a real implementation, this would call an Edge Function to generate token & send email
-      // For this demo, we simulate the API call
       try {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error("No user");
-
-          // Simulate Edge Function Call
-          // await supabase.functions.invoke('send-verification-email', { body: { email } });
           
-          await new Promise(r => setTimeout(r, 1000)); 
-          
-          setStatus('sent');
-          toast({ title: "Email Sent", description: "Check your inbox for the verification link." });
+          if (user) {
+              // User exists, resend confirmation email
+              const { error } = await supabase.auth.resend({
+                  type: 'signup',
+                  email: user.email
+              });
+              
+              if (error) throw error;
+              
+              setStatus('sent');
+              toast({ title: "Email Sent", description: "Check your inbox for the verification link." });
+          } else {
+              // No user session, try to resend using email from pending data
+              const pendingData = localStorage.getItem('onboarding_pending');
+              if (pendingData) {
+                  const pending = JSON.parse(pendingData);
+                  // Note: Supabase doesn't have a direct resend for unconfirmed users
+                  // User needs to sign up again or check their email
+                  toast({ 
+                      title: "Check Your Email", 
+                      description: "If you didn't receive the email, please check your spam folder or try signing up again.",
+                      duration: 6000
+                  });
+              } else {
+                  throw new Error("No user found");
+              }
+          }
       } catch (err) {
-          toast({ title: "Error", description: "Could not send email.", variant: "destructive" });
+          console.error('Resend error:', err);
+          toast({ 
+              title: "Error", 
+              description: err.message || "Could not send email. Please try signing up again.",
+              variant: "destructive" 
+          });
       } finally {
           setLoading(false);
       }

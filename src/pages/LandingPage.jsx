@@ -13,10 +13,13 @@ const LandingPage = () => {
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
-    const userProfile = localStorage.getItem('userProfile');
-    if (userProfile) {
-      navigate('/dashboard');
-    }
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   const scrollToSection = (id) => {
