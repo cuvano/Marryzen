@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700&display=swap');
+
+:root {
+  /* Global Background System */
+  --bg-primary: #FAF7F2;     /* Soft Warm White */
+  --bg-secondary: #F3E8D9;   /* Light Champagne */
+  --bg-highlight: #F9E7EB;   /* Soft Blush Rose */
+  --bg-safety: #EAF2F7;      /* Mist Blue */
+  
+  /* Text Colors */
+  --text-heading: #1F1F1F;   /* Deep Charcoal */
+  --text-body: #333333;      /* Soft Black */
+  --text-muted: #706B67;     /* Warm Gray */
+  
+  /* Brand Colors */
+  --color-gold: #E6B450;
+  --color-gold-dark: #D0A23D;
+  --color-rose: #C85A72;
+  
+  /* UI Elements */
+  --border-champagne: #E6DCD2;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  
+  /* Shadcn/Base Variables mapped to new system */
+  --background: 40 17% 96%; /* #FAF7F2 */
+  --foreground: 0 0% 12%;   /* #1F1F1F */
+  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 20%;
+  
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+  
+  --primary: 40 74% 61%;    /* #E6B450 */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 346 46% 57%; /* #C85A72 */
+  --secondary-foreground: 0 0% 100%;
+  
+  --muted: 36 38% 90%;      /* #F3E8D9 */
+  --muted-foreground: 24 4% 42%; /* #706B67 */
+  
+  --accent: 346 42% 94%;    /* #F9E7EB */
+  --accent-foreground: 346 46% 57%;
+  
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --border: 30 25% 86%;     /* #E6DCD2 */
+  --input: 30 25% 86%;
+  --ring: 40 74% 61%;
+  
+  --radius: 0.875rem;       /* 14px */
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-body);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+p {
+  color: var(--text-body);
+}
+
+/* Custom Component Classes */
+
+/* Buttons */
+.btn-primary-gold {
+  background-color: var(--color-gold);
+  color: #FFFFFF;
+  border-radius: 9999px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(230, 180, 80, 0.25);
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-primary-gold:hover {
+  background-color: var(--color-gold-dark);
+  box-shadow: 0 6px 16px rgba(230, 180, 80, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary-rose {
+  background-color: transparent;
+  border: 2px solid var(--color-rose);
+  color: var(--color-rose);
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-rose:hover {
+  background-color: var(--bg-highlight);
+  color: var(--color-rose);
+  border-color: var(--color-rose);
+}
+
+/* Cards */
+.card-warm {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-champagne);
+  border-radius: 14px; /* 14px rounded corners */
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.card-warm:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Layout */
+.section-pad {
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
+
+.separator-line {
+  border-bottom: 1px solid var(--border-champagne);
+}
