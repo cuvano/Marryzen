@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell } from 'lucide-react';
-import { currentUserProfile } from '@/lib/matchmaking';
+import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import {
   DropdownMenu,
@@ -23,28 +22,10 @@ const Header = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Retrieve user profile or fall back to mock
-  const localProfile = JSON.parse(localStorage.getItem('userProfile'));
-  const user = localProfile || currentUserProfile;
-  const firstName = user.name ? user.name.split(' ')[0] : 'User';
-  const avatar = user.photos && user.photos.length > 0 ? user.photos[0] : null;
+  const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
-  useEffect(() => {
-    fetchNotifications();
-    
-    // Subscribe to realtime notifications
-    const channel = supabase
-      .channel('header_notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
-          // In a real app, filter by user_id here or rely on RLS if possible (RLS doesn't filter realtime always correctly without row level security enabled properly on publication)
-          // For now assuming we refetch or push
-          fetchNotifications();
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, []);
-
+  // Define fetchNotifications before useEffect
   const fetchNotifications = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -61,10 +42,95 @@ const Header = () => {
       setUnreadCount(unread);
   };
 
-  const markAsRead = async (id) => {
-      await supabase.from('notifications').update({ read: true }).eq('id', id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  useEffect(() => {
+    const initUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setUser(authUser);
+        // Fetch profile for avatar and name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, photos')
+          .eq('id', authUser.id)
+          .maybeSingle();
+        setUserProfile(profile);
+      }
+    };
+    initUser();
+    fetchNotifications();
+    
+    // Subscribe to realtime notifications
+    const channel = supabase
+      .channel('header_notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+          fetchNotifications();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  const firstName = userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'User';
+  const avatar = userProfile?.photos?.[0] || null;
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'new_match':
+        return <Heart className="w-4 h-4 text-[#C85A72]" />;
+      case 'new_message':
+        return <MessageSquare className="w-4 h-4 text-blue-600" />;
+      case 'intro_request':
+        return <UserPlus className="w-4 h-4 text-[#E6B450]" />;
+      case 'profile_approved':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'profile_rejected':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'referral_reward':
+        return <Award className="w-4 h-4 text-[#E6B450]" />;
+      default:
+        return <Bell className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Mark as read
+    if (!notification.read) {
+      await supabase.from('notifications').update({ read: true }).eq('id', notification.id);
+      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+
+    // Route based on notification type
+    const metadata = notification.metadata || {};
+    
+    switch (notification.type) {
+      case 'new_match':
+        navigate('/matches');
+        break;
+      case 'new_message':
+        if (metadata.conversation_id) {
+          navigate(`/chat/${metadata.conversation_id}`);
+        } else {
+          navigate('/chat');
+        }
+        break;
+      case 'intro_request':
+        if (metadata.profile_id) {
+          navigate(`/profile/${metadata.profile_id}`);
+        } else {
+          navigate('/discovery');
+        }
+        break;
+      case 'profile_approved':
+      case 'profile_rejected':
+        navigate('/profile');
+        break;
+      case 'referral_reward':
+        navigate('/rewards');
+        break;
+      default:
+        navigate('/notifications');
+    }
   };
 
   const handleLogout = async () => {
@@ -112,66 +178,112 @@ const Header = () => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <div className="flex items-center justify-between px-2 py-1.5">
+                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/notifications');
+                        }}
+                    >
+                        View All
+                    </Button>
+                </div>
                 <DropdownMenuSeparator />
-                <div className="max-h-[300px] overflow-y-auto">
+                <div className="max-h-[400px] overflow-y-auto">
                     {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
+                        <div className="p-4 text-center text-sm text-gray-500">
+                            <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                            <p>No new notifications</p>
+                        </div>
                     ) : (
                         notifications.map(n => (
-                            <DropdownMenuItem key={n.id} onClick={() => markAsRead(n.id)} className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${!n.read ? 'bg-blue-50' : ''}`}>
-                                <div className="flex justify-between w-full">
-                                    <span className="font-semibold text-sm">{n.title}</span>
-                                    {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                            <DropdownMenuItem 
+                                key={n.id} 
+                                onClick={() => handleNotificationClick(n)} 
+                                className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-[#FAF7F2] ${!n.read ? 'bg-blue-50/50' : ''}`}
+                            >
+                                <div className="mt-0.5">
+                                    {getNotificationIcon(n.type)}
                                 </div>
-                                <p className="text-xs text-gray-600 line-clamp-2">{n.body}</p>
-                                <span className="text-[10px] text-gray-400">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <span className="font-semibold text-sm text-[#1F1F1F]">{n.title}</span>
+                                        {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1"></span>}
+                                    </div>
+                                    <p className="text-xs text-[#706B67] line-clamp-2 mt-1">{n.body}</p>
+                                    <span className="text-[10px] text-gray-400 mt-1 block">
+                                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                    </span>
+                                </div>
                             </DropdownMenuItem>
                         ))
                     )}
                 </div>
+                {notifications.length > 0 && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={() => navigate('/notifications')}
+                            className="text-center justify-center text-sm font-medium text-[#C85A72]"
+                        >
+                            View All Notifications
+                        </DropdownMenuItem>
+                    </>
+                )}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Profile Dropdown */}
-          <div className="relative">
-            <button 
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-2 pl-4 border-l border-[#E6DCD2] hover:opacity-80 transition-opacity"
-            >
-                <div className="w-8 h-8 rounded-full bg-[#F3E8D9] overflow-hidden border border-[#E6DCD2]">
-                    {avatar ? (
-                        <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                        <User className="w-full h-full p-1.5 text-[#C85A72]" />
-                    )}
-                </div>
-                <span className="text-sm font-bold text-[#1F1F1F]">{firstName}</span>
-            </button>
+          {user && (
+            <div className="relative">
+              <button 
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="flex items-center gap-2 pl-4 border-l border-[#E6DCD2] hover:opacity-80 transition-opacity"
+              >
+                  <div className="w-8 h-8 rounded-full bg-[#F3E8D9] overflow-hidden border border-[#E6DCD2]">
+                      {avatar ? (
+                          <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                          <User className="w-full h-full p-1.5 text-[#C85A72]" />
+                      )}
+                  </div>
+                  <span className="text-sm font-bold text-[#1F1F1F]">{firstName}</span>
+              </button>
 
-            {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white border border-[#E6DCD2] rounded-xl shadow-xl py-2 flex flex-col z-50">
-                    <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                        <User size={16} /> My Profile
-                    </button>
-                    <button onClick={() => { navigate('/rewards'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                        <Gift size={16} /> My Rewards
-                    </button>
-                    <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                         <Settings size={16} /> Account Settings
-                    </button>
-                    <div className="h-px bg-[#E6DCD2] my-1"></div>
-                    <button onClick={handleLogout} className="text-left px-4 py-3 text-sm font-bold text-[#C85A72] hover:bg-[#F9E7EB] flex items-center gap-2">
-                        <LogOut size={16} /> Sign Out
-                    </button>
-                </div>
-            )}
-            
-            {/* Backdrop for dropdown */}
-            {isProfileMenuOpen && (
-                <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
-            )}
-          </div>
+              {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white border border-[#E6DCD2] rounded-xl shadow-xl py-2 flex flex-col z-50">
+                      <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                          <User size={16} /> My Profile
+                      </button>
+                      <button onClick={() => { navigate('/notifications'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2 relative">
+                          <Bell size={16} /> Notifications
+                          {unreadCount > 0 && (
+                              <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
+                          )}
+                      </button>
+                      <button onClick={() => { navigate('/rewards'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                          <Gift size={16} /> My Rewards
+                      </button>
+                      <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                           <Settings size={16} /> Account Settings
+                      </button>
+                      <div className="h-px bg-[#E6DCD2] my-1"></div>
+                      <button onClick={handleLogout} className="text-left px-4 py-3 text-sm font-bold text-[#C85A72] hover:bg-[#F9E7EB] flex items-center gap-2">
+                          <LogOut size={16} /> Sign Out
+                      </button>
+                  </div>
+              )}
+              
+              {/* Backdrop for dropdown */}
+              {isProfileMenuOpen && (
+                  <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -186,6 +298,12 @@ const Header = () => {
            <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
            <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
            <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
+           <NavItem 
+             label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
+             path="/notifications" 
+             icon={Bell} 
+             active={location.pathname === '/notifications'} 
+           />
            <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
            <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
            <div className="h-px bg-[#E6DCD2] my-2"></div>

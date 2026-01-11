@@ -26,6 +26,7 @@ import PremiumPage from '@/pages/PremiumPage';
 import BillingPage from '@/pages/BillingPage';
 import ReferralPage from '@/pages/ReferralPage';
 import RewardsPage from '@/pages/RewardsPage';
+import NotificationsPage from '@/pages/NotificationsPage';
 
 // Legal Pages
 import TermsOfService from '@/pages/legal/TermsOfService';
@@ -37,6 +38,7 @@ import RefundPolicy from '@/pages/legal/RefundPolicy';
 import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
+import ReferralTerms from '@/pages/legal/ReferralTerms';
 
 // Admin Pages
 import AdminLayout from '@/layouts/AdminLayout';
@@ -84,6 +86,7 @@ function App() {
                           <Route path="/billing" element={<BillingPage />} />
                           <Route path="/referrals" element={<ReferralPage />} />
                           <Route path="/rewards" element={<RewardsPage />} />
+                          <Route path="/notifications" element={<NotificationsPage />} />
                       </Route>
                       
                       {/* Legal Routes */}
@@ -96,6 +99,7 @@ function App() {
                       <Route path="/cookie-policy" element={<CookiePolicy />} />
                       <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
                       <Route path="/investor-legal" element={<InvestorLegalSummary />} />
+                      <Route path="/referral-terms" element={<ReferralTerms />} />
 
                       {/* Admin Routes - Protected by AdminLayout logic */}
                       <Route path="/admin" element={<AdminLayout />}>
