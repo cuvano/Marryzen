@@ -16,12 +16,54 @@ const PremiumPage = () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Please log in first");
+      if (!user) {
+        toast({
+          title: "Please Log In",
+          description: "You need to be logged in to subscribe to premium.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
 
       // Check if user is approved
-      const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single();
-      if (profile.status !== 'approved') {
-        throw new Error("Only approved profiles can subscribe to premium.");
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('status, onboarding_step')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
+      }
+
+      if (!profile || profile.status !== 'approved') {
+        // Show helpful message instead of blocking
+        const statusMessage = !profile 
+          ? "Please complete your profile first."
+          : profile.status === 'pending_review'
+          ? "Your profile is pending review. Once approved, you can subscribe to premium."
+          : profile.status === 'rejected'
+          ? "Please update your profile to meet our guidelines, then resubmit for review."
+          : "Your profile needs to be approved before subscribing to premium.";
+
+        toast({
+          title: "Profile Approval Required",
+          description: statusMessage + (profile?.onboarding_step < 5 ? " Complete your onboarding to get approved faster." : ""),
+          variant: "destructive"
+        });
+
+        // Optionally navigate to profile/onboarding
+        if (!profile || profile.onboarding_step < 5) {
+          setTimeout(() => {
+            if (window.confirm("Would you like to complete your profile now?")) {
+              window.location.href = profile?.onboarding_step < 5 ? '/onboarding' : '/profile';
+            }
+          }, 1000);
+        }
+
+        setLoading(false);
+        return;
       }
 
       const { data, error } = await supabase.functions.invoke('stripe-api', {
@@ -42,7 +84,7 @@ const PremiumPage = () => {
       console.error(err);
       toast({
         title: "Subscription Error",
-        description: err.message,
+        description: err.message || "Something went wrong. Please try again.",
         variant: "destructive"
       });
     } finally {

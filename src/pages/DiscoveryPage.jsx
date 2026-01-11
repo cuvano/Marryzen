@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { 
   SlidersHorizontal, Search, RotateCcw, Heart, Save, BookHeart, 
   Clock, Flame, Star, MapPin, Loader2, MoreHorizontal, Undo2,
-  Trash2, Check, Shield, X
+  Trash2, Check, Shield, X, ArrowRight, Settings
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
@@ -56,7 +56,6 @@ const DiscoveryPage = () => {
     distance: 50, // km
     city: '',
     faith: '',
-    marriageIntent: '',
     smoking: '',
     drinking: '',
     maritalStatus: '',
@@ -329,6 +328,122 @@ const DiscoveryPage = () => {
       if (activePreferenceId === id) setActivePreferenceId(null);
   };
 
+  // Empty State Component
+  const EmptyState = ({ filters, defaultFilters, isPremium, userProfile, onClearFilters, onExpandAge, onIncreaseDistance, onRemovePremiumFilters, onCompleteProfile }) => {
+    const hasActiveFilters = filters.city || filters.faith || filters.smoking || filters.drinking || filters.maritalStatus || filters.hasChildren || 
+                            filters.ageRange[0] !== defaultFilters.ageRange[0] || filters.ageRange[1] !== defaultFilters.ageRange[1] ||
+                            filters.distance !== defaultFilters.distance || (isPremium && (filters.recentActive || filters.verifiedOnly || filters.minPhotos > 0 || filters.income));
+
+    const suggestions = [];
+
+    // Age range suggestion
+    if (filters.ageRange[0] > 20 || filters.ageRange[1] < 65) {
+      suggestions.push({
+        icon: Heart,
+        title: 'Expand Age Range',
+        description: `Currently ${filters.ageRange[0]}-${filters.ageRange[1]}. Expand to see more profiles.`,
+        action: onExpandAge,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50'
+      });
+    }
+
+    // Distance suggestion
+    if (filters.distance < 100 && isPremium) {
+      suggestions.push({
+        icon: MapPin,
+        title: 'Increase Distance',
+        description: `Currently ${filters.distance}km. Increase to see more matches nearby.`,
+        action: onIncreaseDistance,
+        color: 'text-green-600',
+        bg: 'bg-green-50'
+      });
+    }
+
+    // Premium filters suggestion
+    if (isPremium && (filters.recentActive || filters.verifiedOnly || filters.minPhotos > 0 || filters.income)) {
+      suggestions.push({
+        icon: X,
+        title: 'Remove Premium-Only Filters',
+        description: 'These filters are limiting your results. Remove them to see more profiles.',
+        action: onRemovePremiumFilters,
+        color: 'text-orange-600',
+        bg: 'bg-orange-50'
+      });
+    }
+
+    // Profile completion suggestion
+    if (!userProfile || userProfile.onboarding_step < 5 || userProfile.status !== 'approved') {
+      suggestions.push({
+        icon: Settings,
+        title: 'Complete Your Profile',
+        description: 'Complete your profile to get better matches and see more results.',
+        action: onCompleteProfile,
+        color: 'text-purple-600',
+        bg: 'bg-purple-50'
+      });
+    }
+
+    return (
+      <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-8 md:p-12">
+        <div className="text-center max-w-2xl mx-auto">
+          <Search className="w-16 h-16 mx-auto text-[#706B67] mb-4 opacity-50" />
+          <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profiles found</h3>
+          <p className="text-[#706B67] mb-8">
+            {hasActiveFilters 
+              ? "Your current filters are too specific. Try adjusting them to see more matches."
+              : "No matches found right now. Check back soon or adjust your preferences."}
+          </p>
+
+          {/* Actionable Suggestions */}
+          {suggestions.length > 0 && (
+            <div className="mb-8 text-left">
+              <h4 className="text-lg font-bold text-[#1F1F1F] mb-4 text-center">Try these suggestions:</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                {suggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={suggestion.action}
+                    className={`p-4 rounded-lg border border-[#E6DCD2] hover:border-[#E6B450] transition-all text-left group ${suggestion.bg}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${suggestion.bg} group-hover:scale-110 transition-transform`}>
+                        <suggestion.icon className={`w-5 h-5 ${suggestion.color}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="font-bold text-[#1F1F1F] mb-1">{suggestion.title}</h5>
+                        <p className="text-sm text-[#706B67]">{suggestion.description}</p>
+                      </div>
+                      <ArrowRight className={`w-4 h-4 ${suggestion.color} opacity-0 group-hover:opacity-100 transition-opacity mt-1`} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3 justify-center">
+            {hasActiveFilters && (
+              <Button 
+                onClick={() => onClearFilters(defaultFilters)} 
+                variant="outline"
+                className="border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" /> Clear All Filters
+              </Button>
+            )}
+            <Button 
+              onClick={() => onClearFilters(defaultFilters)}
+              className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+            >
+              <Search className="w-4 h-4 mr-2" /> Browse All Profiles
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-[#FAF7F2]">
@@ -340,6 +455,11 @@ const DiscoveryPage = () => {
                 setFilters={setFilters} 
                 isPremium={currentUser?.is_premium} 
                 onApply={() => fetchProfiles()} 
+                onClear={(clearedFilters) => {
+                    setFilters(clearedFilters);
+                    fetchProfiles();
+                }}
+                onSave={() => setIsSavePrefModalOpen(true)}
                 resultsCount={profiles.length}
             />
         </div>
@@ -353,6 +473,14 @@ const DiscoveryPage = () => {
                         setFilters={setFilters} 
                         isPremium={currentUser?.is_premium} 
                         onApply={() => { fetchProfiles(); setIsFilterOpen(false); }} 
+                        onClear={(clearedFilters) => {
+                            setFilters(clearedFilters);
+                            fetchProfiles();
+                        }}
+                        onSave={() => {
+                            setIsSavePrefModalOpen(true);
+                            setIsFilterOpen(false);
+                        }}
                         onClose={() => setIsFilterOpen(false)}
                         resultsCount={profiles.length}
                     />
@@ -454,12 +582,40 @@ const DiscoveryPage = () => {
                         <p className="text-[#706B67]">Finding compatible matches...</p>
                     </div>
                 ) : profiles.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-[#E6DCD2]">
-                        <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-xl font-bold text-[#1F1F1F]">No matches found</h3>
-                        <p className="text-[#706B67] mt-2 mb-6">Try broadening your filters or clearing them to see more people.</p>
-                        <Button onClick={() => setFilters(defaultFilters)} variant="outline">Reset All Filters</Button>
-                    </div>
+                    <EmptyState 
+                        filters={filters}
+                        defaultFilters={defaultFilters}
+                        isPremium={currentUser?.is_premium}
+                        userProfile={currentUser}
+                        onClearFilters={(clearedFilters) => {
+                            setFilters(clearedFilters);
+                            fetchProfiles();
+                        }}
+                        onExpandAge={() => {
+                            const newAgeRange = [Math.max(18, filters.ageRange[0] - 5), Math.min(70, filters.ageRange[1] + 5)];
+                            const newFilters = { ...filters, ageRange: newAgeRange };
+                            setFilters(newFilters);
+                            fetchProfiles();
+                        }}
+                        onIncreaseDistance={() => {
+                            const newDistance = Math.min(500, filters.distance + 50);
+                            const newFilters = { ...filters, distance: newDistance };
+                            setFilters(newFilters);
+                            fetchProfiles();
+                        }}
+                        onRemovePremiumFilters={() => {
+                            const newFilters = {
+                                ...filters,
+                                recentActive: false,
+                                verifiedOnly: false,
+                                minPhotos: 0,
+                                income: ''
+                            };
+                            setFilters(newFilters);
+                            fetchProfiles();
+                        }}
+                        onCompleteProfile={() => navigate('/profile')}
+                    />
                 ) : (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">

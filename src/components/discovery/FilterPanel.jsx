@@ -12,9 +12,34 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Lock, Crown } from 'lucide-react';
 
-const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount }) => {
+const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave }) => {
   const handleChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearAll = () => {
+    const defaultFilters = {
+      ageRange: [18, 65],
+      distance: 50,
+      city: '',
+      faith: '',
+      smoking: '',
+      drinking: '',
+      maritalStatus: '',
+      hasChildren: '',
+      recentActive: false,
+      verifiedOnly: false,
+      minPhotos: 0,
+      income: ''
+    };
+    setFilters(defaultFilters);
+    if (onClear) {
+      onClear(defaultFilters);
+    }
+    // Also trigger apply to refresh results immediately
+    if (onApply) {
+      onApply();
+    }
   };
 
   const PremiumLock = ({ children, label }) => {
@@ -86,42 +111,27 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
             </AccordionContent>
           </AccordionItem>
 
-          {/* Values Section */}
+          {/* Values Section - Free Filters */}
           <AccordionItem value="values" className="border-b-0">
              <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Values & Beliefs</AccordionTrigger>
              <AccordionContent className="space-y-4 pt-2">
-                <PremiumLock label="Faith">
-                    <div className="space-y-2">
-                        <Label>Faith / Religion</Label>
-                        <select 
-                            className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white"
-                            value={filters.faith}
-                            onChange={(e) => handleChange('faith', e.target.value)}
-                        >
-                            <option value="">Any</option>
-                            <option value="Muslim">Muslim</option>
-                            <option value="Christian">Christian</option>
-                            <option value="Jewish">Jewish</option>
-                            <option value="Hindu">Hindu</option>
-                            <option value="Sikh">Sikh</option>
-                            <option value="Buddhist">Buddhist</option>
-                            <option value="Spiritual">Spiritual</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </PremiumLock>
-
                 <div className="space-y-2">
-                    <Label>Marriage Intent</Label>
+                    <Label>Faith / Religion</Label>
                     <select 
                         className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white"
-                        value={filters.marriageIntent}
-                        onChange={(e) => handleChange('marriageIntent', e.target.value)}
+                        value={filters.faith}
+                        onChange={(e) => handleChange('faith', e.target.value)}
                     >
                         <option value="">Any</option>
-                        <option value="Marriage ASAP">Marriage ASAP (Within 1 year)</option>
-                        <option value="Marriage within 2-3 years">Marriage within 2-3 years</option>
-                        <option value="Exploring">Exploring Options</option>
+                        <option value="Muslim">Muslim</option>
+                        <option value="Christian">Christian</option>
+                        <option value="Jewish">Jewish</option>
+                        <option value="Hindu">Hindu</option>
+                        <option value="Sikh">Sikh</option>
+                        <option value="Buddhist">Buddhist</option>
+                        <option value="Spiritual">Spiritual</option>
+                        <option value="Atheist">Atheist</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
              </AccordionContent>
@@ -224,26 +234,29 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
 
       <div className="p-5 border-t border-[#E6DCD2] bg-[#FAF7F2] space-y-3">
          <div className="flex justify-between items-center text-sm">
-             <span className="text-[#706B67] font-medium">{resultsCount} profiles match</span>
-             <Button variant="link" className="text-[#C85A72] h-auto p-0" onClick={() => setFilters({
-                 ageRange: [18, 65],
-                 distance: 50,
-                 city: '',
-                 faith: '',
-                 marriageIntent: '',
-                 smoking: '',
-                 drinking: '',
-                 maritalStatus: '',
-                 hasChildren: '',
-                 recentActive: false,
-                 verifiedOnly: false,
-                 minPhotos: 0,
-                 income: ''
-             })}>Clear All</Button>
+             <span className="text-[#706B67] font-medium">{resultsCount} {resultsCount === 1 ? 'profile' : 'profiles'} match</span>
+             <Button 
+               variant="link" 
+               className="text-[#C85A72] h-auto p-0 hover:text-[#9F4758] font-medium" 
+               onClick={handleClearAll}
+             >
+               Clear All
+             </Button>
          </div>
-         <Button onClick={onApply} className="w-full bg-[#1F1F1F] text-white hover:bg-[#333333]">
+         <div className="flex gap-2">
+           {onSave && (
+             <Button 
+               variant="outline" 
+               onClick={onSave} 
+               className="flex-1 border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]"
+             >
+               Save Search
+             </Button>
+           )}
+           <Button onClick={onApply} className={`${onSave ? 'flex-1' : 'w-full'} bg-[#1F1F1F] text-white hover:bg-[#333333]`}>
              Apply Filters
-         </Button>
+           </Button>
+         </div>
       </div>
     </div>
   );
