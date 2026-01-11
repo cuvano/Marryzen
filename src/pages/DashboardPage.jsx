@@ -12,6 +12,8 @@ import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -151,31 +153,62 @@ const DashboardPage = () => {
         ...(blocked?.map(b => b.blocked_user_id) || [])
       ]);
 
+      // Get matching config for scoring
+      const { data: matchingConfig } = await supabase
+        .from('matching_config')
+        .select('*')
+        .maybeSingle();
+
       // Fetch approved profiles that user hasn't interacted with
+      // Fetch more to allow for better matching algorithm ranking
       let query = supabase
         .from('profiles')
-        .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium, identify_as')
+        .select('*')
         .eq('status', 'approved')
-        .limit(3);
+        .limit(50); // Fetch more for better algorithm ranking
 
-      // Filter out interacted users
       const { data: profiles, error } = await query;
 
       if (error) throw error;
 
-      // Filter out excluded IDs and format
+      // Filter out excluded IDs, calculate compatibility scores, and rank
       const suggested = (profiles || [])
         .filter(p => !excludeIds.has(p.id))
-        .slice(0, 3)
-        .map(p => ({
-          id: p.id,
-          name: p.full_name,
-          photos: p.photos || [],
-          location: `${p.location_city || ''}${p.location_city && p.location_country ? ', ' : ''}${p.location_country || ''}`.trim() || 'Location not set',
-          age: p.date_of_birth ? Math.floor((new Date() - new Date(p.date_of_birth)) / (1000 * 60 * 60 * 24 * 365)) : null,
-          isPremium: p.is_premium,
-          identifyAs: p.identify_as
-        }));
+        .map(p => {
+          // Calculate distance if coordinates available
+          if (userProfile.latitude && userProfile.longitude && p.latitude && p.longitude) {
+            const R = 6371; // km
+            const dLat = (p.latitude - userProfile.latitude) * Math.PI / 180;
+            const dLon = (p.longitude - userProfile.longitude) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userProfile.latitude * Math.PI / 180) * Math.cos(p.latitude * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            p.distance = R * c;
+          }
+
+          // Calculate compatibility score using enhanced algorithm
+          const { score, breakdown, candidateAge } = calculateScore(userProfile, p, matchingConfig);
+
+          return {
+            id: p.id,
+            name: p.full_name,
+            photos: p.photos || [],
+            location: `${p.location_city || ''}${p.location_city && p.location_country ? ', ' : ''}${p.location_country || ''}`.trim() || 'Location not set',
+            age: candidateAge || (p.date_of_birth ? Math.floor((new Date() - new Date(p.date_of_birth)) / (1000 * 60 * 60 * 24 * 365)) : null),
+            isPremium: p.is_premium,
+            identifyAs: p.identify_as,
+            compatibilityScore: score,
+            matchLabel: getMatchLabel(score),
+            breakdown,
+            distance: p.distance || null,
+            // Store full profile for navigation
+            profile: p
+          };
+        })
+        .sort((a, b) => b.compatibilityScore - a.compatibilityScore) // Rank by compatibility score
+        .slice(0, 6); // Return top 6 matches
 
       setSuggestedProfiles(suggested);
     } catch (error) {
@@ -484,8 +517,8 @@ const DashboardPage = () => {
           >
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-[#1F1F1F]">Suggested Profiles</h2>
-                <p className="text-[#706B67] text-sm mt-1">Profiles you might be interested in</p>
+                <h2 className="text-2xl font-bold text-[#1F1F1F]">Top Compatibility Matches</h2>
+                <p className="text-[#706B67] text-sm mt-1">Ranked by compatibility algorithm</p>
               </div>
               <Button variant="outline" onClick={() => navigate('/discovery')} className="border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]">
                 View All
@@ -513,14 +546,29 @@ const DashboardPage = () => {
                         </div>
                       )}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white pt-12">
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                          {profile.name}
-                          {profile.age && <span className="text-base font-normal opacity-90">, {profile.age}</span>}
-                          {profile.isPremium && (
-                            <Crown className="w-4 h-4 text-[#E6B450] fill-[#E6B450]" />
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                              {profile.name}
+                              {profile.age && <span className="text-base font-normal opacity-90">, {profile.age}</span>}
+                              {profile.isPremium && (
+                                <Crown className="w-4 h-4 text-[#E6B450] fill-[#E6B450]" />
+                              )}
+                            </h3>
+                            <p className="text-white/90 text-sm font-medium mt-1">{profile.location}</p>
+                            {profile.distance !== null && (
+                              <p className="text-white/80 text-xs mt-1">{Math.round(profile.distance)} km away</p>
+                            )}
+                          </div>
+                          {profile.compatibilityScore !== undefined && (
+                            <div className="text-right">
+                              <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold text-base px-3 py-1">
+                                {profile.compatibilityScore}%
+                              </Badge>
+                              <p className="text-[#E6B450] text-xs font-bold mt-1">{profile.matchLabel}</p>
+                            </div>
                           )}
-                        </h3>
-                        <p className="text-white/90 text-sm font-medium mt-1">{profile.location}</p>
+                        </div>
                         <p className="font-bold text-xs text-[#E6B450] mt-2 uppercase tracking-wide">
                           Marriage Intent: Serious
                         </p>

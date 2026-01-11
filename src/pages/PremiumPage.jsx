@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, Crown, Check, X, ShieldCheck, Lock, Star, ShieldAlert, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Crown, Check, X, ShieldCheck, Lock, Star, ShieldAlert, Loader2, AlertCircle, UserCheck, FileText } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
 
@@ -11,6 +13,34 @@ const PremiumPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [profileStatus, setProfileStatus] = useState(null);
+  const [profileCheckLoading, setProfileCheckLoading] = useState(true);
+
+  useEffect(() => {
+    checkProfileStatus();
+  }, []);
+
+  const checkProfileStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setProfileCheckLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status, onboarding_step, full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      setProfileStatus(profile || null);
+    } catch (error) {
+      console.error('Error checking profile status:', error);
+    } finally {
+      setProfileCheckLoading(false);
+    }
+  };
 
   const handleSubscribe = async (priceId) => {
     setLoading(true);
@@ -37,32 +67,10 @@ const PremiumPage = () => {
         throw profileError;
       }
 
+      // Double-check status before proceeding
       if (!profile || profile.status !== 'approved') {
-        // Show helpful message instead of blocking
-        const statusMessage = !profile 
-          ? "Please complete your profile first."
-          : profile.status === 'pending_review'
-          ? "Your profile is pending review. Once approved, you can subscribe to premium."
-          : profile.status === 'rejected'
-          ? "Please update your profile to meet our guidelines, then resubmit for review."
-          : "Your profile needs to be approved before subscribing to premium.";
-
-        toast({
-          title: "Profile Approval Required",
-          description: statusMessage + (profile?.onboarding_step < 5 ? " Complete your onboarding to get approved faster." : ""),
-          variant: "destructive"
-        });
-
-        // Optionally navigate to profile/onboarding
-        if (!profile || profile.onboarding_step < 5) {
-          setTimeout(() => {
-            if (window.confirm("Would you like to complete your profile now?")) {
-              window.location.href = profile?.onboarding_step < 5 ? '/onboarding' : '/profile';
-            }
-          }, 1000);
-        }
-
         setLoading(false);
+        // Status should already be checked via UI, but just in case
         return;
       }
 
@@ -91,6 +99,11 @@ const PremiumPage = () => {
       setLoading(false);
     }
   };
+
+  const isApproved = profileStatus?.status === 'approved';
+  const isPending = profileStatus?.status === 'pending_review';
+  const isRejected = profileStatus?.status === 'rejected';
+  const hasIncompleteProfile = !profileStatus || profileStatus.onboarding_step < 5;
 
   // Mock Price IDs (replace with real Stripe Price IDs in production)
   const plans = [
@@ -146,6 +159,70 @@ const PremiumPage = () => {
             </div>
         </div>
 
+        {/* Profile Status Banner */}
+        {!profileCheckLoading && !isApproved && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <Card className={`border-2 ${isPending ? 'border-yellow-300 bg-yellow-50' : isRejected ? 'border-red-300 bg-red-50' : 'border-orange-300 bg-orange-50'}`}>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className={`p-2 rounded-full ${isPending ? 'bg-yellow-200' : isRejected ? 'bg-red-200' : 'bg-orange-200'}`}>
+                    <AlertCircle className={`w-6 h-6 ${isPending ? 'text-yellow-700' : isRejected ? 'text-red-700' : 'text-orange-700'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`font-bold text-lg mb-2 ${isPending ? 'text-yellow-900' : isRejected ? 'text-red-900' : 'text-orange-900'}`}>
+                      {isPending 
+                        ? "Your profile is pending approval" 
+                        : isRejected
+                        ? "Profile update required"
+                        : "Complete your profile to unlock Premium"}
+                    </h3>
+                    <p className={`text-sm mb-4 ${isPending ? 'text-yellow-800' : isRejected ? 'text-red-800' : 'text-orange-800'}`}>
+                      {isPending
+                        ? "Your profile is currently under review. Once approved, you'll be able to subscribe to Premium and unlock all features."
+                        : isRejected
+                        ? "Your profile needs to be updated to meet our guidelines. Please review and resubmit for approval."
+                        : "To subscribe to Premium, please complete your profile first. Premium unlocks after your profile is approved."}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {hasIncompleteProfile && (
+                        <Button
+                          onClick={() => navigate('/onboarding')}
+                          className={`${isPending ? 'bg-yellow-600 hover:bg-yellow-700' : isRejected ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'} text-white`}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Complete Profile
+                        </Button>
+                      )}
+                      {!hasIncompleteProfile && (
+                        <Button
+                          onClick={() => navigate('/profile')}
+                          className={`${isRejected ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white`}
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          {isRejected ? 'Update Profile' : 'Check Approval Status'}
+                        </Button>
+                      )}
+                      {isPending && (
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate('/profile')}
+                          className="border-yellow-600 text-yellow-700 hover:bg-yellow-100"
+                        >
+                          View Profile
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Feature Comparison */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl overflow-hidden mb-12 border border-[#E6DCD2] shadow-sm">
             <div className="grid grid-cols-3 p-4 border-b border-[#E6DCD2] bg-[#FAF7F2]">
@@ -190,13 +267,25 @@ const PremiumPage = () => {
                         <div className="text-[#706B67] text-xs font-medium">billed every {plan.duration}</div>
                     </div>
                     <div className="mt-auto">
-                        <Button 
+                        {!isApproved ? (
+                          <div className="w-full py-6 px-4 text-center bg-gray-100 border border-gray-300 rounded-lg">
+                            <p className="text-sm text-gray-600 font-medium">
+                              {isPending 
+                                ? "Unlocks after approval" 
+                                : isRejected
+                                ? "Update profile to continue"
+                                : "Complete profile first"}
+                            </p>
+                          </div>
+                        ) : (
+                          <Button 
                             disabled={loading}
                             onClick={() => handleSubscribe(plan.id)} 
                             className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#FAF7F2] border border-[#E6DCD2] hover:bg-[#E6DCD2] text-[#333333]'}`}
-                        >
+                          >
                             {loading ? <Loader2 className="animate-spin w-5 h-5" /> : plan.buttonText}
-                        </Button>
+                          </Button>
+                        )}
                     </div>
                 </motion.div>
             ))}
