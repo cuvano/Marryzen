@@ -296,6 +296,24 @@ const Step1 = ({ formData, updateFormData, errors = {} }) => {
             </Label>
           </div>
         </div>
+
+        {/* reCAPTCHA v3 runs invisibly in the background */}
+        {errors.captcha && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-red-600 text-sm font-medium">{errors.captcha}</p>
+          </div>
+        )}
+        
+        {/* Privacy/security notice - shows that protection is active */}
+        <div className="text-xs text-[#706B67] text-center pt-2 pb-2 flex items-center justify-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+          <span>Protected by reCAPTCHA Privacy</span>
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#E6B450] hover:underline">Terms</a>
+          <span>•</span>
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="text-[#E6B450] hover:underline">Privacy</a>
+        </div>
       </div>
 
       <p className="text-[#706B67] text-sm text-center pt-4 font-medium">

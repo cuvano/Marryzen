@@ -23,6 +23,11 @@ const ChatPage = () => {
   const [typingUsers, setTypingUsers] = useState(new Set());
   const typingTimeoutRef = useRef(null);
   
+  // Throttling state
+  const [messageSendTimes, setMessageSendTimes] = useState([]);
+  const messagesPerMinute = 10;
+  const messageThrottleMs = 6000; // 6 seconds between messages minimum
+  
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -129,12 +134,137 @@ const ChatPage = () => {
       }
   };
 
+  // Spam detection
+  const detectSpam = (text) => {
+    const lowerText = text.toLowerCase();
+    
+    // Check for URLs
+    const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|bit\.ly|tinyurl)/i;
+    if (urlPattern.test(text)) {
+      return { isSpam: true, reason: "URLs are not allowed in messages for security reasons." };
+    }
+    
+    // Check for phone numbers
+    const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+    if (phonePattern.test(text)) {
+      return { isSpam: true, reason: "Phone numbers are not allowed. Please use Marryzen messaging to communicate." };
+    }
+    
+    // Check for email addresses
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    if (emailPattern.test(text)) {
+      return { isSpam: true, reason: "Email addresses are not allowed. Please use Marryzen messaging to communicate." };
+    }
+    
+    // Check for common spam words/phrases
+    const spamWords = ['click here', 'buy now', 'free money', 'make money', 'work from home', 'get rich', 'viagra', 'casino', 'lottery'];
+    if (spamWords.some(word => lowerText.includes(word))) {
+      return { isSpam: true, reason: "Your message contains prohibited content. Please send a respectful message." };
+    }
+    
+    // Check for excessive capitalization (shouting)
+    const capsRatio = (text.match(/[A-Z]/g) || []).length / text.length;
+    if (capsRatio > 0.7 && text.length > 10) {
+      return { isSpam: false, warning: "Please avoid using excessive capitalization." };
+    }
+    
+    // Check for repeated characters (e.g., "heyyyyyyyy")
+    if (/(.)\1{4,}/.test(text)) {
+      return { isSpam: false, warning: "Please avoid excessive character repetition." };
+    }
+    
+    return { isSpam: false };
+  };
+
+  // Check for repeated messages (same message sent multiple times)
+  const checkRepeatedMessage = async (text) => {
+    if (!currentUser || !activeConversation) {
+      return { isRepeated: false };
+    }
+    
+    const { data: recentMessages } = await supabase
+      .from('messages')
+      .select('content')
+      .eq('sender_id', currentUser.id)
+      .eq('conversation_id', activeConversation.id)
+      .order('created_at', { ascending: false })
+      .limit(3);
+    
+    if (recentMessages && recentMessages.length > 0) {
+      const exactMatches = recentMessages.filter(msg => msg.content.trim().toLowerCase() === text.trim().toLowerCase()).length;
+      if (exactMatches >= 2) {
+        return { isRepeated: true, reason: "You've already sent a similar message. Please send something different." };
+      }
+    }
+    
+    return { isRepeated: false };
+  };
+
   const handleSendMessage = async () => {
       if (!messageText.trim() || !currentUser || !activeConversation) return;
       
       if (!currentUser.email_verified) {
           toast({ title: "Email Verification Required", description: "Please verify your email to send messages.", variant: "destructive" });
           return;
+      }
+
+      // Spam detection
+      const spamCheck = detectSpam(messageText);
+      if (spamCheck.isSpam) {
+          toast({ 
+              title: "Message Not Allowed", 
+              description: spamCheck.reason,
+              variant: "destructive" 
+          });
+          return;
+      }
+      
+      if (spamCheck.warning) {
+          // Show warning but allow sending
+          toast({ 
+              title: "Warning", 
+              description: spamCheck.warning,
+              variant: "default" 
+          });
+      }
+      
+      // Check for repeated messages
+      const repeatCheck = await checkRepeatedMessage(messageText);
+      if (repeatCheck.isRepeated) {
+          toast({ 
+              title: "Repeated Message", 
+              description: repeatCheck.reason,
+              variant: "destructive" 
+          });
+          return;
+      }
+
+      // Throttling: Check messages per minute
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      const recentMessages = messageSendTimes.filter(time => time > oneMinuteAgo);
+      
+      if (recentMessages.length >= messagesPerMinute) {
+          toast({ 
+              title: "Rate Limit", 
+              description: `You can send up to ${messagesPerMinute} messages per minute. Please wait a moment.`,
+              variant: "destructive" 
+          });
+          return;
+      }
+
+      // Throttling: Minimum 6 seconds between messages
+      if (messageSendTimes.length > 0) {
+          const lastMessageTime = messageSendTimes[messageSendTimes.length - 1];
+          if (now - lastMessageTime < messageThrottleMs) {
+              const waitSeconds = Math.ceil((messageThrottleMs - (now - lastMessageTime)) / 1000);
+              toast({ 
+                  title: "Please wait", 
+                  description: `Please wait ${waitSeconds} more second${waitSeconds > 1 ? 's' : ''} before sending another message.`,
+                  variant: "destructive" 
+              });
+              return;
+          }
       }
 
       if (!currentUser.is_premium && dailyMessageCount >= 10) {
@@ -151,6 +281,7 @@ const ChatPage = () => {
 
       if (!error) {
           setDailyMessageCount(prev => prev + 1);
+          setMessageSendTimes(prev => [...prev, now].filter(time => time > oneMinuteAgo)); // Keep only last minute
           setMessageText('');
           await supabase.from('conversations').update({ last_message_at: new Date() }).eq('id', activeConversation.id);
       } else {
@@ -254,19 +385,27 @@ const ChatPage = () => {
                          </div>
                     ) : !currentUser?.is_premium && dailyMessageCount >= 10 ? (
                          <div className="bg-yellow-50 p-3 rounded text-center text-sm text-yellow-800">
-                             <Crown className="w-4 h-4 inline mr-1" /> Daily message limit reached. <span className="underline font-bold cursor-pointer" onClick={() => navigate('/premium')}>Upgrade to Premium</span>
+                             <Crown className="w-4 h-4 inline mr-1" /> Daily message limit reached (10/10). <span className="underline font-bold cursor-pointer" onClick={() => navigate('/premium')}>Upgrade to Premium</span>
                          </div>
                     ) : (
-                        <div className="flex items-center gap-2">
-                             <Input 
-                                value={messageText} 
-                                onChange={handleTyping}
-                                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Type a respectful message..."
-                                className="flex-1"
-                             />
-                             <Button onClick={handleSendMessage} disabled={!messageText.trim()}>Send</Button>
-                        </div>
+                        <>
+                            {!currentUser?.is_premium && (
+                                <div className="mb-2 text-xs text-center text-[#706B67]">
+                                    Messages today: <span className="font-bold">{dailyMessageCount}/10</span>
+                                    {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">• Limit soon</span>}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <Input 
+                                    value={messageText} 
+                                    onChange={handleTyping}
+                                    onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                                    placeholder="Type a respectful message..."
+                                    className="flex-1"
+                                />
+                                <Button onClick={handleSendMessage} disabled={!messageText.trim()}>Send</Button>
+                            </div>
+                        </>
                     )}
                 </div>
             </>

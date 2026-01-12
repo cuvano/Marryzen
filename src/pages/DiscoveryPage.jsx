@@ -2,10 +2,11 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import { 
   SlidersHorizontal, Search, RotateCcw, Heart, Save, BookHeart, 
   Clock, Flame, Star, MapPin, Loader2, MoreHorizontal, Undo2,
-  Trash2, Check, Shield, X, ArrowRight, Settings
+  Trash2, Check, Shield, X, ArrowRight, Settings, Crown
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
@@ -43,12 +44,28 @@ const DiscoveryPage = () => {
 
   // Favorites
   const [favorites, setFavorites] = useState(new Set());
+  
+  // Usage tracking
+  const [dailyLikeCount, setDailyLikeCount] = useState(0);
+  const LIKE_LIMIT_FREE = 50;
+  
+  // Throttling state
+  const [lastActionTime, setLastActionTime] = useState(0);
+  const [rapidLikeCount, setRapidLikeCount] = useState(0);
+  const [lastRapidLikeReset, setLastRapidLikeReset] = useState(Date.now());
+  const actionDebounceTime = 500; // 500ms minimum between actions
+  const rapidLikeWindow = 60000; // 1 minute window
+  const rapidLikeThreshold = 10; // More than 10 likes in 1 minute triggers cooldown
 
   // Preferences & Saved
   const [savedPreferences, setSavedPreferences] = useState([]);
   const [activePreferenceId, setActivePreferenceId] = useState(null);
   const [isSavePrefModalOpen, setIsSavePrefModalOpen] = useState(false);
   const [newPrefName, setNewPrefName] = useState('');
+  
+  // Premium Modal
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumModalFeature, setPremiumModalFeature] = useState(null);
 
   // Filters State
   const defaultFilters = {
@@ -232,6 +249,51 @@ const DiscoveryPage = () => {
   // -- Actions --
 
   const handleInteraction = async (target, type) => {
+    const now = Date.now();
+    
+    // Throttling: Prevent rapid actions (500ms minimum between actions)
+    if (now - lastActionTime < actionDebounceTime) {
+      toast({ 
+        title: "Please wait", 
+        description: "Please wait a moment before your next action.",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Abuse prevention: Check for rapid likes (anti-spam)
+    if (type === 'like') {
+      // Reset rapid like counter if window expired
+      if (now - lastRapidLikeReset > rapidLikeWindow) {
+        setRapidLikeCount(0);
+        setLastRapidLikeReset(now);
+      }
+      
+      // Check if user is liking too rapidly
+      if (rapidLikeCount >= rapidLikeThreshold) {
+        const cooldownSeconds = Math.ceil((rapidLikeWindow - (now - lastRapidLikeReset)) / 1000);
+        toast({ 
+          title: "Please Slow Down", 
+          description: `You're liking profiles too quickly. Please wait ${cooldownSeconds} seconds before continuing. This helps ensure quality matches.`,
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      // Check daily like limit for free users
+      if (!currentUser?.is_premium && dailyLikeCount >= LIKE_LIMIT_FREE) {
+        toast({ 
+          title: "Daily Limit Reached", 
+          description: `You've reached the daily limit of ${LIKE_LIMIT_FREE} likes. Upgrade to Premium for unlimited likes.`,
+          variant: "destructive" 
+        });
+        openPremiumModal && openPremiumModal();
+        return;
+      }
+    }
+
+    setLastActionTime(now);
+
     // Optimistic Update
     setProfiles(prev => prev.filter(p => p.id !== target.id));
 
@@ -246,14 +308,21 @@ const DiscoveryPage = () => {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
         setUndoTimer(10); // 10 seconds to undo
         
+        // Update like count if it's a like
         if (type === 'like') {
-            // Check Match
-            const { data: mutual } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').single();
-            if (mutual) {
-                toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
-                await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
-            }
+          setDailyLikeCount(prev => prev + 1);
+          setRapidLikeCount(prev => prev + 1); // Track rapid likes
+          
+          // Check Match
+          const { data: mutual } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').single();
+          if (mutual) {
+              toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
+              await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
+          }
         }
+    } else {
+        // Restore profile on error
+        setProfiles(prev => [...prev, target]);
     }
   };
 
@@ -461,6 +530,10 @@ const DiscoveryPage = () => {
                 }}
                 onSave={() => setIsSavePrefModalOpen(true)}
                 resultsCount={profiles.length}
+                onPremiumFeatureClick={(feature) => {
+                    setPremiumModalFeature(feature);
+                    setPremiumModalOpen(true);
+                }}
             />
         </div>
 
@@ -483,6 +556,10 @@ const DiscoveryPage = () => {
                         }}
                         onClose={() => setIsFilterOpen(false)}
                         resultsCount={profiles.length}
+                        onPremiumFeatureClick={(feature) => {
+                            setPremiumModalFeature(feature);
+                            setPremiumModalOpen(true);
+                        }}
                     />
                 </div>
             </div>
@@ -494,6 +571,30 @@ const DiscoveryPage = () => {
                 
                 {/* Top Bar */}
                 <div className="mb-6 flex flex-col gap-4">
+                    {/* Usage Counter (Free Users Only) */}
+                    {!currentUser?.is_premium && (
+                      <div className="bg-[#FFFBEB] border border-[#E6B450]/30 rounded-lg p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Heart className="w-4 h-4 text-[#E6B450]" />
+                          <span className="text-sm text-[#1F1F1F]">
+                            Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
+                            {dailyLikeCount >= LIKE_LIMIT_FREE - 5 && dailyLikeCount < LIKE_LIMIT_FREE && (
+                              <span className="text-yellow-600 ml-2">• Limit soon</span>
+                            )}
+                          </span>
+                        </div>
+                        {dailyLikeCount >= LIKE_LIMIT_FREE && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => openPremiumModal && openPremiumModal()}
+                            className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
+                          >
+                            <Crown className="w-3 h-3 mr-1" /> Upgrade
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
                     {/* Search & Actions */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                          <div className="relative w-full md:w-96">
@@ -664,6 +765,12 @@ const DiscoveryPage = () => {
             </DialogContent>
         </Dialog>
 
+        {/* Premium Upgrade Modal */}
+        <PremiumUpgradeModal 
+            isOpen={premiumModalOpen}
+            onClose={() => setPremiumModalOpen(false)}
+            feature={premiumModalFeature}
+        />
     </div>
   );
 };

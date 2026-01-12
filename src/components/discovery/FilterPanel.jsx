@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Lock, Crown } from 'lucide-react';
 
-const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave }) => {
+const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave, onPremiumFeatureClick }) => {
   const handleChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -42,15 +42,18 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
     }
   };
 
-  const PremiumLock = ({ children, label }) => {
+  const PremiumLock = ({ children, label, feature }) => {
     if (isPremium) return children;
     return (
       <div className="relative group">
         <div className="opacity-40 pointer-events-none filter blur-[1px] select-none">
           {children}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-[#1F1F1F] text-[#E6B450] text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-[#E6B450]/30 font-bold z-10">
+        <div 
+          className="absolute inset-0 flex items-center justify-center cursor-pointer"
+          onClick={() => onPremiumFeatureClick && onPremiumFeatureClick(feature || 'advanced_filters')}
+        >
+            <div className="bg-[#1F1F1F] text-[#E6B450] text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-[#E6B450]/30 font-bold z-10 hover:bg-[#2a2a2a] transition-colors">
                 <Lock size={10} /> Premium: {label}
             </div>
         </div>
@@ -95,7 +98,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                 />
               </div>
 
-              <PremiumLock label="Distance">
+              <PremiumLock label="Distance" feature="advanced_filters">
                   <div className="space-y-3">
                     <div className="flex justify-between">
                         <Label>Distance (km)</Label>
@@ -190,21 +193,21 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                 Premium Filters <Crown className="w-3 h-3 text-[#E6B450]" />
              </AccordionTrigger>
              <AccordionContent className="space-y-4 pt-2">
-                <PremiumLock label="Activity">
+                <PremiumLock label="Activity" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
                         <Label>Recently Active (24h)</Label>
                         <Switch checked={filters.recentActive} onCheckedChange={(v) => handleChange('recentActive', v)} />
                     </div>
                 </PremiumLock>
                 
-                <PremiumLock label="Verification">
+                <PremiumLock label="Verification" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
                         <Label>Verified Profiles Only</Label>
                         <Switch checked={filters.verifiedOnly} onCheckedChange={(v) => handleChange('verifiedOnly', v)} />
                     </div>
                 </PremiumLock>
 
-                <PremiumLock label="Photos">
+                <PremiumLock label="Photos" feature="advanced_filters">
                     <div className="space-y-2">
                         <div className="flex justify-between">
                             <Label>Min Photo Count</Label>
@@ -214,7 +217,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                     </div>
                 </PremiumLock>
 
-                 <PremiumLock label="Income">
+                 <PremiumLock label="Income" feature="advanced_filters">
                      <div className="space-y-2">
                         <Label>Income Level</Label>
                         <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.income} onChange={(e) => handleChange('income', e.target.value)}>

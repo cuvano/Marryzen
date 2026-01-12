@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
+import { executeRecaptcha } from '@/lib/recaptcha';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 import Step1 from '@/components/onboarding/Step1';
@@ -155,6 +156,7 @@ const OnboardingPage = () => {
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
         if (age < 18) isValid = false;
     }
+    // reCAPTCHA validation will be done in handleNext before signup
     setStep1Errors(errors);
     return { isValid, errors };
   };
@@ -193,14 +195,49 @@ const OnboardingPage = () => {
             return;
           }
 
+          // Execute reCAPTCHA v3
+          let recaptchaTokenValue = '';
+          try {
+            recaptchaTokenValue = await executeRecaptcha('signup');
+            
+            // If token is empty and we're in production, show error
+            if (!recaptchaTokenValue && import.meta.env.PROD) {
+              toast({ 
+                title: "Security Check Failed", 
+                description: "Unable to verify your request. Please refresh the page and try again.",
+                variant: "destructive" 
+              });
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error('reCAPTCHA error:', error);
+            // In development, allow signup to continue
+            if (import.meta.env.PROD) {
+              toast({ 
+                title: "Security Check Failed", 
+                description: "Unable to verify your request. Please try again.",
+                variant: "destructive" 
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+
           // Check if user is already authenticated (resuming step 1?)
           let userId = session?.user?.id;
           let currentSession = session;
 
           if (!userId) {
+              // Include reCAPTCHA token in metadata for server-side verification
               const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
+                options: {
+                  data: {
+                    recaptcha_token: recaptchaTokenValue,
+                  }
+                }
               });
 
               if (error) {
@@ -459,7 +496,13 @@ const OnboardingPage = () => {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 1: return <Step1 formData={formData} updateFormData={updateFormData} errors={step1Errors} />;
+      case 1: return (
+        <Step1 
+          formData={formData} 
+          updateFormData={updateFormData} 
+          errors={step1Errors}
+        />
+      );
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
       case 3: return <Step3 formData={formData} updateFormData={updateFormData} cultures={cultures} coreValues={coreValues} />;
       case 4: return <Step4 formData={formData} updateFormData={updateFormData} languages={languages} />;
