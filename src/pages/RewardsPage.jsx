@@ -131,9 +131,14 @@ const RewardsPage = () => {
       .from('profiles')
       .select('is_premium, premium_expires_at')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
+      throw profileError;
+    }
+    if (!profile) {
+      throw new Error('Profile not found');
+    }
 
     const now = new Date();
     let newExpiresAt;

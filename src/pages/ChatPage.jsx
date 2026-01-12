@@ -35,8 +35,13 @@ const ChatPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return navigate('/login');
       
-      const { data: profile } = await supabase.from('profiles').select('*, is_premium, email_verified').eq('id', user.id).single();
-      setCurrentUser(profile);
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*, is_premium, email_verified').eq('id', user.id).maybeSingle();
+      if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
+        console.error('Profile fetch error:', profileError);
+      }
+      if (profile) {
+        setCurrentUser(profile);
+      }
 
       // Check daily message count for free users
       const today = new Date();
@@ -290,7 +295,10 @@ const ChatPage = () => {
   };
 
   const toggleReaction = async (messageId, emoji) => {
-      const { data: existing } = await supabase.from('message_reactions').select('id').eq('message_id', messageId).eq('user_id', currentUser.id).eq('reaction_emoji', emoji).single();
+      const { data: existing, error: existingError } = await supabase.from('message_reactions').select('id').eq('message_id', messageId).eq('user_id', currentUser.id).eq('reaction_emoji', emoji).maybeSingle();
+      if (existingError && existingError.code !== 'PGRST116' && existingError.code !== 'NOT_FOUND') {
+        console.error('Reaction check error:', existingError);
+      }
       
       if (existing) {
           await supabase.from('message_reactions').delete().eq('id', existing.id);

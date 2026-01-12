@@ -25,8 +25,13 @@ const ReferralPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase.from('profiles').select('referral_code, full_name').eq('id', user.id).single();
-      setProfile(profileData);
+      const { data: profileData, error: profileError } = await supabase.from('profiles').select('referral_code, full_name').eq('id', user.id).maybeSingle();
+      if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
+        console.error('Profile fetch error:', profileError);
+      }
+      if (profileData) {
+        setProfile(profileData);
+      }
 
       // Fetch referrals made by this user
       const { data: referralData, error: refError } = await supabase

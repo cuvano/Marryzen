@@ -61,11 +61,11 @@ const ProfilePage = () => {
         .from('profiles')
         .select('*')
         .eq('id', targetUserId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116' && error.code !== 'NOT_FOUND') {
         toast({ title: "Error", description: "Could not load profile", variant: "destructive" });
-      } else {
+      } else if (data) {
         setProfile(data);
         setEditBio(data.bio || '');
       }
@@ -143,6 +143,49 @@ const ProfilePage = () => {
     } catch (error) {
       console.error(error);
       toast({ title: "Error", description: "Failed to update bio", variant: "destructive" });
+    }
+  };
+
+  const handleCoverPhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid File", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File Too Large", description: "Please select an image under 10MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Compress the image
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const compressed = await compressImage(reader.result, 1920, 0.85);
+        
+        const { error } = await supabase
+          .from('profiles')
+          .update({ cover_photo: compressed })
+          .eq('id', user.id);
+
+        if (error) throw error;
+
+        setProfile(prev => ({ ...prev, cover_photo: compressed }));
+        toast({ title: "Success", description: "Cover photo uploaded successfully!" });
+        setUploadingPhoto(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to upload cover photo", variant: "destructive" });
+      setUploadingPhoto(false);
     }
   };
 
@@ -329,7 +372,28 @@ const ProfilePage = () => {
 
         {/* Main Profile Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-[#E6DCD2] overflow-hidden mb-8">
-          <div className="h-48 bg-gradient-to-r from-[#F3E8D9] to-[#F9E7EB] relative">
+          <div className="h-48 bg-gradient-to-r from-[#F3E8D9] to-[#F9E7EB] relative overflow-hidden group">
+            {profile.cover_photo ? (
+              <img 
+                src={profile.cover_photo} 
+                alt="Cover" 
+                className="w-full h-full object-cover"
+              />
+            ) : null}
+            {isOwnProfile && !isPreviewMode && (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                <label className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium">
+                  <Camera className="w-4 h-4" />
+                  {profile.cover_photo ? 'Change Cover Photo' : 'Add Cover Photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverPhotoSelect}
+                  />
+                </label>
+              </div>
+            )}
             {isOwnProfile && !isPreviewMode && !profile.is_premium && (
               <div className="absolute top-4 right-4">
                 <Button onClick={() => navigate('/premium')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] gap-2">
@@ -351,6 +415,11 @@ const ProfilePage = () => {
                 {profile.is_premium && (
                   <div className="absolute bottom-1 right-1 bg-[#E6B450] text-white p-1 rounded-full border-2 border-white shadow-sm">
                     <Crown size={16} />
+                  </div>
+                )}
+                {profile.is_verified && (
+                  <div className="absolute top-1 right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
+                    <ShieldCheck size={14} />
                   </div>
                 )}
               </div>
@@ -460,23 +529,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Camera className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Photo Verified</span>
-                    </div>
-                    {profile.is_verified ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-gray-300 text-gray-600">
-                        Not Verified
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Identity Verified</span>
+                      <span className="text-sm text-[#1F1F1F]">Profile Verified</span>
                     </div>
                     {profile.is_verified ? (
                       <Badge className="bg-green-100 text-green-800">
@@ -600,6 +654,74 @@ const ProfilePage = () => {
                     <span className="text-sm font-medium text-[#706B67]">Cultures: </span>
                     {profile.cultures.join(', ')}
                   </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Lifestyle Details Card */}
+            {(profile.smoking || profile.drinking || profile.marital_history || profile.has_children !== undefined || profile.education || profile.education_level || profile.job || profile.zodiac_sign || profile.country_of_origin) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-[#C85A72]" />
+                    Lifestyle & Background
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {profile.smoking && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Smoking: </span>
+                      {profile.smoking}
+                    </p>
+                  )}
+                  {profile.drinking && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Drinking: </span>
+                      {profile.drinking}
+                    </p>
+                  )}
+                  {profile.marital_history && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Marital History: </span>
+                      {profile.marital_history}
+                    </p>
+                  )}
+                  {profile.has_children !== undefined && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Children: </span>
+                      {profile.has_children ? 'Yes' : 'No'}
+                    </p>
+                  )}
+                  {profile.education_level && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Education Level: </span>
+                      {profile.education_level}
+                    </p>
+                  )}
+                  {profile.education && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Education: </span>
+                      {profile.education}
+                    </p>
+                  )}
+                  {profile.job && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Job: </span>
+                      {profile.job}
+                    </p>
+                  )}
+                  {profile.zodiac_sign && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Zodiac Sign: </span>
+                      {profile.zodiac_sign}
+                    </p>
+                  )}
+                  {profile.country_of_origin && (
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Country of Origin: </span>
+                      {profile.country_of_origin}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}

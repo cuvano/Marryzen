@@ -120,17 +120,18 @@ const PremiumPage = () => {
       id: 'price_6month_mock',
       name: '6-Month Plan',
       duration: '6 months',
-      price: '$149.99',
-      description: 'Save 17%',
+      price: '$119.94',
+      description: 'Good Value - Save 33%',
       buttonText: 'Choose 6-Month Plan',
-      isPopular: false
+      isPopular: false,
+      badge: 'Good Value'
     },
     {
       id: 'price_12month_mock',
       name: '12-Month Plan',
       duration: '12 months',
-      price: '$239.99',
-      description: 'Best Value - Save 33%',
+      price: '$179.94',
+      description: 'Best Value - Save 50%',
       buttonText: 'Choose 12-Month Plan',
       isPopular: true,
       badge: 'Best Value'

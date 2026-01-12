@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { 
   Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, 
   AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders,
-  Camera, FileText, Clock, ArrowRight
+  Camera, FileText, Clock, ArrowRight, X
 } from 'lucide-react';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import Footer from '@/components/Footer';
@@ -22,6 +22,7 @@ const DashboardPage = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusBannerDismissed, setStatusBannerDismissed] = useState(false);
   
   const [stats, setStats] = useState({
     potentialMatches: 0,
@@ -31,6 +32,12 @@ const DashboardPage = () => {
   });
 
   useEffect(() => {
+    // Check if status banner was dismissed
+    const dismissed = localStorage.getItem('status_banner_dismissed');
+    if (dismissed) {
+      setStatusBannerDismissed(true);
+    }
+
     const init = async () => {
       setLoading(true);
       try {
@@ -44,7 +51,7 @@ const DashboardPage = () => {
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profileError && profileError.code !== 'PGRST116') {
+        if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
           console.error('Profile fetch error:', profileError);
         }
 
@@ -60,12 +67,17 @@ const DashboardPage = () => {
           }
         }
       } catch (error) {
-        console.error('Dashboard initialization error:', error);
-        toast({
-          title: "Error Loading Dashboard",
-          description: "Please refresh the page.",
-          variant: "destructive"
-        });
+        // Ignore 404 NOT_FOUND errors
+        if (error.code === 'NOT_FOUND' || error.message?.includes('404')) {
+          console.warn('Resource not found (expected in some cases):', error);
+        } else {
+          console.error('Dashboard initialization error:', error);
+          toast({
+            title: "Error Loading Dashboard",
+            description: "Please refresh the page.",
+            variant: "destructive"
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -364,13 +376,14 @@ const DashboardPage = () => {
             </Button>
           </div>
 
-          {/* Profile Status Banner */}
-          {userProfile && statusConfig && (
+          {/* Profile Status Banner - Only show once, dismissible */}
+          {userProfile && statusConfig && !statusBannerDismissed && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -10 }}
               transition={{ delay: 0.1 }}
-              className={`${statusConfig.bg} ${statusConfig.border} border rounded-xl p-4 mb-4 flex items-start justify-between`}
+              className={`${statusConfig.bg} ${statusConfig.border} border rounded-xl p-4 mb-4 flex items-start justify-between relative`}
             >
               <div className="flex items-start gap-3 flex-1">
                 <statusConfig.icon className={`w-5 h-5 ${statusConfig.text} mt-0.5 flex-shrink-0`} />
@@ -390,6 +403,16 @@ const DashboardPage = () => {
                   )}
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setStatusBannerDismissed(true);
+                  localStorage.setItem('status_banner_dismissed', 'true');
+                }}
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </motion.div>
           )}
 

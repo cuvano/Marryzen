@@ -182,11 +182,26 @@ const Step1 = ({ formData, updateFormData, errors = {} }) => {
         
         <div className="grid md:grid-cols-2 gap-6">
              <div className="space-y-2">
-              <Label htmlFor="locationCountry" className="text-[#333333] font-bold text-base">Country</Label>
+              <Label htmlFor="locationCountry" className="text-[#333333] font-bold text-base">Country of Residence</Label>
               <select
                 id="locationCountry"
                 value={formData.locationCountry}
                 onChange={(e) => updateFormData('locationCountry', e.target.value)}
+                className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
+              >
+                <option value="">Select Country...</option>
+                {COUNTRIES.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="countryOfOrigin" className="text-[#333333] font-bold text-base">Country of Origin</Label>
+              <select
+                id="countryOfOrigin"
+                value={formData.countryOfOrigin || ''}
+                onChange={(e) => updateFormData('countryOfOrigin', e.target.value)}
                 className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
               >
                 <option value="">Select Country...</option>

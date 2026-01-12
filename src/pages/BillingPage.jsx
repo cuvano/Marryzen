@@ -28,9 +28,14 @@ const BillingPage = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116' && error.code !== 'NOT_FOUND') {
+        throw error;
+      }
+      if (!data) {
+        throw new Error('Profile not found');
+      }
       setProfile(data);
     } catch (error) {
       console.error(error);

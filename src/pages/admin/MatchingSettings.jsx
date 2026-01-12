@@ -33,7 +33,10 @@ const MatchingSettings = () => {
 
   const fetchConfig = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('matching_config').select('*').limit(1).single();
+    const { data, error } = await supabase.from('matching_config').select('*').limit(1).maybeSingle();
+    if (error && error.code !== 'PGRST116' && error.code !== 'NOT_FOUND') {
+      console.error('Matching config error:', error);
+    }
     if (data) setConfig(data);
     setLoading(false);
   };

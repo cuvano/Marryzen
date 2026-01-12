@@ -22,7 +22,7 @@ const VerifyEmailPage = () => {
             setEmail(user.email);
             
             // Check if email is verified
-            if (user.email_confirmed_at || session) {
+            if (user.email_confirmed_at) {
                 setStatus('verified');
                 
                 // Check if there's pending onboarding data

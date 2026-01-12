@@ -17,7 +17,10 @@ const PlatformSettings = () => {
   useEffect(() => {
     checkAdminRole();
     const fetchSettings = async () => {
-      const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
+      const { data, error: settingsError } = await supabase.from('platform_settings').select('*').limit(1).maybeSingle();
+      if (settingsError && settingsError.code !== 'PGRST116' && settingsError.code !== 'NOT_FOUND') {
+        console.error('Platform settings error:', settingsError);
+      }
       if (data) setSettings(data);
       setLoading(false);
     };

@@ -23,14 +23,18 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
       distance: 50,
       city: '',
       faith: '',
+      faithLifestyle: '',
       smoking: '',
       drinking: '',
       maritalStatus: '',
       hasChildren: '',
+      educationLevel: '',
+      relationshipGoal: '',
+      languages: [],
+      zodiacSign: '',
+      countries: [],
       recentActive: false,
-      verifiedOnly: false,
-      minPhotos: 0,
-      income: ''
+      verifiedOnly: false
     };
     setFilters(defaultFilters);
     if (onClear) {
@@ -71,9 +75,9 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
       <div className="flex-1 overflow-y-auto p-5">
         <Accordion type="multiple" defaultValue={["basic", "lifestyle"]} className="space-y-4">
           
-          {/* Basic Section */}
+          {/* Basic Filters Section */}
           <AccordionItem value="basic" className="border-b-0">
-            <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Basic Preferences</AccordionTrigger>
+            <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Basic Filters</AccordionTrigger>
             <AccordionContent className="space-y-6 pt-2">
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -89,101 +93,82 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
               </div>
 
               <div className="space-y-2">
-                <Label>Location</Label>
-                <input 
-                  className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#C85A72]"
-                  value={filters.city}
-                  onChange={e => handleChange('city', e.target.value)}
-                  placeholder="City (e.g. London)"
-                />
+                <Label>Religious Affiliation</Label>
+                <select 
+                    className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white"
+                    value={filters.faith || ''}
+                    onChange={(e) => handleChange('faith', e.target.value)}
+                >
+                    <option value="">Any</option>
+                    <option value="Muslim">Muslim</option>
+                    <option value="Christian">Christian</option>
+                    <option value="Jewish">Jewish</option>
+                    <option value="Hindu">Hindu</option>
+                    <option value="Sikh">Sikh</option>
+                    <option value="Buddhist">Buddhist</option>
+                    <option value="Spiritual">Spiritual</option>
+                    <option value="Atheist">Atheist</option>
+                    <option value="Other">Other</option>
+                </select>
               </div>
 
-              <PremiumLock label="Distance" feature="advanced_filters">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                        <Label>Distance (km)</Label>
-                        <span className="text-xs font-medium text-[#706B67]">{filters.distance} km</span>
-                    </div>
-                    <Slider 
-                        value={[filters.distance]} 
-                        min={5} max={500} step={5} 
-                        onValueChange={(v) => handleChange('distance', v[0])} 
-                    />
-                  </div>
-              </PremiumLock>
-            </AccordionContent>
-          </AccordionItem>
+              <div className="space-y-2">
+                <Label>Faith Lifestyle</Label>
+                <select 
+                    className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white"
+                    value={filters.faithLifestyle || ''}
+                    onChange={(e) => handleChange('faithLifestyle', e.target.value)}
+                >
+                    <option value="">Any</option>
+                    <option value="Very religious / practicing">Very religious / practicing</option>
+                    <option value="Moderately practicing">Moderately practicing</option>
+                    <option value="Cultural faith only">Cultural faith only</option>
+                    <option value="Spiritual but not religious">Spiritual but not religious</option>
+                    <option value="Not religious / Not practicing">Not religious / Not practicing</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
 
-          {/* Values Section - Free Filters */}
-          <AccordionItem value="values" className="border-b-0">
-             <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Values & Beliefs</AccordionTrigger>
-             <AccordionContent className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label>Faith / Religion</Label>
-                    <select 
-                        className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white"
-                        value={filters.faith}
-                        onChange={(e) => handleChange('faith', e.target.value)}
-                    >
-                        <option value="">Any</option>
-                        <option value="Muslim">Muslim</option>
-                        <option value="Christian">Christian</option>
-                        <option value="Jewish">Jewish</option>
-                        <option value="Hindu">Hindu</option>
-                        <option value="Sikh">Sikh</option>
-                        <option value="Buddhist">Buddhist</option>
-                        <option value="Spiritual">Spiritual</option>
-                        <option value="Atheist">Atheist</option>
-                        <option value="Other">Other</option>
-                    </select>
+                  <Label>Smoking</Label>
+                  <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.smoking || ''} onChange={(e) => handleChange('smoking', e.target.value)}>
+                    <option value="">Any</option>
+                    <option value="No">No</option>
+                    <option value="Socially">Socially</option>
+                    <option value="Regularly">Regularly</option>
+                  </select>
                 </div>
-             </AccordionContent>
-          </AccordionItem>
-
-          {/* Lifestyle Section */}
-          <AccordionItem value="lifestyle" className="border-b-0">
-            <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Lifestyle</AccordionTrigger>
-            <AccordionContent className="space-y-4 pt-2">
-                <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <Label>Smoking</Label>
-                        <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.smoking} onChange={(e) => handleChange('smoking', e.target.value)}>
-                            <option value="">Any</option>
-                            <option value="No">No</option>
-                            <option value="Socially">Socially</option>
-                            <option value="Regularly">Regularly</option>
-                        </select>
-                     </div>
-                     <div className="space-y-2">
-                        <Label>Drinking</Label>
-                        <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.drinking} onChange={(e) => handleChange('drinking', e.target.value)}>
-                            <option value="">Any</option>
-                            <option value="No">No</option>
-                            <option value="Socially">Socially</option>
-                            <option value="Regularly">Regularly</option>
-                        </select>
-                     </div>
-                </div>
-
                 <div className="space-y-2">
-                    <Label>Marital History</Label>
-                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.maritalStatus} onChange={(e) => handleChange('maritalStatus', e.target.value)}>
-                        <option value="">Any</option>
-                        <option value="Never Married">Never Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
-                        <option value="Annulled">Annulled</option>
-                    </select>
+                  <Label>Drinking</Label>
+                  <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.drinking || ''} onChange={(e) => handleChange('drinking', e.target.value)}>
+                    <option value="">Any</option>
+                    <option value="No">No</option>
+                    <option value="Socially">Socially</option>
+                    <option value="Regularly">Regularly</option>
+                  </select>
                 </div>
-                
-                 <div className="space-y-2">
-                    <Label>Children</Label>
-                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.hasChildren} onChange={(e) => handleChange('hasChildren', e.target.value)}>
-                        <option value="">Any</option>
-                        <option value="false">No Children</option>
-                        <option value="true">Has Children</option>
-                    </select>
-                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Marital History</Label>
+                <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.maritalStatus || ''} onChange={(e) => handleChange('maritalStatus', e.target.value)}>
+                  <option value="">Any</option>
+                  <option value="Never Married">Never Married</option>
+                  <option value="Divorced">Divorced</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Annulled">Annulled</option>
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Children</Label>
+                <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.hasChildren || ''} onChange={(e) => handleChange('hasChildren', e.target.value)}>
+                  <option value="">Any</option>
+                  <option value="false">No Children</option>
+                  <option value="true">Has Children</option>
+                </select>
+              </div>
             </AccordionContent>
           </AccordionItem>
 
@@ -195,40 +180,202 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
              <AccordionContent className="space-y-4 pt-2">
                 <PremiumLock label="Activity" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
-                        <Label>Recently Active (24h)</Label>
-                        <Switch checked={filters.recentActive} onCheckedChange={(v) => handleChange('recentActive', v)} />
+                        <Label>Recently Active (Last 30 Days)</Label>
+                        <Switch checked={filters.recentActive || false} onCheckedChange={(v) => handleChange('recentActive', v)} />
                     </div>
                 </PremiumLock>
                 
                 <PremiumLock label="Verification" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
                         <Label>Verified Profiles Only</Label>
-                        <Switch checked={filters.verifiedOnly} onCheckedChange={(v) => handleChange('verifiedOnly', v)} />
+                        <Switch checked={filters.verifiedOnly || false} onCheckedChange={(v) => handleChange('verifiedOnly', v)} />
                     </div>
                 </PremiumLock>
 
-                <PremiumLock label="Photos" feature="advanced_filters">
+                <PremiumLock label="Distance" feature="advanced_filters">
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <Label>Distance (km)</Label>
+                      <span className="text-xs font-medium text-[#706B67]">{filters.distance || 50} km</span>
+                    </div>
+                    <Slider 
+                      value={[filters.distance || 50]} 
+                      min={5} max={500} step={5} 
+                      onValueChange={(v) => handleChange('distance', v[0])} 
+                    />
+                  </div>
+                </PremiumLock>
+
+                <PremiumLock label="Location" feature="advanced_filters">
+                  <div className="space-y-2">
+                    <Label>Countries (Multiple Selection)</Label>
+                    <select 
+                      multiple
+                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[120px]"
+                      value={filters.countries || []}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                        handleChange('countries', selected);
+                      }}
+                    >
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                      <option value="India">India</option>
+                      <option value="Pakistan">Pakistan</option>
+                      <option value="Bangladesh">Bangladesh</option>
+                      <option value="Egypt">Egypt</option>
+                      <option value="Türkiye">Türkiye</option>
+                      <option value="Saudi Arabia">Saudi Arabia</option>
+                      <option value="United Arab Emirates">United Arab Emirates</option>
+                      <option value="Germany">Germany</option>
+                      <option value="France">France</option>
+                      <option value="Spain">Spain</option>
+                      <option value="Italy">Italy</option>
+                      <option value="Netherlands">Netherlands</option>
+                      <option value="Sweden">Sweden</option>
+                      <option value="Norway">Norway</option>
+                      <option value="Denmark">Denmark</option>
+                      <option value="Switzerland">Switzerland</option>
+                      <option value="Belgium">Belgium</option>
+                    </select>
+                    <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple countries</p>
+                    {filters.countries && filters.countries.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {filters.countries.map(country => (
+                          <Badge key={country} variant="secondary" className="text-xs">
+                            {country}
+                            <button 
+                              onClick={() => handleChange('countries', filters.countries.filter(c => c !== country))}
+                              className="ml-1 hover:text-red-500"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </PremiumLock>
+
+                <PremiumLock label="Education" feature="advanced_filters">
+                  <div className="space-y-2">
+                    <Label>Education Level</Label>
+                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.educationLevel || ''} onChange={(e) => handleChange('educationLevel', e.target.value)}>
+                      <option value="">Any</option>
+                      <option value="High School">High School</option>
+                      <option value="Some College">Some College</option>
+                      <option value="Bachelor's Degree">Bachelor's Degree</option>
+                      <option value="Master's Degree">Master's Degree</option>
+                      <option value="Doctorate">Doctorate</option>
+                      <option value="Professional Degree">Professional Degree</option>
+                    </select>
+                  </div>
+                </PremiumLock>
+
+                <PremiumLock label="Relationship Goals" feature="advanced_filters">
+                  <div className="space-y-2">
+                    <Label>Relationship Goal</Label>
+                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.relationshipGoal || ''} onChange={(e) => handleChange('relationshipGoal', e.target.value)}>
+                      <option value="">Any</option>
+                      <option value="Marriage">Marriage</option>
+                      <option value="Serious Relationship">Serious Relationship</option>
+                      <option value="Long-term Partnership">Long-term Partnership</option>
+                    </select>
+                  </div>
+                </PremiumLock>
+
+                <PremiumLock label="Lifestyle" feature="advanced_filters">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <div className="flex justify-between">
-                            <Label>Min Photo Count</Label>
-                            <span className="text-xs text-[#706B67]">{filters.minPhotos}</span>
-                        </div>
-                        <Slider value={[filters.minPhotos]} min={0} max={10} step={1} onValueChange={(v) => handleChange('minPhotos', v[0])} />
+                      <Label>Smoking</Label>
+                      <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.smoking || ''} onChange={(e) => handleChange('smoking', e.target.value)}>
+                        <option value="">Any</option>
+                        <option value="No">No</option>
+                        <option value="Socially">Socially</option>
+                        <option value="Regularly">Regularly</option>
+                      </select>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Drinking</Label>
+                      <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.drinking || ''} onChange={(e) => handleChange('drinking', e.target.value)}>
+                        <option value="">Any</option>
+                        <option value="No">No</option>
+                        <option value="Socially">Socially</option>
+                        <option value="Regularly">Regularly</option>
+                      </select>
+                    </div>
+                  </div>
                 </PremiumLock>
 
-                 <PremiumLock label="Income" feature="advanced_filters">
-                     <div className="space-y-2">
-                        <Label>Income Level</Label>
-                        <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.income} onChange={(e) => handleChange('income', e.target.value)}>
-                            <option value="">Any</option>
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                            <option value="Very High">Very High</option>
-                        </select>
-                     </div>
-                 </PremiumLock>
+                <PremiumLock label="Languages" feature="advanced_filters">
+                  <div className="space-y-2">
+                    <Label>Languages (Multiple Selection)</Label>
+                    <select 
+                      multiple
+                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[100px]"
+                      value={filters.languages || []}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                        handleChange('languages', selected);
+                      }}
+                    >
+                      <option value="English">English</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Urdu">Urdu</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Bengali">Bengali</option>
+                      <option value="Turkish">Turkish</option>
+                      <option value="French">French</option>
+                      <option value="German">German</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="Portuguese">Portuguese</option>
+                      <option value="Italian">Italian</option>
+                      <option value="Russian">Russian</option>
+                      <option value="Mandarin">Mandarin</option>
+                      <option value="Japanese">Japanese</option>
+                      <option value="Korean">Korean</option>
+                    </select>
+                    <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple languages</p>
+                    {filters.languages && filters.languages.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {filters.languages.map(lang => (
+                          <Badge key={lang} variant="secondary" className="text-xs">
+                            {lang}
+                            <button 
+                              onClick={() => handleChange('languages', filters.languages.filter(l => l !== lang))}
+                              className="ml-1 hover:text-red-500"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </PremiumLock>
+
+                <PremiumLock label="Zodiac" feature="advanced_filters">
+                  <div className="space-y-2">
+                    <Label>Zodiac Sign</Label>
+                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.zodiacSign || ''} onChange={(e) => handleChange('zodiacSign', e.target.value)}>
+                      <option value="">Any</option>
+                      <option value="Aries">Aries</option>
+                      <option value="Taurus">Taurus</option>
+                      <option value="Gemini">Gemini</option>
+                      <option value="Cancer">Cancer</option>
+                      <option value="Leo">Leo</option>
+                      <option value="Virgo">Virgo</option>
+                      <option value="Libra">Libra</option>
+                      <option value="Scorpio">Scorpio</option>
+                      <option value="Sagittarius">Sagittarius</option>
+                      <option value="Capricorn">Capricorn</option>
+                      <option value="Aquarius">Aquarius</option>
+                      <option value="Pisces">Pisces</option>
+                    </select>
+                  </div>
+                </PremiumLock>
              </AccordionContent>
           </AccordionItem>
 

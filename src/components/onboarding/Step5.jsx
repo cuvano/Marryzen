@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Step5 = ({ formData, updateFormData }) => {
+const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
   const marriageIntents = [
     'Marriage Only (Primary Intent)',
     'Serious Relationship With Clear Path to Marriage',
@@ -57,17 +57,19 @@ const Step5 = ({ formData, updateFormData }) => {
             </Label>
           </div>
           
-          <div className="flex items-start space-x-3 p-5 bg-[#F9E7EB]/30 rounded-xl border border-[#F9E7EB]">
-            <Checkbox
-              id="agreeToTermsV2"
-              checked={formData.agreeToTermsV2}
-              onCheckedChange={(checked) => updateFormData('agreeToTermsV2', checked)}
-              className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] w-5 h-5 mt-0.5"
-            />
-            <Label htmlFor="agreeToTermsV2" className="text-[#1F1F1F] text-sm font-normal cursor-pointer leading-relaxed">
-               <span className="font-bold text-[#C85A72]">Community Pledge:</span> I agree to the <Link to="/terms" className="text-[#E6B450] hover:underline" target="_blank">Terms of Service</Link>, <Link to="/privacy" className="text-[#E6B450] hover:underline" target="_blank">Privacy Policy</Link>, and <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link>. I understand Marryzen is not a casual dating app and misuse may result in permanent removal.
-            </Label>
-          </div>
+          {!isEditMode && (
+            <div className="flex items-start space-x-3 p-5 bg-[#F9E7EB]/30 rounded-xl border border-[#F9E7EB]">
+              <Checkbox
+                id="agreeToTermsV2"
+                checked={formData.agreeToTermsV2}
+                onCheckedChange={(checked) => updateFormData('agreeToTermsV2', checked)}
+                className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] w-5 h-5 mt-0.5"
+              />
+              <Label htmlFor="agreeToTermsV2" className="text-[#1F1F1F] text-sm font-normal cursor-pointer leading-relaxed">
+                 <span className="font-bold text-[#C85A72]">Community Pledge:</span> I agree to the <Link to="/terms" className="text-[#E6B450] hover:underline" target="_blank">Terms of Service</Link>, <Link to="/privacy" className="text-[#E6B450] hover:underline" target="_blank">Privacy Policy</Link>, and <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link>. I understand Marryzen is not a casual dating app and misuse may result in permanent removal.
+              </Label>
+            </div>
+          )}
         </div>
 
       </div>

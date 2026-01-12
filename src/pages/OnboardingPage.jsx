@@ -31,6 +31,8 @@ const OnboardingPage = () => {
     locationCity: '',
     locationCountry: '',
     locationState: '',
+    countryOfOrigin: '',
+    countryOfResidence: '',
     identifyAs: '',
     lookingForGender: '',
     seriousRelationship: false,
@@ -52,6 +54,14 @@ const OnboardingPage = () => {
     confirmMarriageIntent: false,
     agreeToTermsV2: false,
     isPremium: false,
+    smoking: '',
+    drinking: '',
+    maritalHistory: '',
+    hasChildren: false,
+    education: '',
+    educationLevel: '',
+    job: '',
+    zodiacSign: '',
   });
 
   const totalSteps = 5;
@@ -97,6 +107,16 @@ const OnboardingPage = () => {
                     willingToRelocate: profile.willing_to_relocate || '',
                     familyGoals: profile.family_goals || '',
                     relationshipGoal: profile.relationship_goal || '',
+                    smoking: profile.smoking || '',
+                    drinking: profile.drinking || '',
+                    maritalHistory: profile.marital_history || '',
+                    hasChildren: profile.has_children || false,
+                    education: profile.education || '',
+                    educationLevel: profile.education_level || '',
+                    job: profile.job || '',
+                    zodiacSign: profile.zodiac_sign || '',
+                    countryOfOrigin: profile.country_of_origin || '',
+                    countryOfResidence: profile.country_of_residence || profile.location_country || '',
                 }));
 
                 // Resume at correct step
@@ -329,6 +349,8 @@ const OnboardingPage = () => {
                           location_city: formData.locationCity,
                           location_country: formData.locationCountry,
                           location_state: formData.locationState,
+                          country_of_origin: formData.countryOfOrigin,
+                          country_of_residence: formData.locationCountry, // Same as location_country
                           identify_as: formData.identifyAs,
                           looking_for_gender: formData.lookingForGender,
                           serious_relationship: formData.seriousRelationship,
@@ -418,6 +440,14 @@ const OnboardingPage = () => {
                 religious_affiliation: formData.religiousAffiliation,
                 other_religious_affiliation: formData.otherReligiousAffiliation,
                 core_values: formData.coreValues,
+                smoking: formData.smoking,
+                drinking: formData.drinking,
+                marital_history: formData.maritalHistory,
+                has_children: formData.hasChildren,
+                education: formData.education,
+                education_level: formData.educationLevel,
+                job: formData.job,
+                zodiac_sign: formData.zodiacSign,
                 onboarding_step: 4
             }).eq('id', session.user.id);
 
@@ -506,7 +536,7 @@ const OnboardingPage = () => {
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
       case 3: return <Step3 formData={formData} updateFormData={updateFormData} cultures={cultures} coreValues={coreValues} />;
       case 4: return <Step4 formData={formData} updateFormData={updateFormData} languages={languages} />;
-      case 5: return <Step5 formData={formData} updateFormData={updateFormData} />;
+      case 5: return <Step5 formData={formData} updateFormData={updateFormData} isEditMode={isEditMode} />;
       default: return null;
     }
   };
@@ -520,7 +550,30 @@ const OnboardingPage = () => {
   const isStep2Complete = formData.photos && formData.photos.length > 0;
   const isStep3Complete = formData.cultures?.length > 0 && formData.coreValues?.length > 0 && formData.faithLifestyle;
   const isStep4Complete = formData.bio?.length >= 50 && formData.willingToRelocate && formData.familyGoals;
-  const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && formData.agreeToTermsV2;
+  // Check if this is an edit (profile already exists and onboarding is complete)
+  const [isEditMode, setIsEditMode] = useState(false);
+  
+  useEffect(() => {
+    const checkEditMode = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_step')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        // If profile exists and onboarding_step is 5, we're in edit mode
+        if (profile && profile.onboarding_step === 5) {
+          setIsEditMode(true);
+          // Pre-check terms in edit mode
+          setFormData(prev => ({ ...prev, agreeToTermsV2: true, confirmMarriageIntent: true }));
+        }
+      }
+    };
+    checkEditMode();
+  }, []);
+
+  const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && (isEditMode || formData.agreeToTermsV2);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF7F2]">

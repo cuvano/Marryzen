@@ -73,15 +73,19 @@ const DiscoveryPage = () => {
     distance: 50, // km
     city: '',
     faith: '',
+    faithLifestyle: '',
     smoking: '',
     drinking: '',
     maritalStatus: '',
     hasChildren: '',
+    educationLevel: '',
+    relationshipGoal: '',
+    languages: [],
+    zodiacSign: '',
+    countries: [],
     // Premium
     recentActive: false,
     verifiedOnly: false,
-    minPhotos: 0,
-    income: '',
   };
   
   const [filters, setFilters] = useState(() => {
@@ -96,11 +100,19 @@ const DiscoveryPage = () => {
       if (!user) return navigate('/login');
 
       // Profile
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      setCurrentUser(profile);
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
+        console.error('Profile fetch error:', profileError);
+      }
+      if (profile) {
+        setCurrentUser(profile);
+      }
 
       // Config
-      const { data: config } = await supabase.from('matching_config').select('*').single();
+      const { data: config, error: configError } = await supabase.from('matching_config').select('*').maybeSingle();
+      if (configError && configError.code !== 'PGRST116' && configError.code !== 'NOT_FOUND') {
+        console.error('Matching config error:', configError);
+      }
       setMatchingConfig(config);
 
       // Saved Prefs
@@ -166,11 +178,16 @@ const DiscoveryPage = () => {
         // Apply Server-Side Filters
         if (filters.city) query = query.ilike('location_city', `%${filters.city}%`);
         if (filters.faith) query = query.eq('religious_affiliation', filters.faith);
-        if (filters.maritalStatus) query = query.eq('marital_status', filters.maritalStatus);
+        if (filters.faithLifestyle) query = query.eq('faith_lifestyle', filters.faithLifestyle);
+        if (filters.maritalStatus) query = query.eq('marital_history', filters.maritalStatus);
+        if (filters.educationLevel) query = query.eq('education_level', filters.educationLevel);
+        if (filters.relationshipGoal) query = query.eq('relationship_goal', filters.relationshipGoal);
         
         // Premium Server Filters
         if (currentUser.is_premium) {
-            if (filters.income) query = query.eq('income_range', filters.income);
+            if (filters.countries && filters.countries.length > 0) {
+                query = query.in('country_of_residence', filters.countries);
+            }
         }
 
         const { data: candidates, error } = await query;
@@ -194,14 +211,19 @@ const DiscoveryPage = () => {
                 if (filters.smoking && p.smoking !== filters.smoking) return false;
                 if (filters.drinking && p.drinking !== filters.drinking) return false;
                 if (filters.hasChildren && String(p.has_children) !== filters.hasChildren) return false;
+                if (filters.educationLevel && p.education_level !== filters.educationLevel) return false;
+                if (filters.zodiacSign && p.zodiac_sign !== filters.zodiacSign) return false;
                 
                 // Premium Checks
                 if (currentUser.is_premium) {
                     if (filters.verifiedOnly && !p.is_verified) return false;
-                    if (filters.minPhotos > 0 && (p.photos?.length || 0) < filters.minPhotos) return false;
                     if (filters.recentActive && p.last_active_at) {
-                         const hoursSinceActive = (new Date() - new Date(p.last_active_at)) / (1000 * 60 * 60);
-                         if (hoursSinceActive > 24) return false;
+                         const daysSinceActive = (new Date() - new Date(p.last_active_at)) / (1000 * 60 * 60 * 24);
+                         if (daysSinceActive > 30) return false;
+                    }
+                    if (filters.languages && filters.languages.length > 0) {
+                        const profileLangs = p.languages || [];
+                        if (!filters.languages.some(lang => profileLangs.includes(lang))) return false;
                     }
                 }
 
@@ -302,9 +324,9 @@ const DiscoveryPage = () => {
         user_id: currentUser.id,
         target_user_id: target.id,
         interaction_type: type
-    }).select().single();
+    }).select().maybeSingle();
 
-    if (!error) {
+    if (!error && data) {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
         setUndoTimer(10); // 10 seconds to undo
         
@@ -314,7 +336,10 @@ const DiscoveryPage = () => {
           setRapidLikeCount(prev => prev + 1); // Track rapid likes
           
           // Check Match
-          const { data: mutual } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').single();
+          const { data: mutual, error: mutualError } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').maybeSingle();
+          if (mutualError && mutualError.code !== 'PGRST116' && mutualError.code !== 'NOT_FOUND') {
+            console.error('Mutual match check error:', mutualError);
+          }
           if (mutual) {
               toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
               await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
@@ -365,29 +390,62 @@ const DiscoveryPage = () => {
           preference_name: newPrefName,
           age_min: filters.ageRange[0],
           age_max: filters.ageRange[1],
-          distance_km: filters.distance,
+          distance_km: filters.distance || 50,
           faith_ids: filters.faith ? [filters.faith] : [],
+          faith_lifestyle: filters.faithLifestyle || '',
+          smoking: filters.smoking || '',
+          drinking: filters.drinking || '',
+          marital_status: filters.maritalStatus || '',
+          has_children: filters.hasChildren || '',
+          education_level: filters.educationLevel || '',
+          relationship_goal: filters.relationshipGoal || '',
+          languages: filters.languages || [],
+          zodiac_sign: filters.zodiacSign || '',
+          countries: filters.countries || [],
+          recent_active: filters.recentActive || false,
+          verified_only: filters.verifiedOnly || false,
           premium_only: false
-      }).select().single();
+      }).select().maybeSingle();
+      if (error && error.code !== 'PGRST116' && error.code !== 'NOT_FOUND') {
+        console.error('Save preference error:', error);
+        toast({ title: "Error", description: "Failed to save preferences", variant: "destructive" });
+        return;
+      }
 
-      if (!error) {
+      if (!error && data) {
           setSavedPreferences([...savedPreferences, data]);
           setActivePreferenceId(data.id);
           setIsSavePrefModalOpen(false);
           setNewPrefName('');
-          toast({ title: "Preferences Saved" });
+          toast({ title: "Preferences Saved", description: "Your search preferences have been saved successfully." });
       }
   };
 
   const loadPreference = (pref) => {
       setFilters({
-          ...filters,
-          ageRange: [pref.age_min, pref.age_max],
-          distance: pref.distance_km,
-          faith: pref.faith_ids?.[0] || ''
+          ...defaultFilters,
+          ageRange: [pref.age_min || 18, pref.age_max || 65],
+          distance: pref.distance_km || 50,
+          faith: pref.faith_ids?.[0] || '',
+          faithLifestyle: pref.faith_lifestyle || '',
+          smoking: pref.smoking || '',
+          drinking: pref.drinking || '',
+          maritalStatus: pref.marital_status || '',
+          hasChildren: pref.has_children || '',
+          educationLevel: pref.education_level || '',
+          relationshipGoal: pref.relationship_goal || '',
+          languages: pref.languages || [],
+          zodiacSign: pref.zodiac_sign || '',
+          countries: pref.countries || [],
+          recentActive: pref.recent_active || false,
+          verifiedOnly: pref.verified_only || false
       });
       setActivePreferenceId(pref.id);
-      toast({ title: `Loaded "${pref.preference_name}"` });
+      toast({ title: `Loaded "${pref.preference_name}"`, description: "Filters have been applied. Click 'Apply Filters' to see results." });
+      // Auto-apply filters when loading
+      setTimeout(() => {
+        fetchProfiles();
+      }, 100);
   };
   
   const deletePreference = async (id, e) => {
