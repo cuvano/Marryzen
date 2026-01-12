@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award } from 'lucide-react';
+import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award, Shield } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ const Header = () => {
 
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Define fetchNotifications before useEffect
   const fetchNotifications = async () => {
@@ -47,13 +48,16 @@ const Header = () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         setUser(authUser);
-        // Fetch profile for avatar and name
+        // Fetch profile for avatar, name, and role
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, photos')
+          .select('full_name, photos, role')
           .eq('id', authUser.id)
           .maybeSingle();
         setUserProfile(profile);
+        // Check if user is admin
+        const userRole = profile?.role?.toLowerCase();
+        setIsAdmin(userRole === 'admin' || userRole === 'super_admin');
       }
     };
     initUser();
@@ -271,6 +275,14 @@ const Header = () => {
                       <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
                            <Settings size={16} /> Account Settings
                       </button>
+                      {isAdmin && (
+                        <>
+                          <div className="h-px bg-[#E6DCD2] my-1"></div>
+                          <button onClick={() => { navigate('/admin'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 flex items-center gap-2">
+                              <Shield size={16} /> Admin Panel
+                          </button>
+                        </>
+                      )}
                       <div className="h-px bg-[#E6DCD2] my-1"></div>
                       <button onClick={handleLogout} className="text-left px-4 py-3 text-sm font-bold text-[#C85A72] hover:bg-[#F9E7EB] flex items-center gap-2">
                           <LogOut size={16} /> Sign Out

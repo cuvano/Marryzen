@@ -26,12 +26,40 @@ const AdminLayout = () => {
         .from('profiles')
         .select('role, full_name, email')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (error || !profile || !['admin', 'super_admin'].includes(profile.role)) {
+      // Debug logging (remove in production)
+      console.log('Admin check - Profile:', profile);
+      console.log('Admin check - Role:', profile?.role);
+      console.log('Admin check - Error:', error);
+
+      if (error) {
+        console.error('Profile fetch error:', error);
+        toast({ 
+          title: "Error", 
+          description: `Could not load profile: ${error.message}`,
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      if (!profile) {
         toast({ 
           title: "Access Denied", 
-          description: "You do not have permission to access the admin panel.",
+          description: "Profile not found.",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      // Check if role is admin or super_admin (case-insensitive)
+      const userRole = profile.role?.toLowerCase();
+      if (!userRole || !['admin', 'super_admin'].includes(userRole)) {
+        toast({ 
+          title: "Access Denied", 
+          description: `You do not have permission to access the admin panel. Current role: ${profile.role || 'none'}. Required: admin or super_admin`,
           variant: "destructive"
         });
         navigate('/dashboard');

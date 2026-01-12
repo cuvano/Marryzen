@@ -14,22 +14,31 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in (only redirect if onboarding is explicitly incomplete)
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // User is already logged in, redirect to dashboard
+        // User is already logged in, check onboarding status
         const { data: profile } = await supabase
           .from('profiles')
           .select('onboarding_step')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        if (profile && profile.onboarding_step && profile.onboarding_step < 5) {
-          navigate('/onboarding', { replace: true });
+        // Only redirect to onboarding if onboarding_step is explicitly set and less than 5
+        // If null/undefined or >= 5, go to dashboard
+        if (profile) {
+          const onboardingStep = profile.onboarding_step;
+          if (onboardingStep !== null && onboardingStep !== undefined && onboardingStep < 5) {
+            navigate('/onboarding', { replace: true });
+          } else {
+            // onboarding_step is null, undefined, or >= 5, go to dashboard
+            navigate('/dashboard', { replace: true });
+          }
         } else {
-          navigate('/dashboard', { replace: true });
+          // Profile doesn't exist yet, allow user to stay on login or go to onboarding
+          // Don't auto-redirect - let them choose
         }
       }
     };

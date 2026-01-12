@@ -149,6 +149,18 @@ const UserManagement = () => {
                                           <option value="banned">Banned</option>
                                         </select>
                                       </div>
+                                      <div>
+                                        <Label className="text-slate-500 text-xs">Role</Label>
+                                        <select 
+                                          className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1"
+                                          value={selectedUser.role || 'customer'}
+                                          onChange={(e) => updateUser(selectedUser.id, { role: e.target.value })}
+                                        >
+                                          <option value="customer">Customer</option>
+                                          <option value="admin">Admin</option>
+                                          <option value="super_admin">Super Admin</option>
+                                        </select>
+                                      </div>
                                       <div className="flex items-center justify-between pt-4">
                                           <Label>Verified</Label>
                                           <Switch 
