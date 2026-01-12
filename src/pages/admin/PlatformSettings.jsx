@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,10 @@ const PlatformSettings = () => {
   const { toast } = useToast();
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
+    checkAdminRole();
     const fetchSettings = async () => {
       const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
       if (data) setSettings(data);
@@ -21,6 +23,18 @@ const PlatformSettings = () => {
     };
     fetchSettings();
   }, []);
+
+  const checkAdminRole = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setIsSuperAdmin(profile?.role?.toLowerCase() === 'super_admin');
+    }
+  };
 
   const handleSave = async () => {
     const { error } = await supabase.from('platform_settings').update({
@@ -33,6 +47,19 @@ const PlatformSettings = () => {
   };
 
   if (loading || !settings) return <div>Loading...</div>;
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <Card className="bg-slate-900 border-slate-800 text-slate-200">
+          <CardContent className="p-8 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Access Restricted</h3>
+            <p className="text-slate-400">Only Super Admins can modify Platform Settings.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-6">

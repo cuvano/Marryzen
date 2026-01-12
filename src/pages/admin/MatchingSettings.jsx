@@ -12,10 +12,24 @@ const MatchingSettings = () => {
   const { toast } = useToast();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
+    checkAdminRole();
     fetchConfig();
   }, []);
+
+  const checkAdminRole = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setIsSuperAdmin(profile?.role?.toLowerCase() === 'super_admin');
+    }
+  };
 
   const fetchConfig = async () => {
     setLoading(true);
@@ -57,6 +71,19 @@ const MatchingSettings = () => {
 
   if (loading) return <div>Loading...</div>;
   if (!config) return <div>Error loading config</div>;
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <Card className="bg-slate-900 border-slate-800 text-slate-200">
+          <CardContent className="p-8 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">Access Restricted</h3>
+            <p className="text-slate-400">Only Super Admins can modify Matching Settings.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const totalWeight = Object.values(config.weights).reduce((a, b) => a + b, 0);
 

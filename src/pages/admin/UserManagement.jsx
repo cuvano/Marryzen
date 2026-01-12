@@ -18,6 +18,7 @@ const UserManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentAdminRole, setCurrentAdminRole] = useState(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -38,11 +39,42 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
+    checkAdminRole();
     const debounce = setTimeout(fetchUsers, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm, filterStatus]);
 
+  const checkAdminRole = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setCurrentAdminRole(profile?.role?.toLowerCase());
+    }
+  };
+
   const updateUser = async (id, updates) => {
+    // Check if trying to modify admin/super_admin and current user is not super_admin
+    if (currentAdminRole !== 'super_admin') {
+      const targetUser = users.find(u => u.id === id);
+      const targetRole = updates.role || targetUser?.role?.toLowerCase();
+      
+      // Prevent regular admins from changing status/role of admins or super_admins
+      if (targetRole === 'admin' || targetRole === 'super_admin') {
+        if (updates.status || updates.role) {
+          toast({ 
+            title: "Permission Denied", 
+            description: "Regular admins cannot modify the status or role of other admins or super admins.",
+            variant: "destructive" 
+          });
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from('profiles').update(updates).eq('id', id);
     if (error) {
       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
@@ -139,27 +171,35 @@ const UserManagement = () => {
                                       <div>
                                         <Label className="text-slate-500 text-xs">Status</Label>
                                         <select 
-                                          className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1"
+                                          className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                           value={selectedUser.status}
                                           onChange={(e) => updateUser(selectedUser.id, { status: e.target.value })}
+                                          disabled={currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin')}
                                         >
                                           <option value="pending_review">Pending Review</option>
                                           <option value="approved">Approved</option>
                                           <option value="suspended">Suspended</option>
                                           <option value="banned">Banned</option>
                                         </select>
+                                        {currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin') && (
+                                          <p className="text-xs text-yellow-400 mt-1">Only super admins can change admin status</p>
+                                        )}
                                       </div>
                                       <div>
                                         <Label className="text-slate-500 text-xs">Role</Label>
                                         <select 
-                                          className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1"
+                                          className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                           value={selectedUser.role || 'customer'}
                                           onChange={(e) => updateUser(selectedUser.id, { role: e.target.value })}
+                                          disabled={currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin')}
                                         >
                                           <option value="customer">Customer</option>
                                           <option value="admin">Admin</option>
                                           <option value="super_admin">Super Admin</option>
                                         </select>
+                                        {currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin') && (
+                                          <p className="text-xs text-yellow-400 mt-1">Only super admins can change admin roles</p>
+                                        )}
                                       </div>
                                       <div className="flex items-center justify-between pt-4">
                                           <Label>Verified</Label>

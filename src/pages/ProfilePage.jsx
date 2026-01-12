@@ -290,8 +290,8 @@ const ProfilePage = () => {
           </div>
         )}
 
-        {/* Profile Completeness Card */}
-        {isOwnProfile && !isPreviewMode && (
+        {/* Profile Completeness Card - Only show if not 100% */}
+        {isOwnProfile && !isPreviewMode && completeness < 100 && (
           <Card className="mb-6 border-[#E6B450] bg-[#FFFBEB]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -380,30 +380,35 @@ const ProfilePage = () => {
                 <CardDescription>{currentPhotoCount} / {photoLimit} photos</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {profile.photos?.map((p, i) => (
-                    <div key={i} className="relative aspect-square rounded-md overflow-hidden group">
-                      <img src={p} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100">
+                      <img 
+                        src={p} 
+                        alt={`Photo ${i + 1}`} 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                      />
                       {isOwnProfile && !isPreviewMode && (
                         <button
                           onClick={() => handleRemovePhoto(i)}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                       {i === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] py-1 text-center font-bold">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] py-1.5 text-center font-semibold">
                           Main Photo
                         </div>
                       )}
                     </div>
                   ))}
                   {Array.from({ length: photoLimit - currentPhotoCount }).map((_, i) => (
-                    <div key={`empty-${i}`} className="aspect-square rounded-md border-2 border-dashed border-[#E6DCD2] flex items-center justify-center bg-[#FAF7F2]">
+                    <div key={`empty-${i}`} className="aspect-square rounded-lg border-2 border-dashed border-[#E6DCD2] flex items-center justify-center bg-[#FAF7F2] hover:border-[#E6B450] transition-colors">
                       {isOwnProfile && !isPreviewMode && (
-                        <label className="cursor-pointer w-full h-full flex items-center justify-center">
-                          <Upload className="w-6 h-6 text-[#706B67]" />
+                        <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center gap-2">
+                          <Upload className="w-8 h-8 text-[#706B67]" />
+                          <span className="text-xs text-[#706B67]">Add Photo</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -528,18 +533,18 @@ const ProfilePage = () => {
                     Faith & Lifestyle
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {profile.religious_affiliation && (
-                    <div>
-                      <span className="text-sm font-medium text-[#706B67]">Religious Affiliation:</span>
-                      <p className="text-[#1F1F1F]">{profile.religious_affiliation}</p>
-                    </div>
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Religious Affiliation: </span>
+                      {profile.religious_affiliation}
+                    </p>
                   )}
                   {profile.faith_lifestyle && (
-                    <div>
-                      <span className="text-sm font-medium text-[#706B67]">Faith Lifestyle:</span>
-                      <p className="text-[#1F1F1F]">{profile.faith_lifestyle}</p>
-                    </div>
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Faith Lifestyle: </span>
+                      {profile.faith_lifestyle}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -555,13 +560,10 @@ const ProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.core_values.map((value, idx) => (
-                      <Badge key={idx} variant="secondary" className="bg-[#FAF7F2] text-[#1F1F1F]">
-                        {value}
-                      </Badge>
-                    ))}
-                  </div>
+                  <p className="text-[#1F1F1F]">
+                    <span className="text-sm font-medium text-[#706B67]">Core Values: </span>
+                    {profile.core_values.join(', ')}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -576,13 +578,10 @@ const ProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.languages.map((lang, idx) => (
-                      <Badge key={idx} variant="secondary" className="bg-[#FAF7F2] text-[#1F1F1F]">
-                        {lang}
-                      </Badge>
-                    ))}
-                  </div>
+                  <p className="text-[#1F1F1F]">
+                    <span className="text-sm font-medium text-[#706B67]">Languages: </span>
+                    {profile.languages.join(', ')}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -597,19 +596,16 @@ const ProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.cultures.map((culture, idx) => (
-                      <Badge key={idx} variant="secondary" className="bg-[#FAF7F2] text-[#1F1F1F]">
-                        {culture}
-                      </Badge>
-                    ))}
-                  </div>
+                  <p className="text-[#1F1F1F]">
+                    <span className="text-sm font-medium text-[#706B67]">Cultures: </span>
+                    {profile.cultures.join(', ')}
+                  </p>
                 </CardContent>
               </Card>
             )}
 
             {/* Goals Card */}
-            {(profile.relationship_goal || profile.family_goals) && (
+            {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -617,24 +613,24 @@ const ProfilePage = () => {
                     Goals
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {profile.relationship_goal && (
-                    <div>
-                      <span className="text-sm font-medium text-[#706B67]">Relationship Goal:</span>
-                      <p className="text-[#1F1F1F]">{profile.relationship_goal}</p>
-                    </div>
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Relationship Goal: </span>
+                      {profile.relationship_goal}
+                    </p>
                   )}
                   {profile.family_goals && (
-                    <div>
-                      <span className="text-sm font-medium text-[#706B67]">Family Goals:</span>
-                      <p className="text-[#1F1F1F]">{profile.family_goals}</p>
-                    </div>
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Family Goals: </span>
+                      {profile.family_goals}
+                    </p>
                   )}
                   {profile.willing_to_relocate && (
-                    <div>
-                      <span className="text-sm font-medium text-[#706B67]">Willing to Relocate:</span>
-                      <p className="text-[#1F1F1F]">{profile.willing_to_relocate}</p>
-                    </div>
+                    <p className="text-[#1F1F1F]">
+                      <span className="text-sm font-medium text-[#706B67]">Willing to Relocate: </span>
+                      {profile.willing_to_relocate}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -719,33 +715,54 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   };
 
   const cropImage = () => {
+    if (!imageSrc || !containerRef.current || !imageRef.current) return;
+    
     // Enforce 1:1 aspect ratio (square)
-    const size = 800;
+    const outputSize = 800;
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = outputSize;
+    canvas.height = outputSize;
     const ctx = canvas.getContext('2d');
     
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Calculate scale to fit the crop area (400x400 container)
-      const containerSize = 400;
-      const scale = Math.max(img.width / containerSize, img.height / containerSize);
+      const container = containerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const containerSize = containerRect.width;
       
-      // Calculate source coordinates (enforcing square crop)
-      const cropSize = (containerSize / zoom) * scale;
-      const sourceX = (-offset.x * scale) + (img.width - cropSize) / 2;
-      const sourceY = (-offset.y * scale) + (img.height - cropSize) / 2;
+      // Calculate the actual displayed image size
+      const imageDisplayWidth = containerSize * zoom;
+      const imageDisplayHeight = (img.height / img.width) * imageDisplayWidth;
+      
+      // Calculate the scale factor between displayed image and actual image
+      const scaleX = img.width / imageDisplayWidth;
+      const scaleY = img.height / imageDisplayHeight;
+      
+      // Calculate the crop area in actual image coordinates
+      // The offset represents how much the image has been moved
+      const cropSize = containerSize / zoom;
+      const sourceX = Math.max(0, (-offset.x * scaleX));
+      const sourceY = Math.max(0, (-offset.y * scaleY));
+      const sourceSize = Math.min(cropSize * scaleX, img.width - sourceX, img.height - sourceY);
+      
+      // Ensure we don't go out of bounds
+      const finalSourceX = Math.max(0, Math.min(sourceX, img.width - sourceSize));
+      const finalSourceY = Math.max(0, Math.min(sourceY, img.height - sourceSize));
+      const finalSourceSize = Math.min(sourceSize, img.width - finalSourceX, img.height - finalSourceY);
       
       // Draw cropped and resized image to canvas (square output)
       ctx.drawImage(
         img,
-        sourceX, sourceY, cropSize, cropSize,
-        0, 0, size, size
+        finalSourceX, finalSourceY, finalSourceSize, finalSourceSize,
+        0, 0, outputSize, outputSize
       );
       
       // Compress and return
       onCropComplete(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => {
+      console.error('Failed to load image for cropping');
     };
     img.src = imageSrc;
   };
@@ -766,8 +783,8 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
         <div className="py-4">
           <div
             ref={containerRef}
-            className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4"
-            style={{ height: '400px' }}
+            className="relative w-full aspect-square bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300"
+            style={{ height: '400px', maxWidth: '400px', margin: '0 auto' }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -778,34 +795,51 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
                 ref={imageRef}
                 src={imageSrc}
                 alt="Crop"
-                className="absolute"
+                className="absolute top-1/2 left-1/2"
                 style={{
-                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  cursor: isDragging ? 'grabbing' : 'grab'
+                  transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${zoom})`,
+                  maxWidth: 'none',
+                  height: 'auto',
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  userSelect: 'none'
                 }}
                 draggable={false}
               />
             )}
-            <div className="absolute inset-0 border-4 border-[#E6B450] pointer-events-none" />
+            <div className="absolute inset-0 border-4 border-[#E6B450] pointer-events-none shadow-lg" />
+            <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+              Drag to move • Zoom to adjust
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Zoom</Label>
-            <input
-              type="range"
-              min="1"
-              max="3"
-              step="0.1"
-              value={zoom}
-              onChange={(e) => setZoom(parseFloat(e.target.value))}
-              className="w-full"
-            />
+          <div className="space-y-3 max-w-md mx-auto">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Zoom: {zoom.toFixed(1)}x</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setZoom(1);
+                    setOffset({ x: 0, y: 0 });
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <p className="text-xs text-[#706B67] text-center">
+              Drag the image to reposition, adjust zoom, then click "Crop & Save"
+            </p>
           </div>
-          <p className="text-xs text-[#706B67] mt-2">
-            Drag to reposition, adjust zoom, then click "Crop & Save"
-          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
