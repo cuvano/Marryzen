@@ -3,7 +3,29 @@
 -- ============================================
 -- Run this SQL script in Supabase Dashboard → SQL Editor
 -- This is the complete, production-ready database configuration
+-- Includes: All required columns, RLS policies, triggers, and indexes
 -- ============================================
+
+-- ============================================
+-- PART 0: ENSURE ALL REQUIRED COLUMNS EXIST
+-- ============================================
+-- This section ensures all columns needed for the application exist
+-- Run this first if you're setting up a new database or adding missing columns
+
+-- Add missing columns to profiles table (if they don't exist)
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS occupation TEXT;
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS zodiac_sign TEXT;
+
+-- Note: Other columns should already exist from your initial schema:
+-- id, email, full_name, date_of_birth, location_city, location_country,
+-- identify_as, looking_for_gender, religious_affiliation, faith_lifestyle,
+-- smoking, drinking, marital_status, has_children, education,
+-- cultures, core_values, languages, bio, relationship_goal,
+-- photos, cover_photo, status, role, onboarding_step, is_premium,
+-- is_verified, created_at, updated_at, last_active_at, etc.
 
 -- ============================================
 -- PART 1: ROW LEVEL SECURITY (RLS) POLICIES
@@ -293,7 +315,7 @@ USING (
 );
 
 -- ============================================
--- PART 2: DATABASE TRIGGERS (OPTIONAL BUT RECOMMENDED)
+-- PART 2: DATABASE TRIGGERS
 -- ============================================
 
 -- Function: Automatically create profile when user signs up
@@ -330,6 +352,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_location_city ON profiles(location_city)
 CREATE INDEX IF NOT EXISTS idx_profiles_location_country ON profiles(location_country);
 CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at);
 CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON profiles(updated_at);
+CREATE INDEX IF NOT EXISTS idx_profiles_last_active_at ON profiles(last_active_at);
 
 -- Conversations table indexes
 CREATE INDEX IF NOT EXISTS idx_conversations_user1_id ON conversations(user1_id);
@@ -353,6 +376,7 @@ CREATE INDEX IF NOT EXISTS idx_rewards_status ON rewards(status);
 -- User interactions indexes
 CREATE INDEX IF NOT EXISTS idx_user_interactions_user_id ON user_interactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_interactions_target_user_id ON user_interactions(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_user_interactions_type ON user_interactions(interaction_type);
 
 -- User blocks indexes
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker_id ON user_blocks(blocker_id);
@@ -366,8 +390,7 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 -- ============================================
 -- PART 4: VERIFICATION QUERIES
 -- ============================================
-
--- Run these queries to verify the setup:
+-- Run these queries to verify the setup (uncomment to use):
 
 -- Check RLS is enabled on all tables:
 -- SELECT tablename, rowsecurity 
@@ -393,20 +416,37 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 -- AND indexname LIKE 'idx_%'
 -- ORDER BY tablename, indexname;
 
+-- Check all columns in profiles table:
+-- SELECT column_name, data_type, is_nullable
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public'
+--   AND table_name = 'profiles'
+-- ORDER BY ordinal_position;
+
 -- ============================================
 -- SETUP COMPLETE
 -- ============================================
 -- Your database is now configured for production with:
+-- ✅ All required columns (including occupation, zodiac_sign)
 -- ✅ Row Level Security enabled on all tables
 -- ✅ Comprehensive RLS policies for data protection
 -- ✅ Automatic profile creation on user signup
 -- ✅ Performance indexes for fast queries
 -- ✅ Admin access controls
+-- ✅ Super admin restrictions (Matching & Platform settings)
+-- 
+-- Column Checklist:
+-- ✅ occupation (Job/Profession)
+-- ✅ zodiac_sign (Zodiac Sign)
+-- ✅ marital_status (Marital Status)
+-- ✅ education (Education Level)
+-- ✅ smoking, drinking, has_children
+-- ✅ All other profile fields
 -- 
 -- Next steps:
--- 1. Verify all policies are created correctly
+-- 1. Verify all policies are created correctly (run verification queries above)
 -- 2. Test user signup and profile creation
--- 3. Test admin access
--- 4. Monitor query performance and adjust indexes as needed
+-- 3. Test admin access and role restrictions
+-- 4. Verify all columns exist (run column check query above)
+-- 5. Monitor query performance and adjust indexes as needed
 -- ============================================
-

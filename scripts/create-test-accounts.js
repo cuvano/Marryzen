@@ -8,8 +8,10 @@
  * Example: node scripts/create-test-accounts.js 10
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -166,17 +168,12 @@ async function createTestAccount(index) {
       marital_history: randomItem(maritalStatuses),
       has_children: Math.random() > 0.7,
       education_level: randomItem(educationLevels),
-      occupation: randomItem(['Engineer', 'Doctor', 'Teacher', 'Business Owner', 'Designer', 'Developer', 'Manager', 'Consultant']),
-      country_of_origin: randomItem(countries),
-      country_of_residence: country,
+      job: randomItem(['Engineer', 'Doctor', 'Teacher', 'Business Owner', 'Designer', 'Developer', 'Manager', 'Consultant']),
       zodiac_sign: randomItem(zodiacSigns),
       languages: randomItems(languages, Math.floor(Math.random() * 3) + 1),
       bio: randomItem(bios),
       relationship_goal: randomItem(relationshipGoals),
       serious_relationship: true,
-      agree_to_terms: true,
-      agree_to_terms_v2: true,
-      confirm_marriage_intent: true,
       onboarding_step: 5,
       status: Math.random() > 0.3 ? 'approved' : 'pending_review', // 70% approved
       is_premium: Math.random() > 0.8, // 20% premium

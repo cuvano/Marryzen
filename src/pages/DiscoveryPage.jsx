@@ -179,8 +179,8 @@ const DiscoveryPage = () => {
         if (filters.city) query = query.ilike('location_city', `%${filters.city}%`);
         if (filters.faith) query = query.eq('religious_affiliation', filters.faith);
         if (filters.faithLifestyle) query = query.eq('faith_lifestyle', filters.faithLifestyle);
-        if (filters.maritalStatus) query = query.eq('marital_history', filters.maritalStatus);
-        if (filters.educationLevel) query = query.eq('education_level', filters.educationLevel);
+        if (filters.maritalStatus) query = query.eq('marital_status', filters.maritalStatus);
+        if (filters.educationLevel) query = query.eq('education', filters.educationLevel);
         if (filters.relationshipGoal) query = query.eq('relationship_goal', filters.relationshipGoal);
         
         // Premium Server Filters
@@ -211,7 +211,7 @@ const DiscoveryPage = () => {
                 if (filters.smoking && p.smoking !== filters.smoking) return false;
                 if (filters.drinking && p.drinking !== filters.drinking) return false;
                 if (filters.hasChildren && String(p.has_children) !== filters.hasChildren) return false;
-                if (filters.educationLevel && p.education_level !== filters.educationLevel) return false;
+                if (filters.educationLevel && p.education !== filters.educationLevel) return false;
                 if (filters.zodiacSign && p.zodiac_sign !== filters.zodiacSign) return false;
                 
                 // Premium Checks
@@ -397,7 +397,7 @@ const DiscoveryPage = () => {
           drinking: filters.drinking || '',
           marital_status: filters.maritalStatus || '',
           has_children: filters.hasChildren || '',
-          education_level: filters.educationLevel || '',
+          education: filters.educationLevel || '',
           relationship_goal: filters.relationshipGoal || '',
           languages: filters.languages || [],
           zodiac_sign: filters.zodiacSign || '',
@@ -432,7 +432,7 @@ const DiscoveryPage = () => {
           drinking: pref.drinking || '',
           maritalStatus: pref.marital_status || '',
           hasChildren: pref.has_children || '',
-          educationLevel: pref.education_level || '',
+          educationLevel: pref.education || '',
           relationshipGoal: pref.relationship_goal || '',
           languages: pref.languages || [],
           zodiacSign: pref.zodiac_sign || '',

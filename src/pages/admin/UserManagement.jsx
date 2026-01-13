@@ -57,21 +57,28 @@ const UserManagement = () => {
   };
 
   const updateUser = async (id, updates) => {
-    // Check if trying to modify admin/super_admin and current user is not super_admin
-    if (currentAdminRole !== 'super_admin') {
+    // Only super admins can change user roles
+    if (updates.role && currentAdminRole !== 'super_admin') {
+      toast({ 
+        title: "Permission Denied", 
+        description: "Only super admins can change user roles.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Regular admins cannot change status of admins or super admins
+    if (currentAdminRole !== 'super_admin' && updates.status) {
       const targetUser = users.find(u => u.id === id);
-      const targetRole = updates.role || targetUser?.role?.toLowerCase();
+      const targetRole = targetUser?.role?.toLowerCase();
       
-      // Prevent regular admins from changing status/role of admins or super_admins
       if (targetRole === 'admin' || targetRole === 'super_admin') {
-        if (updates.status || updates.role) {
-          toast({ 
-            title: "Permission Denied", 
-            description: "Regular admins cannot modify the status or role of other admins or super admins.",
-            variant: "destructive" 
-          });
-          return;
-        }
+        toast({ 
+          title: "Permission Denied", 
+          description: "Regular admins cannot modify the status of other admins or super admins.",
+          variant: "destructive" 
+        });
+        return;
       }
     }
 
@@ -191,14 +198,14 @@ const UserManagement = () => {
                                           className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                           value={selectedUser.role || 'customer'}
                                           onChange={(e) => updateUser(selectedUser.id, { role: e.target.value })}
-                                          disabled={currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin')}
+                                          disabled={currentAdminRole !== 'super_admin'}
                                         >
                                           <option value="customer">Customer</option>
                                           <option value="admin">Admin</option>
                                           <option value="super_admin">Super Admin</option>
                                         </select>
-                                        {currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin') && (
-                                          <p className="text-xs text-yellow-400 mt-1">Only super admins can change admin roles</p>
+                                        {currentAdminRole !== 'super_admin' && (
+                                          <p className="text-xs text-yellow-400 mt-1">Only super admins can change user roles</p>
                                         )}
                                       </div>
                                       <div className="flex items-center justify-between pt-4">

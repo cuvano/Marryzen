@@ -37,39 +37,68 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   };
 
   const cropImage = () => {
-    const canvas = document.createElement('canvas');
-    const size = 600; // Output size 600x600
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
+    if (!imageRef.current || !containerRef.current) return;
+    
     const img = imageRef.current;
+    const container = containerRef.current;
+    const containerSize = 300; // Container is 300x300
     
-    // Draw white background first (for when image is zoomed out and doesn't fill frame)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, size, size);
-    
-    // Scale factor between display (300px) and output (600px)
-    const scaleFactor = size / 300; 
-    
-    ctx.translate(size / 2, size / 2);
-    ctx.translate(offset.x * scaleFactor, offset.y * scaleFactor);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-size / 2, -size / 2);
-    
-    // Draw image centered
-    const aspect = img.naturalWidth / img.naturalHeight;
-    let drawW, drawH;
-    if (aspect > 1) {
-        drawH = size;
-        drawW = size * aspect;
-    } else {
-        drawW = size;
-        drawH = size / aspect;
+    // Wait for image to load
+    if (!img.complete || img.naturalWidth === 0) {
+      img.onload = () => cropImage();
+      return;
     }
     
-    ctx.drawImage(img, (size - drawW) / 2, (size - drawH) / 2, drawW, drawH);
+    const canvas = document.createElement('canvas');
+    const outputSize = 800; // High quality output
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext('2d');
     
-    const base64 = canvas.toDataURL('image/jpeg', 0.9);
+    // Draw white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, outputSize, outputSize);
+    
+    // Calculate the actual displayed image dimensions
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const containerAspect = 1; // Square container
+    
+    let displayedWidth, displayedHeight;
+    if (imgAspect > containerAspect) {
+      // Image is wider - fit to height
+      displayedHeight = containerSize * zoom;
+      displayedWidth = displayedHeight * imgAspect;
+    } else {
+      // Image is taller - fit to width
+      displayedWidth = containerSize * zoom;
+      displayedHeight = displayedWidth / imgAspect;
+    }
+    
+    // Calculate the scale factor from displayed size to actual image size
+    const scaleX = img.naturalWidth / displayedWidth;
+    const scaleY = img.naturalHeight / displayedHeight;
+    
+    // Calculate the crop area in actual image coordinates
+    // The visible area is centered in the container, offset by the drag position
+    const visibleSize = containerSize / zoom;
+    const sourceX = Math.max(0, (-offset.x * scaleX) + (img.naturalWidth - visibleSize * scaleX) / 2);
+    const sourceY = Math.max(0, (-offset.y * scaleY) + (img.naturalHeight - visibleSize * scaleY) / 2);
+    const sourceSize = Math.min(visibleSize * scaleX, img.naturalWidth - sourceX, img.naturalHeight - sourceY);
+    
+    // Ensure we don't go out of bounds
+    const finalSourceX = Math.max(0, Math.min(sourceX, img.naturalWidth - sourceSize));
+    const finalSourceY = Math.max(0, Math.min(sourceY, img.naturalHeight - sourceSize));
+    const finalSourceSize = Math.min(sourceSize, img.naturalWidth - finalSourceX, img.naturalHeight - finalSourceY);
+    
+    // Draw the cropped portion to canvas (square output)
+    ctx.drawImage(
+      img,
+      finalSourceX, finalSourceY, finalSourceSize, finalSourceSize,
+      0, 0, outputSize, outputSize
+    );
+    
+    // Compress and return
+    const base64 = canvas.toDataURL('image/jpeg', 0.85);
     onCropComplete(base64);
   };
 
@@ -91,9 +120,29 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
                 className="max-w-none absolute top-1/2 left-1/2 origin-center select-none pointer-events-none"
                 style={{
                     transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                    // Initial sizing to cover the box loosely
-                    minWidth: '100%',
-                    minHeight: '100%'
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: 'none',
+                    maxHeight: 'none'
+                }}
+                onLoad={() => {
+                  // Ensure image fits container initially
+                  if (imageRef.current && containerRef.current) {
+                    const img = imageRef.current;
+                    const container = containerRef.current;
+                    const imgAspect = img.naturalWidth / img.naturalHeight;
+                    
+                    // Set initial zoom to fit
+                    if (imgAspect > 1) {
+                      // Wider image - fit height
+                      const initialZoom = container.offsetHeight / img.naturalHeight;
+                      setZoom(Math.max(1, initialZoom * 1.1)); // Slightly larger than fit
+                    } else {
+                      // Taller image - fit width
+                      const initialZoom = container.offsetWidth / img.naturalWidth;
+                      setZoom(Math.max(1, initialZoom * 1.1)); // Slightly larger than fit
+                    }
+                  }
                 }}
             />
             {/* Overlay Grid */}
@@ -114,13 +163,26 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             value={[zoom]} 
             min={0.5} 
             max={3} 
-            step={0.1} 
+            step={0.05} 
             onValueChange={(val) => setZoom(val[0])}
             className="w-full"
         />
-        <p className="text-[10px] text-[#706B67] text-center mt-1">
-            Drag to reposition. Zoom out to fit full photo.
-        </p>
+        <div className="flex justify-between items-center mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setZoom(1);
+              setOffset({ x: 0, y: 0 });
+            }}
+            className="text-xs h-7"
+          >
+            Reset
+          </Button>
+          <p className="text-[10px] text-[#706B67] text-center">
+            Drag to reposition • Zoom to adjust
+          </p>
+        </div>
       </div>
 
       <DialogFooter className="gap-2 sm:gap-0">
@@ -165,13 +227,14 @@ const PhotoUploadBox = ({ index, photo, onUpload, onRemove, isMain, isLocked }) 
             <img 
                 src={typeof photo === 'string' ? photo : URL.createObjectURL(photo)} 
                 alt={`User upload ${index}`} 
-                className="w-full h-full object-cover object-center" 
+                className="w-full h-full object-cover object-center rounded-2xl" 
+                style={{ imageRendering: 'high-quality' }}
             />
-             <div className="absolute top-1 right-1 bg-white/80 p-1.5 rounded-full cursor-pointer hover:bg-white hover:text-red-500 z-10 shadow-sm transition-colors" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+             <div className="absolute top-1 right-1 bg-white/90 backdrop-blur-sm p-1.5 rounded-full cursor-pointer hover:bg-white hover:text-red-500 z-10 shadow-md transition-all hover:scale-110" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
                 <Trash2 className="w-4 h-4" />
             </div>
             {isMain && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] py-1 font-bold">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] py-1.5 px-2 font-bold rounded-b-2xl">
                     Main Photo
                 </div>
             )}

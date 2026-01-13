@@ -109,11 +109,11 @@ const OnboardingPage = () => {
                     relationshipGoal: profile.relationship_goal || '',
                     smoking: profile.smoking || '',
                     drinking: profile.drinking || '',
-                    maritalHistory: profile.marital_history || '',
+                    maritalHistory: profile.marital_status || '',
                     hasChildren: profile.has_children || false,
                     education: profile.education || '',
-                    educationLevel: profile.education_level || '',
-                    job: profile.job || '',
+                    educationLevel: profile.education || '', // Both map to the same "education" column
+                    job: profile.occupation || profile.job || '', // Try occupation first, fallback to job
                     zodiacSign: profile.zodiac_sign || '',
                     countryOfOrigin: profile.country_of_origin || '',
                     countryOfResidence: profile.country_of_residence || profile.location_country || '',
@@ -433,23 +433,42 @@ const OnboardingPage = () => {
 
         // STEP 3: Culture & Values
         else if (currentStep === 3) {
-            const { error } = await supabase.from('profiles').update({
-                cultures: formData.cultures,
-                other_culture_text: formData.otherCultureText,
-                faith_lifestyle: formData.faithLifestyle,
-                religious_affiliation: formData.religiousAffiliation,
-                other_religious_affiliation: formData.otherReligiousAffiliation,
-                core_values: formData.coreValues,
-                smoking: formData.smoking,
-                drinking: formData.drinking,
-                marital_history: formData.maritalHistory,
-                has_children: formData.hasChildren,
-                education: formData.education,
-                education_level: formData.educationLevel,
-                job: formData.job,
-                zodiac_sign: formData.zodiacSign,
+            // Build update object - only include fields that exist in the database
+            const updateData = {
+                cultures: formData.cultures || [],
+                other_culture_text: formData.otherCultureText || null,
+                faith_lifestyle: formData.faithLifestyle || null,
+                religious_affiliation: formData.religiousAffiliation || null,
+                other_religious_affiliation: formData.otherReligiousAffiliation || null,
+                core_values: formData.coreValues || [],
+                smoking: formData.smoking || null,
+                drinking: formData.drinking || null,
+                marital_status: formData.maritalHistory || null,
+                has_children: formData.hasChildren || false,
                 onboarding_step: 4
-            }).eq('id', session.user.id);
+            };
+            
+            // Only include education field if it has a value (column exists as "education")
+            if (formData.education) {
+                updateData.education = formData.education;
+            }
+            // Note: educationLevel is stored in the same "education" column
+            // If educationLevel is provided but education is not, use educationLevel
+            if (formData.educationLevel && !formData.education) {
+                updateData.education = formData.educationLevel;
+            }
+            
+            // Include job/occupation field
+            if (formData.job) {
+                updateData.occupation = formData.job;
+            }
+            
+            // Include zodiac_sign field
+            if (formData.zodiacSign) {
+                updateData.zodiac_sign = formData.zodiacSign;
+            }
+            
+            const { error } = await supabase.from('profiles').update(updateData).eq('id', session.user.id);
 
             if (error) throw error;
             setCurrentStep(4);

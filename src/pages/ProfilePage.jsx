@@ -407,8 +407,18 @@ const ProfilePage = () => {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-[#FAF7F2] overflow-hidden relative group">
                   {mainPhoto ? (
-                    <img src={mainPhoto} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
+                    <img 
+                      src={mainPhoto} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                      style={{ imageRendering: 'high-quality' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  {!mainPhoto && (
                     <User className="w-full h-full p-6 text-[#C85A72]" />
                   )}
                 </div>
@@ -451,22 +461,27 @@ const ProfilePage = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {profile.photos?.map((p, i) => (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100">
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100 shadow-sm hover:shadow-md transition-shadow">
                       <img 
                         src={p} 
                         alt={`Photo ${i + 1}`} 
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        style={{ imageRendering: 'high-quality' }}
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f3f4f6" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EFailed to load%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                       {isOwnProfile && !isPreviewMode && (
                         <button
                           onClick={() => handleRemovePhoto(i)}
-                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg backdrop-blur-sm hover:scale-110"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                       {i === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] py-1.5 text-center font-semibold">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent text-white text-[10px] py-1.5 px-2 text-center font-semibold">
                           Main Photo
                         </div>
                       )}
@@ -659,7 +674,7 @@ const ProfilePage = () => {
             )}
 
             {/* Lifestyle Details Card */}
-            {(profile.smoking || profile.drinking || profile.marital_history || profile.has_children !== undefined || profile.education || profile.education_level || profile.job || profile.zodiac_sign || profile.country_of_origin) && (
+            {(profile.smoking || profile.drinking || profile.marital_status || profile.has_children !== undefined || profile.education || profile.job || profile.zodiac_sign || profile.country_of_origin) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -680,22 +695,16 @@ const ProfilePage = () => {
                       {profile.drinking}
                     </p>
                   )}
-                  {profile.marital_history && (
+                  {profile.marital_status && (
                     <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Marital History: </span>
-                      {profile.marital_history}
+                      <span className="text-sm font-medium text-[#706B67]">Marital Status: </span>
+                      {profile.marital_status}
                     </p>
                   )}
                   {profile.has_children !== undefined && (
                     <p className="text-[#1F1F1F]">
                       <span className="text-sm font-medium text-[#706B67]">Children: </span>
                       {profile.has_children ? 'Yes' : 'No'}
-                    </p>
-                  )}
-                  {profile.education_level && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Education Level: </span>
-                      {profile.education_level}
                     </p>
                   )}
                   {profile.education && (
@@ -839,8 +848,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   const cropImage = () => {
     if (!imageSrc || !containerRef.current || !imageRef.current) return;
     
-    // Enforce 1:1 aspect ratio (square)
-    const outputSize = 800;
+    const outputSize = 800; // High quality square output
     const canvas = document.createElement('canvas');
     canvas.width = outputSize;
     canvas.height = outputSize;
@@ -851,27 +859,45 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
     img.onload = () => {
       const container = containerRef.current;
       const containerRect = container.getBoundingClientRect();
-      const containerSize = containerRect.width;
+      const containerSize = containerRect.width || 400; // Fallback to 400px
       
-      // Calculate the actual displayed image size
-      const imageDisplayWidth = containerSize * zoom;
-      const imageDisplayHeight = (img.height / img.width) * imageDisplayWidth;
+      // Calculate displayed image dimensions based on zoom
+      const imgAspect = img.width / img.height;
+      let displayedWidth, displayedHeight;
       
-      // Calculate the scale factor between displayed image and actual image
-      const scaleX = img.width / imageDisplayWidth;
-      const scaleY = img.height / imageDisplayHeight;
+      if (imgAspect > 1) {
+        // Image is wider - fit to container height
+        displayedHeight = containerSize * zoom;
+        displayedWidth = displayedHeight * imgAspect;
+      } else {
+        // Image is taller - fit to container width
+        displayedWidth = containerSize * zoom;
+        displayedHeight = displayedWidth / imgAspect;
+      }
       
-      // Calculate the crop area in actual image coordinates
-      // The offset represents how much the image has been moved
-      const cropSize = containerSize / zoom;
-      const sourceX = Math.max(0, (-offset.x * scaleX));
-      const sourceY = Math.max(0, (-offset.y * scaleY));
-      const sourceSize = Math.min(cropSize * scaleX, img.width - sourceX, img.height - sourceY);
+      // Calculate scale factors from displayed to actual image
+      const scaleX = img.width / displayedWidth;
+      const scaleY = img.height / displayedHeight;
+      
+      // Calculate the visible crop area in actual image coordinates
+      // The visible area is centered, offset by drag position
+      const visibleSize = containerSize / zoom;
+      const centerX = img.width / 2;
+      const centerY = img.height / 2;
+      
+      // Calculate source coordinates accounting for offset
+      const sourceX = Math.max(0, centerX - (visibleSize * scaleX) / 2 - (offset.x * scaleX));
+      const sourceY = Math.max(0, centerY - (visibleSize * scaleY) / 2 - (offset.y * scaleY));
+      const sourceSize = Math.min(visibleSize * scaleX, img.width - sourceX, img.height - sourceY);
       
       // Ensure we don't go out of bounds
       const finalSourceX = Math.max(0, Math.min(sourceX, img.width - sourceSize));
       const finalSourceY = Math.max(0, Math.min(sourceY, img.height - sourceSize));
       const finalSourceSize = Math.min(sourceSize, img.width - finalSourceX, img.height - finalSourceY);
+      
+      // Draw white background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, outputSize, outputSize);
       
       // Draw cropped and resized image to canvas (square output)
       ctx.drawImage(
@@ -917,15 +943,34 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
                 ref={imageRef}
                 src={imageSrc}
                 alt="Crop"
-                className="absolute top-1/2 left-1/2"
+                className="absolute top-1/2 left-1/2 origin-center select-none pointer-events-none"
                 style={{
-                  transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${zoom})`,
+                  transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
                   maxWidth: 'none',
+                  width: 'auto',
                   height: 'auto',
                   cursor: isDragging ? 'grabbing' : 'grab',
                   userSelect: 'none'
                 }}
                 draggable={false}
+                onLoad={() => {
+                  // Auto-fit image on load
+                  if (imageRef.current && containerRef.current) {
+                    const img = imageRef.current;
+                    const container = containerRef.current;
+                    const containerSize = container.offsetWidth || 400;
+                    const imgAspect = img.naturalWidth / img.naturalHeight;
+                    
+                    // Calculate initial zoom to fit
+                    let initialZoom = 1;
+                    if (imgAspect > 1) {
+                      initialZoom = (containerSize / img.naturalHeight) * 1.1;
+                    } else {
+                      initialZoom = (containerSize / img.naturalWidth) * 1.1;
+                    }
+                    setZoom(Math.max(1, Math.min(initialZoom, 2)));
+                  }
+                }}
               />
             )}
             <div className="absolute inset-0 border-4 border-[#E6B450] pointer-events-none shadow-lg" />
