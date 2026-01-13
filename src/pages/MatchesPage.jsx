@@ -12,10 +12,20 @@ const MatchesPage = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pastInteractions, setPastInteractions] = useState([]);
+  const [activeTab, setActiveTab] = useState('matches'); // 'matches' or 'interactions'
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
+    fetchPastInteractions();
+    
+    // Check URL for tab parameter
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'interactions') {
+      setActiveTab('interactions');
+    }
   }, []);
 
   const fetchData = async () => {
@@ -129,6 +139,65 @@ const MatchesPage = () => {
     }
   };
 
+  const fetchPastInteractions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all interactions (likes and passes)
+      const { data: interactions, error } = await supabase
+        .from('user_interactions')
+        .select(`
+          id,
+          interaction_type,
+          created_at,
+          target_user:target_user_id(
+            id,
+            full_name,
+            photos,
+            location_city,
+            location_country,
+            date_of_birth,
+            is_premium
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching interactions:', error);
+        return;
+      }
+
+      const formatted = (interactions || []).map(interaction => {
+        const profile = interaction.target_user;
+        const age = profile?.date_of_birth 
+          ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+          : null;
+        
+        return {
+          id: interaction.id,
+          interactionType: interaction.interaction_type,
+          createdAt: interaction.created_at,
+          profile: {
+            id: profile?.id,
+            full_name: profile?.full_name,
+            photos: profile?.photos || [],
+            location_city: profile?.location_city,
+            location_country: profile?.location_country,
+            age,
+            is_premium: profile?.is_premium
+          }
+        };
+      });
+
+      setPastInteractions(formatted);
+    } catch (error) {
+      console.error('Error fetching past interactions:', error);
+    }
+  };
+
   const getEmptyStateSuggestions = () => {
     const suggestions = [];
 
@@ -159,18 +228,116 @@ const MatchesPage = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
-          <p className="text-[#706B67]">
-            {matches.length > 0 
-              ? "Mutual likes turn into conversations. Be respectful and sincere."
-              : "These are profiles who have liked you back. Start a conversation!"}
+          <p className="text-[#706B67] mb-4">
+            {activeTab === 'matches' 
+              ? (matches.length > 0 
+                  ? "Mutual likes turn into conversations. Be respectful and sincere."
+                  : "These are profiles who have liked you back. Start a conversation!")
+              : "View profiles you've liked or passed on."}
           </p>
+          
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-[#E6DCD2]">
+            <button
+              onClick={() => setActiveTab('matches')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'matches'
+                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+              }`}
+            >
+              Matches ({matches.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('interactions')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'interactions'
+                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+              }`}
+            >
+              Past Interactions ({pastInteractions.length})
+            </button>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[#706B67] font-medium">Loading your matches...</p>
+            <p className="text-[#706B67] font-medium">Loading...</p>
           </div>
+        ) : activeTab === 'interactions' ? (
+          // Past Interactions Tab
+          pastInteractions.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pastInteractions.map(interaction => (
+                <div 
+                  key={interaction.id} 
+                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square bg-slate-100 relative">
+                    {interaction.profile.photos?.[0] ? (
+                      <img 
+                        src={interaction.profile.photos[0]} 
+                        alt={interaction.profile.full_name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <User className="w-16 h-16" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2">
+                      <Badge className={interaction.interactionType === 'like' ? 'bg-green-600 text-white' : 'bg-gray-500 text-white'}>
+                        {interaction.interactionType === 'like' ? 'Liked' : 'Passed'}
+                      </Badge>
+                    </div>
+                    {interaction.profile.is_premium && (
+                      <div className="absolute top-2 right-2">
+                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{interaction.profile.full_name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      {interaction.profile.age && <span>{interaction.profile.age}</span>}
+                      {interaction.profile.location_city && (
+                        <>
+                          {interaction.profile.age && <span>•</span>}
+                          <MapPin className="w-3 h-3" />
+                          <span>{interaction.profile.location_city}</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#706B67] mb-4">
+                      {new Date(interaction.createdAt).toLocaleDateString()}
+                    </p>
+                    <Button 
+                      className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                      onClick={() => navigate(`/profile/${interaction.profile.id}`)}
+                    >
+                      View Profile
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+              <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No past interactions</h3>
+              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                Profiles you like or pass on will appear here. Start exploring to see your interaction history!
+              </p>
+              <Button 
+                onClick={() => navigate('/discovery')} 
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+              >
+                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+              </Button>
+            </div>
+          )
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {matches.map(match => (

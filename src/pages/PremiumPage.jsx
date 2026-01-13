@@ -13,11 +13,26 @@ const PremiumPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState(null); // Track which plan is loading
   const [profileStatus, setProfileStatus] = useState(null);
   const [profileCheckLoading, setProfileCheckLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumExpiresAt, setPremiumExpiresAt] = useState(null);
 
   useEffect(() => {
     checkProfileStatus();
+    
+    // Refresh profile status when page becomes visible (in case status changed)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkProfileStatus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const checkProfileStatus = async () => {
@@ -30,11 +45,34 @@ const PremiumPage = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('status, onboarding_step, full_name')
+        .select('status, onboarding_step, full_name, is_premium, premium_expires_at')
         .eq('id', user.id)
         .maybeSingle();
 
+      // Handle case where premium_expires_at column might not exist yet
+      if (profile && !('premium_expires_at' in profile)) {
+        profile.premium_expires_at = null;
+      }
+
       setProfileStatus(profile || null);
+      setIsPremium(profile?.is_premium || false);
+      setPremiumExpiresAt(profile?.premium_expires_at || null);
+      
+      // Debug: Log profile status to help diagnose issues
+      if (profile) {
+        const statusLower = profile.status?.toLowerCase()?.trim();
+        const isApprovedCheck = statusLower === 'approved';
+        console.log('Premium Page - Profile Status Debug:', {
+          status: profile.status,
+          statusLower: statusLower,
+          isApproved: isApprovedCheck,
+          onboarding_step: profile.onboarding_step,
+          hasStatus: !!profile.status,
+          isProfileComplete: profile && (profile.onboarding_step === 5 || !!profile.status)
+        });
+      } else {
+        console.log('Premium Page - No profile found');
+      }
     } catch (error) {
       console.error('Error checking profile status:', error);
     } finally {
@@ -43,6 +81,7 @@ const PremiumPage = () => {
   };
 
   const handleSubscribe = async (priceId) => {
+    setLoadingPlanId(priceId);
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +92,7 @@ const PremiumPage = () => {
           variant: "destructive"
         });
         setLoading(false);
+        setLoadingPlanId(null);
         return;
       }
 
@@ -67,12 +107,20 @@ const PremiumPage = () => {
         throw profileError;
       }
 
-      // Double-check status before proceeding
-      if (!profile || profile.status !== 'approved') {
+      // Double-check status before proceeding (case-insensitive)
+      const profileStatusLower = profile?.status?.toLowerCase()?.trim();
+      if (!profile || profileStatusLower !== 'approved') {
         setLoading(false);
-        // Status should already be checked via UI, but just in case
+        setLoadingPlanId(null);
+        toast({
+          title: "Profile Not Approved",
+          description: "Your profile must be approved before subscribing. Current status: " + (profile?.status || 'Unknown'),
+          variant: "destructive"
+        });
         return;
       }
+
+      console.log('Calling stripe-api function with:', { action: 'create_checkout_session', priceId, returnUrl: window.location.origin + '/billing' });
 
       const { data, error } = await supabase.functions.invoke('stripe-api', {
         body: { 
@@ -82,57 +130,87 @@ const PremiumPage = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Stripe API Error:', error);
+        // Check if it's a function not found error
+        if (error.message?.includes('Function not found') || error.message?.includes('404')) {
+          throw new Error("Payment system is not configured. Please contact support or check if the Stripe integration is set up.");
+        }
+        // Check if it's a non-2xx status code
+        if (error.message?.includes('non-2xx') || error.message?.includes('status code')) {
+          throw new Error("Payment service error. Please check your Stripe configuration or contact support.");
+        }
+        throw error;
+      }
+
       if (data?.url) {
         window.location.href = data.url;
+      } else if (data?.error) {
+        throw new Error(data.error || "Could not create checkout session");
       } else {
-        throw new Error("Could not create checkout session");
+        throw new Error("Could not create checkout session. Please try again or contact support.");
       }
     } catch (err) {
-      console.error(err);
+      console.error('Subscription Error Details:', err);
+      const errorMessage = err.message || err.error?.message || "Something went wrong. Please try again.";
       toast({
         title: "Subscription Error",
-        description: err.message || "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      setLoadingPlanId(null);
     }
   };
 
-  const isApproved = profileStatus?.status === 'approved';
-  const isPending = profileStatus?.status === 'pending_review';
-  const isRejected = profileStatus?.status === 'rejected';
-  const hasIncompleteProfile = !profileStatus || profileStatus.onboarding_step < 5;
+  // Check status with case-insensitive comparison and trim whitespace
+  const statusLower = profileStatus?.status?.toLowerCase()?.trim();
+  const isApproved = statusLower === 'approved';
+  const isPending = statusLower === 'pending_review';
+  const isRejected = statusLower === 'rejected';
+  // Profile is complete if:
+  // 1. onboarding_step is 5 OR
+  // 2. status is set (pending/approved/rejected means they completed onboarding)
+  // Profile is incomplete only if: no profile OR (onboarding_step < 5 AND no status)
+  const onboardingStep = profileStatus?.onboarding_step;
+  const hasStatus = !!profileStatus?.status;
+  // Consider profile complete if onboarding_step is 5 OR if status exists
+  const isProfileComplete = profileStatus && (onboardingStep === 5 || hasStatus);
+  const hasIncompleteProfile = !isProfileComplete;
 
-  // Mock Price IDs (replace with real Stripe Price IDs in production)
+  // Stripe Price IDs - Use environment variables or update directly
+  // To use environment variables, add to .env:
+  // VITE_STRIPE_PRICE_MONTHLY=price_xxxxxxxxxxxxx
+  // VITE_STRIPE_PRICE_6MONTH=price_xxxxxxxxxxxxx
+  // VITE_STRIPE_PRICE_12MONTH=price_xxxxxxxxxxxxx
   const plans = [
     {
-      id: 'price_monthly_mock', // Replace with real price_xxx
+      id: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_monthly_mock', // Replace with your Stripe Price ID
       name: 'Monthly Plan',
       duration: '1 month',
       price: '$29.99',
       description: 'Flexible commitment',
-      buttonText: 'Start Monthly Premium',
+      buttonText: isPremium ? 'Extend by 1 Month' : 'Start Monthly Premium',
       isPopular: false
     },
     {
-      id: 'price_6month_mock',
+      id: import.meta.env.VITE_STRIPE_PRICE_6MONTH || 'price_6month_mock', // Replace with your Stripe Price ID
       name: '6-Month Plan',
       duration: '6 months',
       price: '$119.94',
       description: 'Good Value - Save 33%',
-      buttonText: 'Choose 6-Month Plan',
+      buttonText: isPremium ? 'Add 6 Months' : 'Choose 6-Month Plan',
       isPopular: false,
       badge: 'Good Value'
     },
     {
-      id: 'price_12month_mock',
+      id: import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_12month_mock', // Replace with your Stripe Price ID
       name: '12-Month Plan',
       duration: '12 months',
       price: '$179.94',
       description: 'Best Value - Save 50%',
-      buttonText: 'Choose 12-Month Plan',
+      buttonText: isPremium ? 'Add 12 Months' : 'Choose 12-Month Plan',
       isPopular: true,
       badge: 'Best Value'
     }
@@ -155,13 +233,30 @@ const PremiumPage = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
             <div className="text-center max-w-3xl mx-auto">
-                <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-3">Upgrade to Marryzen Premium</h1>
-                <p className="text-xl text-[#706B67] mb-4 font-medium">Unlock advanced tools designed for serious marriage-focused members.</p>
+                <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-3">
+                  {isPremium ? 'Extend Your Premium Subscription' : 'Upgrade to Marryzen Premium'}
+                </h1>
+                <p className="text-xl text-[#706B67] mb-4 font-medium">
+                  {isPremium 
+                    ? premiumExpiresAt 
+                      ? `Your premium expires on ${new Date(premiumExpiresAt).toLocaleDateString()}. Extend your subscription to continue enjoying all premium features.`
+                      : 'Extend your premium subscription to continue enjoying all premium features.'
+                    : 'Unlock advanced tools designed for serious marriage-focused members.'}
+                </p>
+                {isPremium && premiumExpiresAt && (
+                  <div className="mt-4 inline-block bg-[#E6B450]/10 border border-[#E6B450] rounded-lg px-4 py-2">
+                    <p className="text-sm text-[#1F1F1F] font-medium">
+                      Current Premium expires: <span className="font-bold">{new Date(premiumExpiresAt).toLocaleDateString()}</span>
+                    </p>
+                  </div>
+                )}
             </div>
         </div>
 
-        {/* Profile Status Banner */}
-        {!profileCheckLoading && !isApproved && (
+        {/* Profile Status Banner - Only show if profile is incomplete OR rejected */}
+        {/* Don't show if approved - approved users can subscribe */}
+        {/* Don't show for pending profiles - they've completed onboarding, just waiting for approval */}
+        {!profileCheckLoading && !isApproved && !isPending && (hasIncompleteProfile || isRejected) && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -280,11 +375,18 @@ const PremiumPage = () => {
                           </div>
                         ) : (
                           <Button 
-                            disabled={loading}
+                            disabled={loading && loadingPlanId === plan.id}
                             onClick={() => handleSubscribe(plan.id)} 
                             className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#FAF7F2] border border-[#E6DCD2] hover:bg-[#E6DCD2] text-[#333333]'}`}
                           >
-                            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : plan.buttonText}
+                            {loading && loadingPlanId === plan.id ? (
+                              <>
+                                <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              plan.buttonText
+                            )}
                           </Button>
                         )}
                     </div>

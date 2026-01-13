@@ -12,6 +12,34 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Lock, Crown } from 'lucide-react';
 
+// Full list of countries (matching onboarding)
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+  "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+  "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+  "East Timor (Timor-Leste)", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+  "Fiji", "Finland", "France",
+  "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+  "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+  "Jamaica", "Japan", "Jordan",
+  "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+  "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar (formerly Burma)",
+  "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+  "Oman",
+  "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+  "Qatar",
+  "Romania", "Russia", "Rwanda",
+  "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Türkiye", "Turkmenistan", "Tuvalu",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+  "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+  "Yemen",
+  "Zambia", "Zimbabwe"
+].sort();
+
 const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave, onPremiumFeatureClick }) => {
   const handleChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -129,27 +157,6 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Smoking</Label>
-                  <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.smoking || ''} onChange={(e) => handleChange('smoking', e.target.value)}>
-                    <option value="">Any</option>
-                    <option value="No">No</option>
-                    <option value="Socially">Socially</option>
-                    <option value="Regularly">Regularly</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Drinking</Label>
-                  <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.drinking || ''} onChange={(e) => handleChange('drinking', e.target.value)}>
-                    <option value="">Any</option>
-                    <option value="No">No</option>
-                    <option value="Socially">Socially</option>
-                    <option value="Regularly">Regularly</option>
-                  </select>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label>Marital History</Label>
                 <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.maritalStatus || ''} onChange={(e) => handleChange('maritalStatus', e.target.value)}>
@@ -218,27 +225,9 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                         handleChange('countries', selected);
                       }}
                     >
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Australia">Australia</option>
-                      <option value="India">India</option>
-                      <option value="Pakistan">Pakistan</option>
-                      <option value="Bangladesh">Bangladesh</option>
-                      <option value="Egypt">Egypt</option>
-                      <option value="Türkiye">Türkiye</option>
-                      <option value="Saudi Arabia">Saudi Arabia</option>
-                      <option value="United Arab Emirates">United Arab Emirates</option>
-                      <option value="Germany">Germany</option>
-                      <option value="France">France</option>
-                      <option value="Spain">Spain</option>
-                      <option value="Italy">Italy</option>
-                      <option value="Netherlands">Netherlands</option>
-                      <option value="Sweden">Sweden</option>
-                      <option value="Norway">Norway</option>
-                      <option value="Denmark">Denmark</option>
-                      <option value="Switzerland">Switzerland</option>
-                      <option value="Belgium">Belgium</option>
+                      {COUNTRIES.map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
                     </select>
                     <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple countries</p>
                     {filters.countries && filters.countries.length > 0 && (
@@ -271,41 +260,6 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                       <option value="Doctorate">Doctorate</option>
                       <option value="Professional Degree">Professional Degree</option>
                     </select>
-                  </div>
-                </PremiumLock>
-
-                <PremiumLock label="Relationship Goals" feature="advanced_filters">
-                  <div className="space-y-2">
-                    <Label>Relationship Goal</Label>
-                    <select className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white" value={filters.relationshipGoal || ''} onChange={(e) => handleChange('relationshipGoal', e.target.value)}>
-                      <option value="">Any</option>
-                      <option value="Marriage">Marriage</option>
-                      <option value="Serious Relationship">Serious Relationship</option>
-                      <option value="Long-term Partnership">Long-term Partnership</option>
-                    </select>
-                  </div>
-                </PremiumLock>
-
-                <PremiumLock label="Lifestyle" feature="advanced_filters">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Smoking</Label>
-                      <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.smoking || ''} onChange={(e) => handleChange('smoking', e.target.value)}>
-                        <option value="">Any</option>
-                        <option value="No">No</option>
-                        <option value="Socially">Socially</option>
-                        <option value="Regularly">Regularly</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Drinking</Label>
-                      <select className="w-full border border-[#E6DCD2] rounded-md px-2 py-2 text-sm bg-white" value={filters.drinking || ''} onChange={(e) => handleChange('drinking', e.target.value)}>
-                        <option value="">Any</option>
-                        <option value="No">No</option>
-                        <option value="Socially">Socially</option>
-                        <option value="Regularly">Regularly</option>
-                      </select>
-                    </div>
                   </div>
                 </PremiumLock>
 

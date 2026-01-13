@@ -1,5 +1,7 @@
+// @ts-nocheck
 // Supabase Edge Function for API Rate Limiting
 // This should be deployed to Supabase Edge Functions
+// NOTE: This file uses Deno runtime, not Node.js. TypeScript errors here are expected.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'

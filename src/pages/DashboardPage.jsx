@@ -33,16 +33,18 @@ const DashboardPage = () => {
   });
 
   useEffect(() => {
-    // Check if status banner was dismissed
+    // Check if status banner was dismissed or if it was already shown once
     const dismissed = localStorage.getItem('status_banner_dismissed');
-    if (dismissed) {
+    const statusShown = localStorage.getItem('status_banner_shown');
+    
+    if (dismissed || statusShown) {
       setStatusBannerDismissed(true);
     }
 
     const init = async () => {
       setLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
         // Check email verification status
@@ -60,7 +62,7 @@ const DashboardPage = () => {
         }
 
         if (profile) {
-          setUserProfile(profile);
+           setUserProfile(profile);
           
           // Fetch real stats from database
           await fetchRealStats(user.id, profile);
@@ -74,7 +76,7 @@ const DashboardPage = () => {
         // Ignore 404 NOT_FOUND errors
         if (error.code === 'NOT_FOUND' || error.message?.includes('404')) {
           console.warn('Resource not found (expected in some cases):', error);
-        } else {
+      } else {
           console.error('Dashboard initialization error:', error);
           toast({
             title: "Error Loading Dashboard",
@@ -106,6 +108,22 @@ const DashboardPage = () => {
       window.removeEventListener('focus', handleFocus);
     };
   }, [navigate, toast]);
+
+  // Auto-dismiss status banner after showing once (5 seconds)
+  useEffect(() => {
+    if (userProfile?.status && !statusBannerDismissed) {
+      const statusShown = localStorage.getItem('status_banner_shown');
+      if (!statusShown) {
+        // Auto-dismiss after 5 seconds
+        const timer = setTimeout(() => {
+          setStatusBannerDismissed(true);
+          localStorage.setItem('status_banner_shown', 'true');
+        }, 5000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [userProfile?.status, statusBannerDismissed]);
 
   const fetchRealStats = async (userId, profile) => {
     try {
@@ -428,6 +446,7 @@ const DashboardPage = () => {
                 onClick={() => {
                   setStatusBannerDismissed(true);
                   localStorage.setItem('status_banner_dismissed', 'true');
+                  localStorage.setItem('status_banner_shown', 'true');
                 }}
                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                 aria-label="Dismiss"
@@ -448,7 +467,7 @@ const DashboardPage = () => {
             <p className="text-sm text-[#166534] font-medium">All members have confirmed serious marriage intentions.</p>
           </motion.div>
         </motion.div>
-
+        
         {/* Stats Grid */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
@@ -473,7 +492,7 @@ const DashboardPage = () => {
           </div>
           <div 
             className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm cursor-pointer hover:border-[#E6B450] transition-colors"
-            onClick={() => userProfile?.is_premium ? navigate('/profile-views') : openPremiumModal()}
+            onClick={() => userProfile?.is_premium ? navigate('/matches') : openPremiumModal()}
           >
             <Star className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.profileInterest}</div>
@@ -526,9 +545,9 @@ const DashboardPage = () => {
             transition={{ delay: 0.35 }}
             className={nextSteps.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}
           >
-            <h2 className="text-2xl font-bold text-[#1F1F1F] mb-6">Marriage Tools</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {marriageTools.map((tool, index) => (
+          <h2 className="text-2xl font-bold text-[#1F1F1F] mb-6">Marriage Tools</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {marriageTools.map((tool, index) => (
                 <motion.div
                   key={index}
                   whileHover={!tool.disabled ? { scale: 1.02 } : {}}
@@ -541,15 +560,15 @@ const DashboardPage = () => {
                   <div className={`w-12 h-12 rounded-full ${tool.bg} flex items-center justify-center mb-4`}>
                     <tool.icon className={`w-6 h-6 ${tool.iconColor}`} />
                   </div>
-                  <h3 className="text-lg font-bold text-[#1F1F1F] mb-1">{tool.title}</h3>
-                  <p className="text-[#706B67] text-sm font-medium">{tool.description}</p>
+                <h3 className="text-lg font-bold text-[#1F1F1F] mb-1">{tool.title}</h3>
+                <p className="text-[#706B67] text-sm font-medium">{tool.description}</p>
                   {tool.disabled && (
                     <p className="text-xs text-orange-600 mt-2 font-medium">Requires profile approval</p>
                   )}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
         </div>
 
         {/* Suggested Profiles (only show if approved) */}
@@ -559,7 +578,7 @@ const DashboardPage = () => {
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.4 }}
           >
-            <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-[#1F1F1F]">Top Compatibility Matches</h2>
                 <p className="text-[#706B67] text-sm mt-1">Ranked by compatibility algorithm</p>
@@ -567,9 +586,9 @@ const DashboardPage = () => {
               <Button variant="outline" onClick={() => navigate('/discovery')} className="border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]">
                 View All
               </Button>
-            </div>
+          </div>
             {suggestedProfiles.length > 0 ? (
-              <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
                 {suggestedProfiles.map((profile) => (
                   <motion.div
                     key={profile.id}
@@ -589,7 +608,7 @@ const DashboardPage = () => {
                           <User className="w-16 h-16" />
                         </div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white pt-12">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white pt-12">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <h3 className="text-xl font-bold flex items-center gap-2">
@@ -616,10 +635,10 @@ const DashboardPage = () => {
                         <p className="font-bold text-xs text-[#E6B450] mt-2 uppercase tracking-wide">
                           Marriage Intent: Serious
                         </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-[#E6DCD2] p-12 text-center">
@@ -629,9 +648,9 @@ const DashboardPage = () => {
                 <Button onClick={() => navigate('/discovery')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]">
                   Browse Discovery
                 </Button>
-              </div>
+          </div>
             )}
-          </motion.div>
+        </motion.div>
         )}
 
         <Footer />

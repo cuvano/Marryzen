@@ -19,13 +19,26 @@ ADD COLUMN IF NOT EXISTS occupation TEXT;
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS zodiac_sign TEXT;
 
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS country_of_origin TEXT;
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS country_of_residence TEXT;
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ;
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+
 -- Note: Other columns should already exist from your initial schema:
 -- id, email, full_name, date_of_birth, location_city, location_country,
 -- identify_as, looking_for_gender, religious_affiliation, faith_lifestyle,
 -- smoking, drinking, marital_status, has_children, education,
 -- cultures, core_values, languages, bio, relationship_goal,
 -- photos, cover_photo, status, role, onboarding_step, is_premium,
--- is_verified, created_at, updated_at, last_active_at, etc.
+-- is_verified, created_at, updated_at, last_active_at,
+-- country_of_origin, country_of_residence, occupation, zodiac_sign, etc.
 
 -- ============================================
 -- PART 1: ROW LEVEL SECURITY (RLS) POLICIES

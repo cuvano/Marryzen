@@ -6,7 +6,7 @@ import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import { 
   SlidersHorizontal, Search, RotateCcw, Heart, Save, BookHeart, 
   Clock, Flame, Star, MapPin, Loader2, MoreHorizontal, Undo2,
-  Trash2, Check, Shield, X, ArrowRight, Settings, Crown
+  Trash2, Check, Shield, X, ArrowRight, Settings, Crown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
@@ -36,7 +36,6 @@ const DiscoveryPage = () => {
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [matchingConfig, setMatchingConfig] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   
   // History & Undo
   const [lastAction, setLastAction] = useState(null); // { type: 'like'|'pass', profileId, interactionId, timestamp }
@@ -66,6 +65,10 @@ const DiscoveryPage = () => {
   // Premium Modal
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [premiumModalFeature, setPremiumModalFeature] = useState(null);
+
+  // Carousel & Detailed View State
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedProfile, setSelectedProfile] = useState(null); // null = carousel view, profile object = detailed view
 
   // Filters State
   const defaultFilters = {
@@ -105,7 +108,7 @@ const DiscoveryPage = () => {
         console.error('Profile fetch error:', profileError);
       }
       if (profile) {
-        setCurrentUser(profile);
+      setCurrentUser(profile);
       }
 
       // Config
@@ -154,8 +157,21 @@ const DiscoveryPage = () => {
         fetchProfiles();
     }, 500);
     return () => clearTimeout(timeout);
-  }, [filters, searchQuery, currentUser, matchingConfig]);
+  }, [filters, currentUser, matchingConfig]);
 
+
+  // Helper function to get education levels equal to or higher than selected level
+  const getEducationLevels = (selectedLevel) => {
+    const educationHierarchy = {
+      'High School': ['High School', 'Some College', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Professional Degree'],
+      'Some College': ['Some College', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Professional Degree'],
+      "Bachelor's Degree": ["Bachelor's Degree", "Master's Degree", 'Doctorate', 'Professional Degree'],
+      "Master's Degree": ["Master's Degree", 'Doctorate', 'Professional Degree'],
+      'Doctorate': ['Doctorate', 'Professional Degree'],
+      'Professional Degree': ['Professional Degree']
+    };
+    return educationHierarchy[selectedLevel] || [selectedLevel];
+  };
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -180,7 +196,11 @@ const DiscoveryPage = () => {
         if (filters.faith) query = query.eq('religious_affiliation', filters.faith);
         if (filters.faithLifestyle) query = query.eq('faith_lifestyle', filters.faithLifestyle);
         if (filters.maritalStatus) query = query.eq('marital_status', filters.maritalStatus);
-        if (filters.educationLevel) query = query.eq('education', filters.educationLevel);
+        // Education level: include selected level and all higher levels
+        if (filters.educationLevel) {
+          const educationLevels = getEducationLevels(filters.educationLevel);
+          query = query.in('education', educationLevels);
+        }
         if (filters.relationshipGoal) query = query.eq('relationship_goal', filters.relationshipGoal);
         
         // Premium Server Filters
@@ -201,17 +221,15 @@ const DiscoveryPage = () => {
                 const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear();
                 if (age < filters.ageRange[0] || age > filters.ageRange[1]) return false;
 
-                // Search Query (Bio or Name)
-                if (searchQuery) {
-                    const text = `${p.full_name} ${p.bio || ''} ${p.occupation || ''} ${p.education || ''}`.toLowerCase();
-                    if (!text.includes(searchQuery.toLowerCase())) return false;
-                }
-
                 // Complex Filters
                 if (filters.smoking && p.smoking !== filters.smoking) return false;
                 if (filters.drinking && p.drinking !== filters.drinking) return false;
                 if (filters.hasChildren && String(p.has_children) !== filters.hasChildren) return false;
-                if (filters.educationLevel && p.education !== filters.educationLevel) return false;
+                // Education level: include selected level and all higher levels
+                if (filters.educationLevel) {
+                  const educationLevels = getEducationLevels(filters.educationLevel);
+                  if (!educationLevels.includes(p.education)) return false;
+                }
                 if (filters.zodiacSign && p.zodiac_sign !== filters.zodiacSign) return false;
                 
                 // Premium Checks
@@ -249,11 +267,12 @@ const DiscoveryPage = () => {
             })
             .map(p => {
                 const { score } = calculateScore(currentUser, p, matchingConfig);
+                const validScore = (typeof score === 'number' && !isNaN(score)) ? score : 0;
                 return {
                     ...p,
                     age: new Date().getFullYear() - new Date(p.date_of_birth).getFullYear(),
-                    compatibilityScore: score,
-                    matchLabel: getMatchLabel(score)
+                    compatibilityScore: validScore,
+                    matchLabel: getMatchLabel(validScore)
                 };
             })
             .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
@@ -318,6 +337,21 @@ const DiscoveryPage = () => {
 
     // Optimistic Update
     setProfiles(prev => prev.filter(p => p.id !== target.id));
+    
+    // If we're in detailed view and the profile is removed, go back to carousel
+    if (selectedProfile && selectedProfile.id === target.id) {
+      setSelectedProfile(null);
+      // Adjust currentIndex if needed
+      if (currentIndex >= profiles.length - 1) {
+        setCurrentIndex(Math.max(0, currentIndex - 1));
+      }
+    } else {
+      // Adjust currentIndex if a profile before current is removed
+      const removedIndex = profiles.findIndex(p => p.id === target.id);
+      if (removedIndex !== -1 && removedIndex < currentIndex) {
+        setCurrentIndex(Math.max(0, currentIndex - 1));
+      }
+    }
 
     // DB Call
     const { data, error } = await supabase.from('user_interactions').insert({
@@ -335,15 +369,15 @@ const DiscoveryPage = () => {
           setDailyLikeCount(prev => prev + 1);
           setRapidLikeCount(prev => prev + 1); // Track rapid likes
           
-          // Check Match
+            // Check Match
           const { data: mutual, error: mutualError } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').maybeSingle();
           if (mutualError && mutualError.code !== 'PGRST116' && mutualError.code !== 'NOT_FOUND') {
             console.error('Mutual match check error:', mutualError);
           }
-          if (mutual) {
-              toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
-              await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
-          }
+            if (mutual) {
+                toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
+                await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
+            }
         }
     } else {
         // Restore profile on error
@@ -384,45 +418,75 @@ const DiscoveryPage = () => {
   };
 
   const savePreferences = async () => {
-      if (!newPrefName.trim()) return;
-      const { data, error } = await supabase.from('user_preferences').insert({
-          user_id: currentUser.id,
-          preference_name: newPrefName,
-          age_min: filters.ageRange[0],
-          age_max: filters.ageRange[1],
-          distance_km: filters.distance || 50,
-          faith_ids: filters.faith ? [filters.faith] : [],
-          faith_lifestyle: filters.faithLifestyle || '',
-          smoking: filters.smoking || '',
-          drinking: filters.drinking || '',
-          marital_status: filters.maritalStatus || '',
-          has_children: filters.hasChildren || '',
-          education: filters.educationLevel || '',
-          relationship_goal: filters.relationshipGoal || '',
-          languages: filters.languages || [],
-          zodiac_sign: filters.zodiacSign || '',
-          countries: filters.countries || [],
-          recent_active: filters.recentActive || false,
-          verified_only: filters.verifiedOnly || false,
-          premium_only: false
-      }).select().maybeSingle();
-      if (error && error.code !== 'PGRST116' && error.code !== 'NOT_FOUND') {
-        console.error('Save preference error:', error);
-        toast({ title: "Error", description: "Failed to save preferences", variant: "destructive" });
+      if (!newPrefName.trim()) {
+        toast({ title: "Name Required", description: "Please enter a name for your saved preferences.", variant: "destructive" });
+        return;
+      }
+      
+      if (!currentUser) {
+        toast({ title: "Error", description: "Please log in to save preferences.", variant: "destructive" });
         return;
       }
 
-      if (!error && data) {
-          setSavedPreferences([...savedPreferences, data]);
+      try {
+      const { data, error } = await supabase.from('user_preferences').insert({
+          user_id: currentUser.id,
+            preference_name: newPrefName.trim(),
+          age_min: filters.ageRange[0],
+          age_max: filters.ageRange[1],
+            distance_km: filters.distance || 50,
+          faith_ids: filters.faith ? [filters.faith] : [],
+            faith_lifestyle: filters.faithLifestyle || '',
+            smoking: filters.smoking || '',
+            drinking: filters.drinking || '',
+            marital_status: filters.maritalStatus || '',
+            has_children: filters.hasChildren || '',
+            education: filters.educationLevel || '',
+            relationship_goal: filters.relationshipGoal || '',
+            languages: filters.languages || [],
+            zodiac_sign: filters.zodiacSign || '',
+            countries: filters.countries || [],
+            recent_active: filters.recentActive || false,
+            verified_only: filters.verifiedOnly || false,
+          premium_only: false
+        }).select().maybeSingle();
+        
+        if (error) {
+          console.error('Save preference error:', error);
+          toast({ 
+            title: "Error", 
+            description: error.message || "Failed to save preferences. Please try again.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+
+        if (data) {
+          // Refresh saved preferences list
+          const { data: prefs } = await supabase.from('user_preferences').select('*').eq('user_id', currentUser.id);
+          setSavedPreferences(prefs || []);
           setActivePreferenceId(data.id);
           setIsSavePrefModalOpen(false);
           setNewPrefName('');
-          toast({ title: "Preferences Saved", description: "Your search preferences have been saved successfully." });
+          toast({ 
+            title: "Preferences Saved", 
+            description: `"${newPrefName}" has been saved successfully. You can load it anytime from the "Load Saved" menu.` 
+          });
+        }
+      } catch (err) {
+        console.error('Unexpected error saving preferences:', err);
+        toast({ 
+          title: "Error", 
+          description: "An unexpected error occurred. Please try again.", 
+          variant: "destructive" 
+        });
       }
   };
 
   const loadPreference = (pref) => {
-      setFilters({
+      if (!pref) return;
+      
+      const loadedFilters = {
           ...defaultFilters,
           ageRange: [pref.age_min || 18, pref.age_max || 65],
           distance: pref.distance_km || 50,
@@ -434,18 +498,24 @@ const DiscoveryPage = () => {
           hasChildren: pref.has_children || '',
           educationLevel: pref.education || '',
           relationshipGoal: pref.relationship_goal || '',
-          languages: pref.languages || [],
+          languages: Array.isArray(pref.languages) ? pref.languages : [],
           zodiacSign: pref.zodiac_sign || '',
-          countries: pref.countries || [],
+          countries: Array.isArray(pref.countries) ? pref.countries : [],
           recentActive: pref.recent_active || false,
           verifiedOnly: pref.verified_only || false
-      });
+      };
+      
+      setFilters(loadedFilters);
       setActivePreferenceId(pref.id);
-      toast({ title: `Loaded "${pref.preference_name}"`, description: "Filters have been applied. Click 'Apply Filters' to see results." });
-      // Auto-apply filters when loading
+      toast({ 
+        title: `Loaded "${pref.preference_name}"`, 
+        description: "Filters have been applied. Results are being updated..." 
+      });
+      
+      // Auto-apply filters when loading - use a longer timeout to ensure state is updated
       setTimeout(() => {
         fetchProfiles();
-      }, 100);
+      }, 300);
   };
   
   const deletePreference = async (id, e) => {
@@ -453,6 +523,184 @@ const DiscoveryPage = () => {
       await supabase.from('user_preferences').delete().eq('id', id);
       setSavedPreferences(prev => prev.filter(p => p.id !== id));
       if (activePreferenceId === id) setActivePreferenceId(null);
+  };
+
+  // Detailed Profile View Component
+  const DetailedProfileView = ({ profile, isFavorite, onLike, onPass, onFavorite, onClose, onNext, onPrevious, hasNext, hasPrevious }) => {
+    return (
+      <div className="bg-white rounded-2xl border border-[#E6DCD2] shadow-lg overflow-hidden">
+        <div className="relative">
+          {/* Close Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full"
+            onClick={onClose}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
+          {/* Main Image */}
+          <div className="relative h-96 overflow-hidden">
+            <img 
+              src={profile.photos?.[0] || 'https://via.placeholder.com/800x600'} 
+              alt={profile.full_name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            
+            {/* Profile Info Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">{profile.full_name}, {profile.age}</h2>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4" />
+                    <span>{profile.location_city || 'Unknown City'}</span>
+                    {profile.distance !== undefined && <span>• {Math.round(profile.distance)} km away</span>}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`rounded-full h-10 w-10 backdrop-blur-md ${isFavorite ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-black/40'}`}
+                  onClick={() => onFavorite(profile)}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
+
+              {/* Match Badge */}
+              {profile.matchLabel && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && (
+                <Badge className="bg-green-500 text-white border-0 font-bold mb-4">
+                  {Math.round(profile.compatibilityScore)}% Match - {profile.matchLabel}
+                </Badge>
+              )}
+
+              {/* Quick Info Tags */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {profile.religious_affiliation && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                    {profile.religious_affiliation}
+                  </Badge>
+                )}
+                {profile.occupation && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                    {profile.occupation}
+                  </Badge>
+                )}
+                {profile.height && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                    {Math.floor(profile.height/30.48)}'{Math.round((profile.height%30.48)/2.54)}"
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Content */}
+          <div className="p-6 space-y-6">
+            {/* Bio */}
+            {profile.bio && (
+              <div>
+                <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">About</h3>
+                <p className="text-[#706B67] leading-relaxed">{profile.bio}</p>
+              </div>
+            )}
+
+            {/* Additional Photos */}
+            {profile.photos && profile.photos.length > 1 && (
+              <div>
+                <h3 className="font-bold text-lg text-[#1F1F1F] mb-3">Photos</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {profile.photos.slice(1, 4).map((photo, idx) => (
+                    <img 
+                      key={idx}
+                      src={photo || 'https://via.placeholder.com/200x200'} 
+                      alt={`${profile.full_name} photo ${idx + 2}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Details */}
+            <div className="grid grid-cols-2 gap-4">
+              {profile.faith_lifestyle && (
+                <div>
+                  <span className="text-sm text-[#706B67]">Faith Lifestyle</span>
+                  <p className="font-medium text-[#1F1F1F]">{profile.faith_lifestyle}</p>
+                </div>
+              )}
+              {profile.marital_status && (
+                <div>
+                  <span className="text-sm text-[#706B67]">Marital Status</span>
+                  <p className="font-medium text-[#1F1F1F]">{profile.marital_status}</p>
+                </div>
+              )}
+              {profile.education && (
+                <div>
+                  <span className="text-sm text-[#706B67]">Education</span>
+                  <p className="font-medium text-[#1F1F1F]">{profile.education}</p>
+                </div>
+              )}
+              {profile.zodiac_sign && (
+                <div>
+                  <span className="text-sm text-[#706B67]">Zodiac Sign</span>
+                  <p className="font-medium text-[#1F1F1F]">{profile.zodiac_sign}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="p-6 border-t border-[#E6DCD2] bg-[#FAF7F2]">
+            <div className="flex items-center justify-between gap-4">
+              {/* Previous Button */}
+              <Button
+                variant="outline"
+                className="flex-1 border-[#E6DCD2] hover:border-[#E6B450]"
+                onClick={onPrevious}
+                disabled={!hasPrevious}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous
+              </Button>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-full border-2 border-[#E6DCD2] hover:border-red-300"
+                  onClick={() => onPass(profile)}
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+                <Button
+                  className="h-12 w-12 rounded-full bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] border-none shadow-lg"
+                  onClick={() => onLike(profile)}
+                >
+                  <Heart className="w-6 h-6 fill-black/20" />
+                </Button>
+              </div>
+
+              {/* Next Button */}
+              <Button
+                variant="outline"
+                className="flex-1 border-[#E6DCD2] hover:border-[#E6B450]"
+                onClick={onNext}
+                disabled={!hasNext}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Empty State Component
@@ -650,22 +898,22 @@ const DiscoveryPage = () => {
                             <Crown className="w-3 h-3 mr-1" /> Upgrade
                           </Button>
                         )}
-                      </div>
-                    )}
-                    
-                    {/* Search & Actions */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                         <div className="relative w-full md:w-96">
-                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                             <input 
-                                className="w-full pl-10 pr-4 py-2 rounded-full border border-[#E6DCD2] focus:outline-none focus:ring-2 focus:ring-[#C85A72]/20 bg-white shadow-sm"
-                                placeholder="Search by name, job, bio..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                             />
                          </div>
+                    )}
 
+                    {/* Actions */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                            {/* View Past Interactions Button */}
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="whitespace-nowrap bg-white border border-[#E6DCD2] hover:bg-[#FAF7F2]"
+                                onClick={() => navigate('/matches?tab=interactions')}
+                            >
+                                <Clock className="w-3 h-3 mr-1" /> View Past Interactions
+                            </Button>
+                            
                             <Button 
                                 variant="outline" 
                                 className="lg:hidden bg-white" 
@@ -721,14 +969,23 @@ const DiscoveryPage = () => {
                         {filters.city && <Badge variant="secondary" className="bg-white border gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
                         {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
                         {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">Verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
-                        {/* Undo Button */}
-                        {lastAction && (
+                        {/* Undo Button - Premium Only */}
+                        {lastAction && currentUser?.is_premium && (
                             <Button 
                                 size="sm" 
                                 onClick={handleUndo} 
                                 className="ml-auto bg-[#1F1F1F] text-white animate-in fade-in slide-in-from-top-2"
                             >
                                 <Undo2 className="w-4 h-4 mr-1" /> Undo ({undoTimer}s)
+                            </Button>
+                        )}
+                        {lastAction && !currentUser?.is_premium && (
+                            <Button 
+                                size="sm" 
+                                onClick={() => openPremiumModal && openPremiumModal()} 
+                                className="ml-auto bg-[#E6B450] text-[#1F1F1F] animate-in fade-in slide-in-from-top-2"
+                            >
+                                <Crown className="w-4 h-4 mr-1" /> Premium: Undo ({undoTimer}s)
                             </Button>
                         )}
                     </div>
@@ -775,23 +1032,105 @@ const DiscoveryPage = () => {
                         }}
                         onCompleteProfile={() => navigate('/profile')}
                     />
+                ) : selectedProfile ? (
+                    // Detailed View
+                    <DetailedProfileView
+                        profile={selectedProfile}
+                        isFavorite={favorites.has(selectedProfile.id)}
+                        onLike={(p) => handleInteraction(p, 'like')}
+                        onPass={(p) => handleInteraction(p, 'pass')}
+                        onFavorite={(p) => toggleFavorite(p)}
+                        onClose={() => setSelectedProfile(null)}
+                        onNext={() => {
+                            const nextIndex = (currentIndex + 1) % profiles.length;
+                            setCurrentIndex(nextIndex);
+                            setSelectedProfile(profiles[nextIndex]);
+                        }}
+                        onPrevious={() => {
+                            const prevIndex = (currentIndex - 1 + profiles.length) % profiles.length;
+                            setCurrentIndex(prevIndex);
+                            setSelectedProfile(profiles[prevIndex]);
+                        }}
+                        hasNext={currentIndex < profiles.length - 1}
+                        hasPrevious={currentIndex > 0}
+                    />
                 ) : (
-                    <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                            {profiles.map(profile => (
+                    // Carousel View - 3 profiles side-by-side
+                    <div className="relative w-full">
+                        <div className="flex items-center justify-center gap-2 md:gap-6 w-full">
+                            {/* Previous Button */}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-12 w-12 rounded-full border-2 border-[#E6DCD2] hover:border-[#E6B450] bg-white shadow-md flex-shrink-0"
+                                onClick={() => {
+                                    const prevIndex = Math.max(0, currentIndex - 3);
+                                    setCurrentIndex(prevIndex);
+                                }}
+                                disabled={currentIndex === 0}
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </Button>
+
+                            {/* Carousel Container */}
+                            <div className="flex-1 flex justify-center gap-2 md:gap-4 overflow-hidden">
+                                {profiles.slice(currentIndex, Math.min(currentIndex + 3, profiles.length)).map((profile, idx) => (
+                                    <div 
+                                        key={profile.id} 
+                                        className="flex-shrink-0 transition-all duration-300 w-[calc(33.333%-0.5rem)] min-w-[250px] max-w-[280px]"
+                                    >
                                 <ProfileCard 
-                                    key={profile.id} 
                                     profile={profile}
                                     isFavorite={favorites.has(profile.id)}
                                     onLike={(p) => handleInteraction(p, 'like')}
                                     onPass={(p) => handleInteraction(p, 'pass')}
                                     onFavorite={(p) => toggleFavorite(p)}
-                                    onClick={() => navigate(`/profile/${profile.id}`)}
+                                            onClick={() => {
+                                                setSelectedProfile(profile);
+                                                setCurrentIndex(currentIndex + idx);
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Next Button */}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-12 w-12 rounded-full border-2 border-[#E6DCD2] hover:border-[#E6B450] bg-white shadow-md flex-shrink-0"
+                                onClick={() => {
+                                    const nextIndex = Math.min(profiles.length - 3, currentIndex + 3);
+                                    setCurrentIndex(nextIndex >= 0 ? nextIndex : 0);
+                                }}
+                                disabled={currentIndex >= profiles.length - 3}
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </Button>
+                        </div>
+
+                        {/* Carousel Indicators */}
+                        {profiles.length > 3 && (
+                            <div className="flex justify-center gap-2 mt-6">
+                                {Array.from({ length: Math.ceil(profiles.length / 3) }).map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        className={`h-2 rounded-full transition-all ${
+                                            Math.floor(currentIndex / 3) === idx 
+                                                ? 'w-8 bg-[#E6B450]' 
+                                                : 'w-2 bg-[#E6DCD2]'
+                                        }`}
+                                        onClick={() => setCurrentIndex(idx * 3)}
                                 />
                             ))}
                         </div>
-                        {/* Pagination / Load More would go here */}
-                    </>
+                        )}
+
+                        {/* Profile Counter */}
+                        <div className="text-center mt-4 text-sm text-[#706B67]">
+                            Showing {Math.min(currentIndex + 1, profiles.length)} of {profiles.length} profiles
+                        </div>
+                    </div>
                 )}
 
                 <Footer />

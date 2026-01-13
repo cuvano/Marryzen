@@ -29,9 +29,9 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
                         <Crown className="w-4 h-4 text-white fill-white" />
                     </div>
                 )}
-                {profile.matchLabel && (
+                {profile.matchLabel && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && (
                      <Badge variant="secondary" className="bg-green-500/90 text-white border-0 font-bold backdrop-blur-sm shadow-md">
-                        {profile.compatibilityScore}% Match
+                        {Math.round(profile.compatibilityScore)}% Match
                      </Badge>
                 )}
             </div>

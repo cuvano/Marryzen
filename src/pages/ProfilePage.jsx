@@ -747,7 +747,7 @@ const ProfilePage = () => {
                   )}
                   {profile.has_children !== undefined && (
                     <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Children: </span>
+                      <span className="text-sm font-medium text-[#706B67]">Children?: </span>
                       {profile.has_children ? 'Yes' : 'No'}
                     </p>
                   )}
