@@ -718,7 +718,7 @@ const ProfilePage = () => {
             )}
 
             {/* Lifestyle Details Card */}
-            {(profile.smoking || profile.drinking || profile.marital_status || profile.has_children !== undefined || profile.education || profile.job || profile.zodiac_sign || profile.country_of_origin) && (
+            {(profile.smoking || profile.drinking || profile.marital_status || profile.has_children !== undefined || profile.education || profile.occupation || profile.zodiac_sign || profile.country_of_origin) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -757,10 +757,10 @@ const ProfilePage = () => {
                       {profile.education}
                     </p>
                   )}
-                  {profile.job && (
+                  {profile.occupation && (
                     <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Job: </span>
-                      {profile.job}
+                      <span className="text-sm font-medium text-[#706B67]">Occupation: </span>
+                      {profile.occupation}
                     </p>
                   )}
                   {profile.zodiac_sign && (

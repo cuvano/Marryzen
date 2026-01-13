@@ -31,6 +31,9 @@ ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ;
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS cover_photo TEXT;
+
 -- Note: Other columns should already exist from your initial schema:
 -- id, email, full_name, date_of_birth, location_city, location_country,
 -- identify_as, looking_for_gender, religious_affiliation, faith_lifestyle,
