@@ -121,6 +121,19 @@ const PremiumPage = () => {
       }
 
       console.log('Calling stripe-api function with:', { action: 'create_checkout_session', priceId, returnUrl: window.location.origin + '/billing' });
+      
+      // Get current session to ensure auth token is available
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to continue.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        setLoadingPlanId(null);
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('stripe-api', {
         body: { 
@@ -130,25 +143,51 @@ const PremiumPage = () => {
         }
       });
 
+      console.log('Stripe API Response:', { data, error });
+
       if (error) {
         console.error('Stripe API Error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
         // Check if it's a function not found error
         if (error.message?.includes('Function not found') || error.message?.includes('404')) {
-          throw new Error("Payment system is not configured. Please contact support or check if the Stripe integration is set up.");
+          throw new Error("Payment system is not configured. The Stripe Edge Function is not deployed. Please deploy the 'stripe-api' function in Supabase Dashboard → Edge Functions.");
         }
-        // Check if it's a non-2xx status code
+        
+        // Check if it's a non-2xx status code - try to get the actual error from the response
         if (error.message?.includes('non-2xx') || error.message?.includes('status code')) {
-          throw new Error("Payment service error. Please check your Stripe configuration or contact support.");
+          // The error might contain the actual error message in the response
+          // Try to parse it if it's a stringified JSON
+          let errorMsg = "Payment service error. Please check your Stripe configuration.";
+          
+          if (data && typeof data === 'object') {
+            errorMsg = data.error || data.message || errorMsg;
+          } else if (error.context && error.context.body) {
+            try {
+              const parsed = JSON.parse(error.context.body);
+              errorMsg = parsed.error || errorMsg;
+            } catch (e) {
+              // Not JSON, use default
+            }
+          }
+          
+          throw new Error(errorMsg);
         }
+        
         throw error;
+      }
+
+      // Check if response contains an error
+      if (data?.error) {
+        console.error('Stripe API returned error:', data.error);
+        throw new Error(data.error || "Could not create checkout session");
       }
 
       if (data?.url) {
         window.location.href = data.url;
-      } else if (data?.error) {
-        throw new Error(data.error || "Could not create checkout session");
       } else {
-        throw new Error("Could not create checkout session. Please try again or contact support.");
+        console.error('No URL in response:', data);
+        throw new Error("Could not create checkout session. Please check your Stripe Price IDs and try again.");
       }
     } catch (err) {
       console.error('Subscription Error Details:', err);

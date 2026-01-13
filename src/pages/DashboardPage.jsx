@@ -242,6 +242,9 @@ const DashboardPage = () => {
           // Calculate compatibility score using enhanced algorithm
           const { score, breakdown, candidateAge } = calculateScore(userProfile, p, matchingConfig);
 
+          // Validate and round the score
+          const validScore = (typeof score === 'number' && !isNaN(score)) ? Math.round(score) : 0;
+
           return {
             id: p.id,
             name: p.full_name,
@@ -250,8 +253,8 @@ const DashboardPage = () => {
             age: candidateAge || (p.date_of_birth ? Math.floor((new Date() - new Date(p.date_of_birth)) / (1000 * 60 * 60 * 24 * 365)) : null),
             isPremium: p.is_premium,
             identifyAs: p.identify_as,
-            compatibilityScore: score,
-            matchLabel: getMatchLabel(score),
+            compatibilityScore: validScore,
+            matchLabel: getMatchLabel(validScore),
             breakdown,
             distance: p.distance || null,
             // Store full profile for navigation
@@ -623,7 +626,7 @@ const DashboardPage = () => {
                               <p className="text-white/80 text-xs mt-1">{Math.round(profile.distance)} km away</p>
                             )}
                           </div>
-                          {profile.compatibilityScore !== undefined && (
+                          {profile.compatibilityScore !== undefined && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && profile.compatibilityScore > 0 && (
                             <div className="text-right">
                               <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold text-base px-3 py-1">
                                 {profile.compatibilityScore}%

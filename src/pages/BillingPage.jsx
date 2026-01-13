@@ -17,7 +17,55 @@ const BillingPage = () => {
 
   useEffect(() => {
     fetchSubscription();
+    
+    // Check if redirected from successful checkout
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      toast({
+        title: "Payment Successful!",
+        description: "Your premium subscription is being activated. Please wait...",
+      });
+      
+      // Try to verify and update subscription status immediately
+      verifySubscriptionStatus();
+    }
   }, []);
+
+  const verifySubscriptionStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Call function to check and update subscription status
+      const { data, error } = await supabase.functions.invoke('stripe-api', {
+        body: { 
+          action: 'verify_subscription',
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Error verifying subscription:', error);
+        // Still refresh profile in case webhook already processed it
+        setTimeout(() => fetchSubscription(), 3000);
+        return;
+      }
+
+      if (data?.updated) {
+        toast({
+          title: "Premium Activated!",
+          description: "Your premium subscription is now active.",
+        });
+      }
+
+      // Refresh profile after verification
+      setTimeout(() => fetchSubscription(), 1000);
+    } catch (err) {
+      console.error('Error in verifySubscriptionStatus:', err);
+      // Fallback: just refresh after delay
+      setTimeout(() => fetchSubscription(), 3000);
+    }
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -100,9 +148,9 @@ const BillingPage = () => {
                           <CheckCircle className="w-5 h-5" />
                           All Premium Features Unlocked
                       </div>
-                      {profile.subscription_end_date && (
+                      {profile.premium_expires_at && (
                           <p className="text-sm text-[#706B67]">
-                              Next billing / renewal date: <span className="font-semibold text-[#1F1F1F]">{new Date(profile.subscription_end_date).toLocaleDateString()}</span>
+                              Premium expires: <span className="font-semibold text-[#1F1F1F]">{new Date(profile.premium_expires_at).toLocaleDateString()}</span>
                           </p>
                       )}
                   </div>
