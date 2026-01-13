@@ -215,38 +215,41 @@ const OnboardingPage = () => {
             return;
           }
 
-          // Execute reCAPTCHA v3
-          let recaptchaTokenValue = '';
-          try {
-            recaptchaTokenValue = await executeRecaptcha('signup');
-            
-            // If token is empty and we're in production, show error
-            if (!recaptchaTokenValue && import.meta.env.PROD) {
-              toast({ 
-                title: "Security Check Failed", 
-                description: "Unable to verify your request. Please refresh the page and try again.",
-                variant: "destructive" 
-              });
-              setIsLoading(false);
-              return;
-            }
-          } catch (error) {
-            console.error('reCAPTCHA error:', error);
-            // In development, allow signup to continue
-            if (import.meta.env.PROD) {
-              toast({ 
-                title: "Security Check Failed", 
-                description: "Unable to verify your request. Please try again.",
-                variant: "destructive" 
-              });
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          // Check if user is already authenticated (resuming step 1?)
+          // Check if user is already authenticated (editing profile vs new signup)
           let userId = session?.user?.id;
           let currentSession = session;
+
+          // Only execute reCAPTCHA for new signups (not for authenticated users editing their profile)
+          let recaptchaTokenValue = '';
+          if (!userId) {
+            // Execute reCAPTCHA v3 only for new signups
+            try {
+              recaptchaTokenValue = await executeRecaptcha('signup');
+              
+              // If token is empty and we're in production, show error
+              if (!recaptchaTokenValue && import.meta.env.PROD) {
+                toast({ 
+                  title: "Security Check Failed", 
+                  description: "Unable to verify your request. Please refresh the page and try again.",
+                  variant: "destructive" 
+                });
+                setIsLoading(false);
+                return;
+              }
+            } catch (error) {
+              console.error('reCAPTCHA error:', error);
+              // In development, allow signup to continue
+              if (import.meta.env.PROD) {
+                toast({ 
+                  title: "Security Check Failed", 
+                  description: "Unable to verify your request. Please try again.",
+                  variant: "destructive" 
+                });
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
 
           if (!userId) {
               // Include reCAPTCHA token in metadata for server-side verification
