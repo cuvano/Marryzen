@@ -23,6 +23,7 @@ const DashboardPage = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusBannerDismissed, setStatusBannerDismissed] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   
   const [stats, setStats] = useState({
     potentialMatches: 0,
@@ -43,6 +44,9 @@ const DashboardPage = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Check email verification status
+        setEmailVerified(user.email_confirmed_at !== null);
 
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
@@ -84,6 +88,23 @@ const DashboardPage = () => {
     };
 
     init();
+    
+    // Refresh email verification status periodically and on focus
+    const checkEmailVerification = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setEmailVerified(user.email_confirmed_at !== null);
+      }
+    };
+    
+    const interval = setInterval(checkEmailVerification, 5000); // Check every 5 seconds
+    const handleFocus = () => checkEmailVerification();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [navigate, toast]);
 
   const fetchRealStats = async (userId, profile) => {
@@ -272,8 +293,8 @@ const DashboardPage = () => {
     
     const steps = [];
     
-    // Email verification
-    if (!profile.email_verified) {
+    // Email verification - check via state
+    if (!emailVerified) {
       steps.push({
         id: 'verify_email',
         title: 'Verify Your Email',

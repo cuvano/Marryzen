@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
@@ -28,7 +29,9 @@ const ProfilePage = () => {
   const [isBioDialogOpen, setIsBioDialogOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [coverCropModalOpen, setCoverCropModalOpen] = useState(false);
   const [tempImage, setTempImage] = useState(null);
+  const [tempCoverImage, setTempCoverImage] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
   const [emailVerified, setEmailVerified] = useState(false);
 
@@ -37,18 +40,29 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile();
     fetchAuthInfo();
+    
+    // Refresh email verification status periodically and on focus
+    const interval = setInterval(fetchAuthInfo, 5000); // Check every 5 seconds
+    const handleFocus = () => fetchAuthInfo();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [userId]);
 
   const fetchAuthInfo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserEmail(user.email);
-      setEmailVerified(user.email_confirmed_at !== null);
+      const isVerified = user.email_confirmed_at !== null;
+      setEmailVerified(isVerified);
     }
   };
 
-  const fetchProfile = async () => {
-    setLoading(true);
+    const fetchProfile = async () => {
+      setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session && !userId) { 
@@ -160,31 +174,54 @@ const ProfilePage = () => {
       return;
     }
 
+    // Read file and open crop modal for cover photo (wide aspect ratio)
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTempCoverImage(reader.result);
+      setCoverCropModalOpen(true);
+    };
+    reader.onerror = () => {
+      toast({ title: "Error", description: "Failed to read image file", variant: "destructive" });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCoverCropComplete = async (croppedBase64) => {
+    if (!isOwnProfile) return;
+
     setUploadingPhoto(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Compress the image
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const compressed = await compressImage(reader.result, 1920, 0.85);
-        
-        const { error } = await supabase
-          .from('profiles')
-          .update({ cover_photo: compressed })
-          .eq('id', user.id);
-
-        if (error) throw error;
-
-        setProfile(prev => ({ ...prev, cover_photo: compressed }));
-        toast({ title: "Success", description: "Cover photo uploaded successfully!" });
+      if (!user) {
         setUploadingPhoto(false);
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+
+      // Compress the cropped cover photo
+      const compressed = await compressImage(croppedBase64, 1920, 0.85);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ cover_photo: compressed })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Cover photo upload error:', error);
+        throw error;
+      }
+
+      setProfile(prev => ({ ...prev, cover_photo: compressed }));
+      setCoverCropModalOpen(false);
+      setTempCoverImage(null);
+      toast({ title: "Success", description: "Cover photo uploaded successfully!" });
     } catch (error) {
-      console.error(error);
-      toast({ title: "Error", description: "Failed to upload cover photo", variant: "destructive" });
+      console.error('Cover photo upload error:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to upload cover photo. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
       setUploadingPhoto(false);
     }
   };
@@ -310,7 +347,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header with Edit/Preview buttons */}
         {isOwnProfile && (
           <div className="flex justify-end gap-2 mb-4">
@@ -371,7 +408,7 @@ const ProfilePage = () => {
         )}
 
         {/* Main Profile Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#E6DCD2] overflow-hidden mb-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#E6DCD2] overflow-hidden mb-8">
           <div className="h-48 bg-gradient-to-r from-[#F3E8D9] to-[#F9E7EB] relative overflow-hidden group">
             {profile.cover_photo ? (
               <img 
@@ -396,16 +433,16 @@ const ProfilePage = () => {
             )}
             {isOwnProfile && !isPreviewMode && !profile.is_premium && (
               <div className="absolute top-4 right-4">
-                <Button onClick={() => navigate('/premium')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] gap-2">
-                  <Crown size={16} /> Upgrade to Premium
-                </Button>
+                    <Button onClick={() => navigate('/premium')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] gap-2">
+                        <Crown size={16} /> Upgrade to Premium
+                    </Button>
               </div>
-            )}
-          </div>
-          <div className="px-8 pb-8">
+                 )}
+        </div>
+        <div className="px-8 pb-8">
             <div className="relative -mt-16 mb-4 flex justify-between items-end">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-[#FAF7F2] overflow-hidden relative group">
+                <div className="relative">
+                     <div className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-[#FAF7F2] overflow-hidden relative group">
                   {mainPhoto ? (
                     <img 
                       src={mainPhoto} 
@@ -421,46 +458,46 @@ const ProfilePage = () => {
                   {!mainPhoto && (
                     <User className="w-full h-full p-6 text-[#C85A72]" />
                   )}
-                </div>
-                {profile.is_premium && (
+                     </div>
+                     {profile.is_premium && (
                   <div className="absolute bottom-1 right-1 bg-[#E6B450] text-white p-1 rounded-full border-2 border-white shadow-sm">
-                    <Crown size={16} />
-                  </div>
-                )}
+                             <Crown size={16} />
+                        </div>
+                     )}
                 {profile.is_verified && (
                   <div className="absolute top-1 right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
                     <ShieldCheck size={14} />
                   </div>
                 )}
-              </div>
+                </div>
             </div>
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                  {profile.full_name}, {age}
-                </h1>
-                <p className="text-[#706B67] flex items-center gap-2 mt-1">
+                <div>
+                    <h1 className="text-3xl font-bold text-[#1F1F1F] flex items-center gap-2">
+                        {profile.full_name}, {age}
+                    </h1>
+                    <p className="text-[#706B67] flex items-center gap-2 mt-1">
                   <MapPin size={16} /> {profile.location_city || 'Not set'}, {profile.location_country || 'Not set'}
-                </p>
-              </div>
-              {profile.is_premium && <Badge className="bg-[#E6B450] text-[#1F1F1F]">Premium Member</Badge>}
+                    </p>
+                </div>
+                {profile.is_premium && <Badge className="bg-[#E6B450] text-[#1F1F1F]">Premium Member</Badge>}
             </div>
-          </div>
         </div>
+      </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-8">
           {/* Left Column */}
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Photos Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Photos</CardTitle>
                 <CardDescription>{currentPhotoCount} / {photoLimit} photos</CardDescription>
               </CardHeader>
-              <CardContent>
+                <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                  {profile.photos?.map((p, i) => (
+                        {profile.photos?.map((p, i) => (
                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100 shadow-sm hover:shadow-md transition-shadow">
                       <img 
                         src={p} 
@@ -502,13 +539,13 @@ const ProfilePage = () => {
                         </label>
                       )}
                     </div>
-                  ))}
-                </div>
-                {currentPhotoCount >= photoLimit && !profile.is_premium && (
-                  <div className="bg-yellow-50 text-yellow-800 p-2 rounded text-xs flex gap-2 items-center mb-2">
-                    <AlertCircle size={14} /> Limit reached. Upgrade to add more.
-                  </div>
-                )}
+                        ))}
+                    </div>
+                    {currentPhotoCount >= photoLimit && !profile.is_premium && (
+                         <div className="bg-yellow-50 text-yellow-800 p-2 rounded text-xs flex gap-2 items-center mb-2">
+                             <AlertCircle size={14} /> Limit reached. Upgrade to add more.
+                         </div>
+                    )}
                 {isOwnProfile && !isPreviewMode && currentPhotoCount < photoLimit && (
                   <Button variant="outline" className="w-full" onClick={() => document.querySelector('input[type="file"]')?.click()}>
                     <Camera className="w-4 h-4 mr-2" /> Add Photo
@@ -527,21 +564,28 @@ const ProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Email Verified</span>
+                  {/* Only show email verification section if not verified */}
+                  {!emailVerified && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-[#706B67]" />
+                        <span className="text-sm text-[#1F1F1F]">Email Verified</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                          <AlertCircle className="w-3 h-3 mr-1" /> Pending
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate('/verify-email')}
+                          className="text-xs"
+                        >
+                          Verify Now
+                        </Button>
+                      </div>
                     </div>
-                    {emailVerified ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                        <AlertCircle className="w-3 h-3 mr-1" /> Pending
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-[#706B67]" />
@@ -558,12 +602,12 @@ const ProfilePage = () => {
                     )}
                   </div>
                 </CardContent>
-              </Card>
+            </Card>
             )}
-          </div>
+        </div>
 
           {/* Right Column */}
-          <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-6">
             {/* About Me Card */}
             <Card>
               <CardHeader>
@@ -657,7 +701,7 @@ const ProfilePage = () => {
 
             {/* Cultures Card */}
             {profile.cultures && profile.cultures.length > 0 && (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-[#E6B450]" />
@@ -764,10 +808,10 @@ const ProfilePage = () => {
                     </p>
                   )}
                 </CardContent>
-              </Card>
+            </Card>
             )}
-          </div>
         </div>
+      </div>
 
         <Footer />
       </div>
@@ -815,7 +859,204 @@ const ProfilePage = () => {
           setTempImage(null);
         }}
       />
+
+      {/* Cover Photo Crop Dialog */}
+      <CoverPhotoCropDialog
+        open={coverCropModalOpen}
+        imageSrc={tempCoverImage}
+        onCropComplete={handleCoverCropComplete}
+        onCancel={() => {
+          setCoverCropModalOpen(false);
+          setTempCoverImage(null);
+        }}
+        uploading={uploadingPhoto}
+      />
     </div>
+  );
+};
+
+// Cover Photo Crop Dialog Component (Wide aspect ratio 16:5)
+const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading = false }) => {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = React.useRef(null);
+  const imageRef = React.useRef(null);
+
+  const handleMouseDown = (e) => {
+    if (uploading) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || uploading) return;
+    setOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const cropImage = () => {
+    if (!imageSrc || !containerRef.current || !imageRef.current || uploading) return;
+    
+    // Cover photo dimensions: 1920x600 (16:5 aspect ratio, good for cover photos)
+    const outputWidth = 1920;
+    const outputHeight = 600;
+    const canvas = document.createElement('canvas');
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+    const ctx = canvas.getContext('2d');
+    
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const container = containerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const containerWidth = containerRect.width || 800;
+      const containerHeight = containerRect.height || 300;
+      
+      // Calculate displayed image dimensions based on zoom
+      const imgAspect = img.width / img.height;
+      const containerAspect = containerWidth / containerHeight;
+      let displayedWidth, displayedHeight;
+      
+      if (imgAspect > containerAspect) {
+        // Image is wider - fit to container height
+        displayedHeight = containerHeight * zoom;
+        displayedWidth = displayedHeight * imgAspect;
+      } else {
+        // Image is taller - fit to container width
+        displayedWidth = containerWidth * zoom;
+        displayedHeight = displayedWidth / imgAspect;
+      }
+      
+      // Calculate scale factors from displayed to actual image
+      const scaleX = img.width / displayedWidth;
+      const scaleY = img.height / displayedHeight;
+      
+      // Calculate the visible crop area in actual image coordinates
+      const visibleWidth = containerWidth / zoom;
+      const visibleHeight = containerHeight / zoom;
+      const centerX = img.width / 2;
+      const centerY = img.height / 2;
+      
+      // Calculate source coordinates accounting for offset
+      const sourceX = Math.max(0, centerX - (visibleWidth * scaleX) / 2 - (offset.x * scaleX));
+      const sourceY = Math.max(0, centerY - (visibleHeight * scaleY) / 2 - (offset.y * scaleY));
+      const sourceWidth = Math.min(visibleWidth * scaleX, img.width - sourceX);
+      const sourceHeight = Math.min(visibleHeight * scaleY, img.height - sourceY);
+      
+      // Ensure we don't go out of bounds
+      const finalSourceX = Math.max(0, Math.min(sourceX, img.width - sourceWidth));
+      const finalSourceY = Math.max(0, Math.min(sourceY, img.height - sourceHeight));
+      const finalSourceWidth = Math.min(sourceWidth, img.width - finalSourceX);
+      const finalSourceHeight = Math.min(sourceHeight, img.height - finalSourceY);
+      
+      // Draw cropped and resized image to canvas (wide output)
+      ctx.drawImage(
+        img,
+        finalSourceX, finalSourceY, finalSourceWidth, finalSourceHeight,
+        0, 0, outputWidth, outputHeight
+      );
+      
+      // Compress and return
+      onCropComplete(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => {
+      console.error('Failed to load image for cropping');
+    };
+    img.src = imageSrc;
+  };
+
+  React.useEffect(() => {
+    if (open && imageSrc) {
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+    }
+  }, [open, imageSrc]);
+
+  return (
+    <Dialog open={open} onOpenChange={uploading ? undefined : onCancel}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Crop Cover Photo</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <div
+            ref={containerRef}
+            className="relative w-full bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300"
+            style={{ height: '300px', maxWidth: '800px', margin: '0 auto', aspectRatio: '16/5' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+            {imageSrc && (
+              <img
+                ref={imageRef}
+                src={imageSrc}
+                alt="Crop Cover"
+                className="absolute top-1/2 left-1/2 origin-center select-none pointer-events-none"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                  width: 'auto',
+                  height: 'auto',
+                  minWidth: '100%',
+                  minHeight: '100%'
+                }}
+                draggable={false}
+              />
+            )}
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Zoom</label>
+              <Slider
+                value={[zoom]}
+                onValueChange={([value]) => setZoom(value)}
+                min={0.5}
+                max={3}
+                step={0.1}
+                disabled={uploading}
+                className="w-full"
+              />
+              <div className="text-xs text-gray-500 mt-1">{Math.round(zoom * 100)}%</div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={onCancel}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={cropImage}
+                disabled={uploading}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  'Save Cover Photo'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
