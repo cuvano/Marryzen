@@ -167,12 +167,14 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-          <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
-          <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
-          
-          {/* Notifications */}
-          <DropdownMenu>
+          {user ? (
+            <>
+              <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
+              <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
+              
+              {/* Notifications */}
+              <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-[#706B67] hover:text-[#1F1F1F]">
                     <Bell size={20} />
@@ -241,60 +243,76 @@ const Header = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Profile Dropdown */}
-          {user && (
-            <div className="relative">
-              <button 
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="flex items-center gap-2 pl-4 border-l border-[#E6DCD2] hover:opacity-80 transition-opacity"
-              >
-                  <div className="w-8 h-8 rounded-full bg-[#F3E8D9] overflow-hidden border border-[#E6DCD2]">
-                      {avatar ? (
-                          <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                          <User className="w-full h-full p-1.5 text-[#C85A72]" />
-                      )}
-                  </div>
-                  <span className="text-sm font-bold text-[#1F1F1F]">{firstName}</span>
-              </button>
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="flex items-center gap-2 pl-4 border-l border-[#E6DCD2] hover:opacity-80 transition-opacity"
+                >
+                    <div className="w-8 h-8 rounded-full bg-[#F3E8D9] overflow-hidden border border-[#E6DCD2]">
+                        {avatar ? (
+                            <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                            <User className="w-full h-full p-1.5 text-[#C85A72]" />
+                        )}
+                    </div>
+                    <span className="text-sm font-bold text-[#1F1F1F]">{firstName}</span>
+                </button>
 
-              {isProfileMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white border border-[#E6DCD2] rounded-xl shadow-xl py-2 flex flex-col z-50">
-                      <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                          <User size={16} /> My Profile
-                      </button>
-                      <button onClick={() => { navigate('/notifications'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2 relative">
-                          <Bell size={16} /> Notifications
-                          {unreadCount > 0 && (
-                              <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
-                          )}
-                      </button>
-                      <button onClick={() => { navigate('/rewards'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                          <Gift size={16} /> My Rewards
-                      </button>
-                      <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                           <Settings size={16} /> Account Settings
-                      </button>
-                      {isAdmin && (
-                        <>
-                          <div className="h-px bg-[#E6DCD2] my-1"></div>
-                          <button onClick={() => { navigate('/admin'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 flex items-center gap-2">
-                              <Shield size={16} /> Admin Panel
-                          </button>
-                        </>
-                      )}
-                      <div className="h-px bg-[#E6DCD2] my-1"></div>
-                      <button onClick={handleLogout} className="text-left px-4 py-3 text-sm font-bold text-[#C85A72] hover:bg-[#F9E7EB] flex items-center gap-2">
-                          <LogOut size={16} /> Sign Out
-                      </button>
-                  </div>
-              )}
-              
-              {/* Backdrop for dropdown */}
-              {isProfileMenuOpen && (
-                  <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
-              )}
-            </div>
+                {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-3 w-56 bg-white border border-[#E6DCD2] rounded-xl shadow-xl py-2 flex flex-col z-50">
+                        <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                            <User size={16} /> My Profile
+                        </button>
+                        <button onClick={() => { navigate('/notifications'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2 relative">
+                            <Bell size={16} /> Notifications
+                            {unreadCount > 0 && (
+                                <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
+                            )}
+                        </button>
+                        <button onClick={() => { navigate('/rewards'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                            <Gift size={16} /> My Rewards
+                        </button>
+                        <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
+                             <Settings size={16} /> Account Settings
+                        </button>
+                        {isAdmin && (
+                          <>
+                            <div className="h-px bg-[#E6DCD2] my-1"></div>
+                            <button onClick={() => { navigate('/admin'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 flex items-center gap-2">
+                                <Shield size={16} /> Admin Panel
+                            </button>
+                          </>
+                        )}
+                        <div className="h-px bg-[#E6DCD2] my-1"></div>
+                        <button onClick={handleLogout} className="text-left px-4 py-3 text-sm font-bold text-[#C85A72] hover:bg-[#F9E7EB] flex items-center gap-2">
+                            <LogOut size={16} /> Sign Out
+                        </button>
+                    </div>
+                )}
+                
+                {/* Backdrop for dropdown */}
+                {isProfileMenuOpen && (
+                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/login')}
+                className="text-[#706B67] hover:text-[#1F1F1F]"
+              >
+                Log In
+              </Button>
+              <Button 
+                onClick={() => navigate('/onboarding')}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+              >
+                Sign Up
+              </Button>
+            </>
           )}
         </div>
 
@@ -307,21 +325,41 @@ const Header = () => {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-[#E6DCD2] p-4 flex flex-col gap-2 absolute w-full shadow-lg">
-           <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-           <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
-           <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
-           <NavItem 
-             label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
-             path="/notifications" 
-             icon={Bell} 
-             active={location.pathname === '/notifications'} 
-           />
-           <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
-           <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
-           <div className="h-px bg-[#E6DCD2] my-2"></div>
-           <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-[#C85A72] bg-[#F9E7EB] rounded-lg">
+          {user ? (
+            <>
+              <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
+              <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
+              <NavItem 
+                label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
+                path="/notifications" 
+                icon={Bell} 
+                active={location.pathname === '/notifications'} 
+              />
+              <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
+              <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
+              <div className="h-px bg-[#E6DCD2] my-2"></div>
+              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-[#C85A72] bg-[#F9E7EB] rounded-lg">
                 <LogOut size={18} /> Sign Out
-           </button>
+              </button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
+                className="w-full border-[#E6DCD2] text-[#1F1F1F] hover:bg-[#FAF7F2]"
+              >
+                Log In
+              </Button>
+              <Button 
+                onClick={() => { navigate('/onboarding'); setIsMenuOpen(false); }}
+                className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
         </div>
       )}
     </header>
