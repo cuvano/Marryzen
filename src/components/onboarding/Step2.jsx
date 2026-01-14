@@ -16,6 +16,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -36,15 +37,34 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     setIsDragging(false);
   };
 
+  const calculateImageDisplaySize = (img, containerSize) => {
+    if (!img || !containerSize) return { width: 0, height: 0 };
+    
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    
+    let displayedWidth, displayedHeight;
+    if (imgAspect > 1) {
+      // Image is wider - fit to container height
+      displayedHeight = containerSize;
+      displayedWidth = displayedHeight * imgAspect;
+    } else {
+      // Image is taller - fit to container width
+      displayedWidth = containerSize;
+      displayedHeight = displayedWidth / imgAspect;
+    }
+    
+    return { width: displayedWidth, height: displayedHeight };
+  };
+
   const cropImage = () => {
     if (!imageRef.current || !containerRef.current) return;
     
     const img = imageRef.current;
     const container = containerRef.current;
-    const containerSize = 300; // Container is 300x300
+    const containerSize = container.offsetWidth || 300;
     
     // Wait for image to load
-    if (!img.complete || img.naturalWidth === 0) {
+    if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
       img.onload = () => cropImage();
       return;
     }
@@ -59,41 +79,57 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, outputSize, outputSize);
     
-    // Calculate the actual displayed image dimensions
-    const imgAspect = img.naturalWidth / img.naturalHeight;
-    const containerAspect = 1; // Square container
+    // Calculate displayed image dimensions (at zoom = 1, before scaling)
+    const displaySize = calculateImageDisplaySize(img, containerSize);
+    const displayedWidth = displaySize.width;
+    const displayedHeight = displaySize.height;
     
-    let displayedWidth, displayedHeight;
-    if (imgAspect > containerAspect) {
-      // Image is wider - fit to height
-      displayedHeight = containerSize * zoom;
-      displayedWidth = displayedHeight * imgAspect;
-    } else {
-      // Image is taller - fit to width
-      displayedWidth = containerSize * zoom;
-      displayedHeight = displayedWidth / imgAspect;
-    }
+    // The displayed image is scaled by zoom, so actual displayed size is:
+    const scaledDisplayWidth = displayedWidth * zoom;
+    const scaledDisplayHeight = displayedHeight * zoom;
     
-    // Calculate the scale factor from displayed size to actual image size
-    const scaleX = img.naturalWidth / displayedWidth;
-    const scaleY = img.naturalHeight / displayedHeight;
+    // Calculate scale factor from displayed pixels to actual image pixels
+    const scaleX = img.naturalWidth / scaledDisplayWidth;
+    const scaleY = img.naturalHeight / scaledDisplayHeight;
     
-    // Calculate the crop area in actual image coordinates
-    // The visible area is centered in the container, offset by the drag position
-    const visibleSize = containerSize / zoom;
-    const sourceX = Math.max(0, (-offset.x * scaleX) + (img.naturalWidth - visibleSize * scaleX) / 2);
-    const sourceY = Math.max(0, (-offset.y * scaleY) + (img.naturalHeight - visibleSize * scaleY) / 2);
-    const sourceSize = Math.min(visibleSize * scaleX, img.naturalWidth - sourceX, img.naturalHeight - sourceY);
+    // Container center (where image is centered)
+    const containerCenterX = containerSize / 2;
+    const containerCenterY = containerSize / 2;
+    
+    // Image center position in container coordinates (after offset)
+    const imageCenterInContainerX = containerCenterX + offset.x;
+    const imageCenterInContainerY = containerCenterY + offset.y;
+    
+    // Crop area bounds in container coordinates (the visible container)
+    const cropLeft = 0;
+    const cropTop = 0;
+    const cropRight = containerSize;
+    const cropBottom = containerSize;
+    
+    // Convert crop area bounds to displayed image coordinates
+    // Image center is at (imageCenterInContainerX, imageCenterInContainerY)
+    // Image top-left in container coordinates:
+    const imageTopLeftX = imageCenterInContainerX - scaledDisplayWidth / 2;
+    const imageTopLeftY = imageCenterInContainerY - scaledDisplayHeight / 2;
+    
+    // Crop area top-left relative to image top-left
+    const cropRelativeLeft = cropLeft - imageTopLeftX;
+    const cropRelativeTop = cropTop - imageTopLeftY;
+    
+    // Convert to actual image coordinates
+    let sourceX = cropRelativeLeft * scaleX;
+    let sourceY = cropRelativeTop * scaleY;
+    const sourceSize = containerSize * scaleX; // Crop size in actual image coordinates
     
     // Ensure we don't go out of bounds
-    const finalSourceX = Math.max(0, Math.min(sourceX, img.naturalWidth - sourceSize));
-    const finalSourceY = Math.max(0, Math.min(sourceY, img.naturalHeight - sourceSize));
-    const finalSourceSize = Math.min(sourceSize, img.naturalWidth - finalSourceX, img.naturalHeight - finalSourceY);
+    sourceX = Math.max(0, Math.min(sourceX, img.naturalWidth - sourceSize));
+    sourceY = Math.max(0, Math.min(sourceY, img.naturalHeight - sourceSize));
+    const finalSourceSize = Math.min(sourceSize, img.naturalWidth - sourceX, img.naturalHeight - sourceY);
     
     // Draw the cropped portion to canvas (square output)
     ctx.drawImage(
       img,
-      finalSourceX, finalSourceY, finalSourceSize, finalSourceSize,
+      sourceX, sourceY, finalSourceSize, finalSourceSize,
       0, 0, outputSize, outputSize
     );
     
@@ -120,28 +156,36 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
                 className="max-w-none absolute top-1/2 left-1/2 origin-center select-none pointer-events-none"
                 style={{
                     transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                    width: 'auto',
-                    height: 'auto',
+                    width: imageSize.width || 'auto',
+                    height: imageSize.height || 'auto',
                     maxWidth: 'none',
                     maxHeight: 'none'
                 }}
                 onLoad={() => {
-                  // Ensure image fits container initially
+                  // Calculate and set initial image display size
                   if (imageRef.current && containerRef.current) {
                     const img = imageRef.current;
                     const container = containerRef.current;
+                    const containerSize = container.offsetWidth || 300;
                     const imgAspect = img.naturalWidth / img.naturalHeight;
                     
-                    // Set initial zoom to fit
+                    let displayedWidth, displayedHeight;
                     if (imgAspect > 1) {
-                      // Wider image - fit height
-                      const initialZoom = container.offsetHeight / img.naturalHeight;
-                      setZoom(Math.max(1, initialZoom * 1.1)); // Slightly larger than fit
+                      // Wider image - fit to container height
+                      displayedHeight = containerSize;
+                      displayedWidth = displayedHeight * imgAspect;
                     } else {
-                      // Taller image - fit width
-                      const initialZoom = container.offsetWidth / img.naturalWidth;
-                      setZoom(Math.max(1, initialZoom * 1.1)); // Slightly larger than fit
+                      // Taller image - fit to container width
+                      displayedWidth = containerSize;
+                      displayedHeight = displayedWidth / imgAspect;
                     }
+                    
+                    setImageSize({ width: displayedWidth, height: displayedHeight });
+                    
+                    // Set initial zoom to slightly larger than fit (110%)
+                    const fitZoom = Math.min(containerSize / displayedWidth, containerSize / displayedHeight);
+                    setZoom(Math.max(1, fitZoom * 1.1));
+                    setOffset({ x: 0, y: 0 });
                   }
                 }}
             />
