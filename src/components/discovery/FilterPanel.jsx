@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Accordion,
   AccordionContent,
@@ -10,7 +11,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Crown } from 'lucide-react';
+import { Lock, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Full list of countries (matching onboarding)
 const COUNTRIES = [
@@ -41,8 +42,19 @@ const COUNTRIES = [
 ].sort();
 
 const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave, onPremiumFeatureClick }) => {
+  const [expandedCountries, setExpandedCountries] = useState(false);
+  const [expandedLanguages, setExpandedLanguages] = useState(false);
+
   const handleChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleMultiSelectToggle = (key, value) => {
+    const current = filters[key] || [];
+    const newValue = current.includes(value)
+      ? current.filter(item => item !== value)
+      : [...current, value];
+    handleChange(key, newValue);
   };
 
   const handleClearAll = () => {
@@ -216,21 +228,38 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
 
                 <PremiumLock label="Location" feature="advanced_filters">
                   <div className="space-y-2">
-                    <Label>Countries (Multiple Selection)</Label>
-                    <select 
-                      multiple
-                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[120px]"
-                      value={filters.countries || []}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => option.value);
-                        handleChange('countries', selected);
-                      }}
-                    >
-                      {COUNTRIES.map(country => (
-                        <option key={country} value={country}>{country}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple countries</p>
+                    <div className="flex items-center justify-between">
+                      <Label>Countries (Multiple Selection)</Label>
+                      {COUNTRIES.length > 10 && (
+                        <button
+                          onClick={() => setExpandedCountries(!expandedCountries)}
+                          className="text-xs text-[#E6B450] hover:text-[#D0A23D] flex items-center gap-1"
+                        >
+                          {expandedCountries ? (
+                            <>Show Less <ChevronUp className="w-3 h-3" /></>
+                          ) : (
+                            <>Show All <ChevronDown className="w-3 h-3" /></>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="border border-[#E6DCD2] rounded-md bg-white max-h-[200px] overflow-y-auto p-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        {(expandedCountries ? COUNTRIES : COUNTRIES.slice(0, 10)).map(country => (
+                          <label
+                            key={country}
+                            className="flex items-center space-x-2 p-2 rounded hover:bg-[#FAF7F2] cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={(filters.countries || []).includes(country)}
+                              onCheckedChange={() => handleMultiSelectToggle('countries', country)}
+                              className="border-[#E6DCD2] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450]"
+                            />
+                            <span className="text-sm text-[#1F1F1F]">{country}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                     {filters.countries && filters.countries.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {filters.countries.map(country => (
@@ -266,39 +295,44 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
 
                 <PremiumLock label="Languages" feature="advanced_filters">
                   <div className="space-y-2">
-                    <Label>Languages (Multiple Selection)</Label>
-                    <select 
-                      multiple
-                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[120px]"
-                      value={filters.languages || []}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => option.value);
-                        handleChange('languages', selected);
-                      }}
-                    >
-                      <option value="English">English</option>
-                      <option value="Spanish">Spanish</option>
-                      <option value="French">French</option>
-                      <option value="Arabic">Arabic</option>
-                      <option value="Turkish">Turkish</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Portuguese">Portuguese</option>
-                      <option value="Russian">Russian</option>
-                      <option value="Mandarin (Chinese)">Mandarin (Chinese)</option>
-                      <option value="Japanese">Japanese</option>
-                      <option value="Korean">Korean</option>
-                      <option value="Urdu">Urdu</option>
-                      <option value="German">German</option>
-                      <option value="Italian">Italian</option>
-                      <option value="Persian (Farsi)">Persian (Farsi)</option>
-                      <option value="Bengali">Bengali</option>
-                      <option value="Polish">Polish</option>
-                      <option value="Dutch">Dutch</option>
-                      <option value="Swahili">Swahili</option>
-                      <option value="Indonesian">Indonesian</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple languages</p>
+                    <div className="flex items-center justify-between">
+                      <Label>Languages (Multiple Selection)</Label>
+                      <button
+                        onClick={() => setExpandedLanguages(!expandedLanguages)}
+                        className="text-xs text-[#E6B450] hover:text-[#D0A23D] flex items-center gap-1"
+                      >
+                        {expandedLanguages ? (
+                          <>Show Less <ChevronUp className="w-3 h-3" /></>
+                        ) : (
+                          <>Show All <ChevronDown className="w-3 h-3" /></>
+                        )}
+                      </button>
+                    </div>
+                    <div className="border border-[#E6DCD2] rounded-md bg-white max-h-[200px] overflow-y-auto p-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        {(() => {
+                          const allLanguages = [
+                            'English', 'Spanish', 'French', 'Arabic', 'Turkish', 'Hindi', 'Portuguese',
+                            'Russian', 'Mandarin (Chinese)', 'Japanese', 'Korean', 'Urdu', 'German',
+                            'Italian', 'Persian (Farsi)', 'Bengali', 'Polish', 'Dutch', 'Swahili',
+                            'Indonesian', 'Other'
+                          ];
+                          return expandedLanguages ? allLanguages : allLanguages.slice(0, 10);
+                        })().map(lang => (
+                          <label
+                            key={lang}
+                            className="flex items-center space-x-2 p-2 rounded hover:bg-[#FAF7F2] cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={(filters.languages || []).includes(lang)}
+                              onCheckedChange={() => handleMultiSelectToggle('languages', lang)}
+                              className="border-[#E6DCD2] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450]"
+                            />
+                            <span className="text-sm text-[#1F1F1F]">{lang}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                     {filters.languages && filters.languages.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {filters.languages.map(lang => (
