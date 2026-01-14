@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/customSupabaseClient';
 import { 
   Heart, Shield, CheckCircle, Users, Lock, Star, 
   MessageCircle, UserCheck, Search, BadgeCheck, LogIn 
@@ -44,12 +45,13 @@ const LandingPage = () => {
                     Marryzen<span className="text-[#C85A72]">.</span>
                 </span>
               </div>
-              <div className="flex items-center gap-4">
-                  <Button variant="ghost" onClick={() => navigate('/login')} className="text-[#1F1F1F] font-bold hover:bg-[#FAF7F2] hidden sm:flex">
-                      <LogIn className="w-4 h-4 mr-2"/> Log In
+              <div className="flex items-center gap-2 sm:gap-4">
+                  <Button variant="ghost" onClick={() => navigate('/login')} className="text-[#1F1F1F] font-bold hover:bg-[#FAF7F2] flex items-center">
+                      <LogIn className="w-4 h-4 mr-2"/> <span className="hidden sm:inline">Log In</span>
                   </Button>
-                  <Button onClick={() => navigate('/onboarding')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold rounded-full px-6 shadow-md transition-transform hover:scale-105">
-                      Create My Marriage Profile
+                  <Button onClick={() => navigate('/onboarding')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold rounded-full px-3 sm:px-6 text-sm sm:text-base shadow-md transition-transform hover:scale-105">
+                      <span className="hidden sm:inline">Create My Marriage Profile</span>
+                      <span className="sm:hidden">Sign Up</span>
                   </Button>
               </div>
           </div>
