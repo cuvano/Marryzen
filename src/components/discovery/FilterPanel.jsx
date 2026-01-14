@@ -269,7 +269,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                     <Label>Languages (Multiple Selection)</Label>
                     <select 
                       multiple
-                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[100px]"
+                      className="w-full border border-[#E6DCD2] rounded-md px-3 py-2 text-sm bg-white min-h-[120px]"
                       value={filters.languages || []}
                       onChange={(e) => {
                         const selected = Array.from(e.target.selectedOptions, option => option.value);
@@ -277,20 +277,26 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                       }}
                     >
                       <option value="English">English</option>
-                      <option value="Arabic">Arabic</option>
-                      <option value="Urdu">Urdu</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Bengali">Bengali</option>
-                      <option value="Turkish">Turkish</option>
-                      <option value="French">French</option>
-                      <option value="German">German</option>
                       <option value="Spanish">Spanish</option>
+                      <option value="French">French</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Turkish">Turkish</option>
+                      <option value="Hindi">Hindi</option>
                       <option value="Portuguese">Portuguese</option>
-                      <option value="Italian">Italian</option>
                       <option value="Russian">Russian</option>
-                      <option value="Mandarin">Mandarin</option>
+                      <option value="Mandarin (Chinese)">Mandarin (Chinese)</option>
                       <option value="Japanese">Japanese</option>
                       <option value="Korean">Korean</option>
+                      <option value="Urdu">Urdu</option>
+                      <option value="German">German</option>
+                      <option value="Italian">Italian</option>
+                      <option value="Persian (Farsi)">Persian (Farsi)</option>
+                      <option value="Bengali">Bengali</option>
+                      <option value="Polish">Polish</option>
+                      <option value="Dutch">Dutch</option>
+                      <option value="Swahili">Swahili</option>
+                      <option value="Indonesian">Indonesian</option>
+                      <option value="Other">Other</option>
                     </select>
                     <p className="text-xs text-[#706B67]">Hold Ctrl/Cmd to select multiple languages</p>
                     {filters.languages && filters.languages.length > 0 && (
