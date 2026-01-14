@@ -128,15 +128,16 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                     onChange={(e) => handleChange('faith', e.target.value)}
                 >
                     <option value="">Any</option>
-                    <option value="Muslim">Muslim</option>
-                    <option value="Christian">Christian</option>
-                    <option value="Jewish">Jewish</option>
-                    <option value="Hindu">Hindu</option>
-                    <option value="Sikh">Sikh</option>
-                    <option value="Buddhist">Buddhist</option>
-                    <option value="Spiritual">Spiritual</option>
+                    <option value="Islam">Islam</option>
+                    <option value="Christianity">Christianity</option>
+                    <option value="Judaism">Judaism</option>
+                    <option value="Hinduism">Hinduism</option>
+                    <option value="Sikhism">Sikhism</option>
+                    <option value="Buddhism">Buddhism</option>
+                    <option value="Spiritual but not religious">Spiritual but not religious</option>
                     <option value="Atheist">Atheist</option>
                     <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
 
