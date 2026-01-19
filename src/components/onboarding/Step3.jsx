@@ -7,11 +7,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
 
   const handleCultureToggle = (culture) => {
-    const currentCultures = formData.cultures || [];
-    const newCultures = currentCultures.includes(culture)
-      ? currentCultures.filter(c => c !== culture)
-      : [...currentCultures, culture];
-    updateFormData('cultures', newCultures);
+    // Allow only one selection - replace the array with the selected culture
+    const currentCulture = formData.cultures?.[0];
+    if (currentCulture === culture) {
+      // If clicking the same culture, deselect it
+      updateFormData('cultures', []);
+      updateFormData('otherCultureText', ''); // Clear other text if deselecting
+    } else {
+      // Select the new culture (single selection)
+      updateFormData('cultures', [culture]);
+      // Clear other text if selecting a non-Other culture
+      if (culture !== 'Other') {
+        updateFormData('otherCultureText', '');
+      }
+    }
   };
   
   const handleValueToggle = (value) => {
@@ -22,7 +31,7 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
     updateFormData('coreValues', newValues);
   };
 
-  const isOtherCultureSelected = formData.cultures?.includes('Other');
+  const isOtherCultureSelected = formData.cultures?.[0] === 'Other';
   const isOtherReligionSelected = formData.religiousAffiliation === 'Other';
 
   const religiousAffiliations = ['Islam', 'Christianity', 'Judaism', 'Hinduism', 'Buddhism', 'Sikhism', 'Atheist', 'Spiritual but not religious', 'Other', 'Prefer not to say'];
@@ -37,20 +46,23 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
         </div>
         
         <div>
-          <Label className="text-[#333333] font-semibold text-base mb-4 block">Select all cultures you identify with:</Label>
+          <Label className="text-[#333333] font-semibold text-base mb-4 block">Select your culture:</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cultures.map((culture) => {
-              const isSelected = formData.cultures?.includes(culture);
+              const isSelected = formData.cultures?.[0] === culture;
               return (
                 <div
                   key={culture}
-                  className={`p-4 rounded-xl cursor-pointer transition-all text-center border text-sm font-medium ${
+                  className={`p-4 rounded-xl cursor-pointer transition-all text-center border text-sm font-medium flex items-center justify-center gap-3 ${
                     isSelected
                       ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md'
                       : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72]'
                   }`}
                   onClick={() => handleCultureToggle(culture)}
                 >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
+                    {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                  </div>
                   {culture}
                 </div>
               );
