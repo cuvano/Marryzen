@@ -107,6 +107,7 @@ const OnboardingPage = () => {
                     willingToRelocate: profile.willing_to_relocate || '',
                     familyGoals: profile.family_goals || '',
                     relationshipGoal: profile.relationship_goal || '',
+                    isPremium: profile.is_premium || false,
                     smoking: profile.smoking || '',
                     drinking: profile.drinking || '',
                     maritalHistory: profile.marital_status || '',

@@ -22,20 +22,47 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    
-    if (filterStatus !== 'all') {
-      query = query.eq('status', filterStatus);
-    }
-    
-    if (searchTerm) {
-      query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-    }
+    try {
+      let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      
+      if (filterStatus !== 'all') {
+        if (filterStatus === 'no_status') {
+          // Show users with NULL status
+          query = query.is('status', null);
+        } else {
+          query = query.eq('status', filterStatus);
+        }
+      }
+      
+      if (searchTerm) {
+        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      }
 
-    const { data, error } = await query;
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else setUsers(data || []);
-    setLoading(false);
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast({ 
+          title: "Error", 
+          description: error.message || "Could not load users. Check console for details.", 
+          variant: "destructive" 
+        });
+        setUsers([]);
+      } else {
+        console.log(`Fetched ${data?.length || 0} users`);
+        setUsers(data || []);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching users:', err);
+      toast({ 
+        title: "Error", 
+        description: "An unexpected error occurred while loading users.", 
+        variant: "destructive" 
+      });
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -103,6 +130,7 @@ const UserManagement = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="all">All Status</option>
+            <option value="no_status">No Status</option>
             <option value="pending_review">Pending Review</option>
             <option value="approved">Approved</option>
             <option value="suspended">Suspended</option>
@@ -149,8 +177,9 @@ const UserManagement = () => {
                         ${user.status === 'approved' ? 'text-green-400 border-green-900 bg-green-900/10' : 
                           user.status === 'banned' ? 'text-red-400 border-red-900 bg-red-900/10' :
                           user.status === 'suspended' ? 'text-orange-400 border-orange-900 bg-orange-900/10' :
-                          'text-yellow-400 border-yellow-900 bg-yellow-900/10'} capitalize`}>
-                        {user.status?.replace('_', ' ')}
+                          user.status === 'pending_review' ? 'text-yellow-400 border-yellow-900 bg-yellow-900/10' :
+                          'text-gray-400 border-gray-900 bg-gray-900/10'} capitalize`}>
+                        {user.status ? user.status.replace('_', ' ') : 'No Status'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
@@ -179,10 +208,11 @@ const UserManagement = () => {
                                         <Label className="text-slate-500 text-xs">Status</Label>
                                         <select 
                                           className="w-full bg-slate-900 border border-slate-700 rounded p-1 text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                          value={selectedUser.status}
-                                          onChange={(e) => updateUser(selectedUser.id, { status: e.target.value })}
+                                          value={selectedUser.status || ''}
+                                          onChange={(e) => updateUser(selectedUser.id, { status: e.target.value || null })}
                                           disabled={currentAdminRole !== 'super_admin' && (selectedUser.role?.toLowerCase() === 'admin' || selectedUser.role?.toLowerCase() === 'super_admin')}
                                         >
+                                          <option value="">No Status</option>
                                           <option value="pending_review">Pending Review</option>
                                           <option value="approved">Approved</option>
                                           <option value="suspended">Suspended</option>

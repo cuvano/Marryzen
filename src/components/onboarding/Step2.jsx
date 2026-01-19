@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/customSupabaseClient';
 
 const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
@@ -325,9 +326,37 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [tempImage, setTempImage] = useState(null);
   const [pendingIndex, setPendingIndex] = useState(null);
+  const [isPremium, setIsPremium] = useState(false);
 
-  // Determine user status (Default to Free for onboarding unless specified)
-  const isPremium = formData.isPremium === true;
+  // Fetch premium status from database
+  useEffect(() => {
+    const fetchPremiumStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_premium')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          // Use database value if available, otherwise fall back to formData
+          const premiumStatus = profile?.is_premium || formData.isPremium === true;
+          setIsPremium(premiumStatus);
+        } else {
+          // Fallback to formData if no user session
+          setIsPremium(formData.isPremium === true);
+        }
+      } catch (error) {
+        console.error('Error fetching premium status:', error);
+        // Fallback to formData on error
+        setIsPremium(formData.isPremium === true);
+      }
+    };
+
+    fetchPremiumStatus();
+  }, [formData.isPremium]);
+
   const maxPhotos = isPremium ? MAX_PREMIUM_PHOTOS : MAX_FREE_PHOTOS;
 
   const handleFileSelect = (file, index) => {
