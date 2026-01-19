@@ -40,7 +40,7 @@ const US_STATES = [
   "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
 ];
 
-const Step1 = ({ formData, updateFormData, errors = {} }) => {
+const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) => {
   const navigate = useNavigate();
   const [ageError, setAgeError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -113,55 +113,59 @@ const Step1 = ({ formData, updateFormData, errors = {} }) => {
           )}
         </div>
         
-        {/* Password Fields */}
-        <div className="space-y-2">
-            <Label htmlFor="password" className={`text-[#333333] font-bold text-base`}>Password</Label>
-            <div className="relative">
-                <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password || ''}
-                    onChange={(e) => updateFormData('password', e.target.value)}
-                    className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
-                    placeholder="Create a password"
-                />
-                 <button 
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
-                >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+        {/* Password Fields - Only show for new signups, optional for edit mode */}
+        {!isEditMode && (
+          <>
+            <div className="space-y-2">
+                <Label htmlFor="password" className={`text-[#333333] font-bold text-base`}>Password</Label>
+                <div className="relative">
+                    <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password || ''}
+                        onChange={(e) => updateFormData('password', e.target.value)}
+                        className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
+                        placeholder="Create a password"
+                    />
+                     <button 
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                    >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                </div>
+                {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+                {!errors.password && (
+                     <p className="text-[#706B67] text-xs font-medium">
+                        Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
+                     </p>
+                )}
             </div>
-            {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-            {!errors.password && (
-                 <p className="text-[#706B67] text-xs font-medium">
-                    Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
-                 </p>
-            )}
-        </div>
 
-        <div className="space-y-2">
-             <Label htmlFor="confirmPassword" className={`text-[#333333] font-bold text-base`}>Confirm Password</Label>
-             <div className="relative">
-                <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword || ''}
-                    onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                    className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
-                    placeholder="Confirm password"
-                />
-                 <button 
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
-                >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            <div className="space-y-2">
+                 <Label htmlFor="confirmPassword" className={`text-[#333333] font-bold text-base`}>Confirm Password</Label>
+                 <div className="relative">
+                    <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword || ''}
+                        onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+                        className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                        placeholder="Confirm password"
+                    />
+                     <button 
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                    >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                </div>
+                 {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
             </div>
-             {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
-        </div>
+          </>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="dateOfBirth" className="text-[#333333] font-bold text-base">Date of Birth</Label>

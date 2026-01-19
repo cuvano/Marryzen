@@ -81,6 +81,16 @@ const OnboardingPage = () => {
                 .maybeSingle(); // Use maybeSingle() to handle case where profile doesn't exist yet
             
             if (profile) {
+                // Check if this is edit mode (profile exists and onboarding is complete)
+                const isEditModeProfile = profile.onboarding_step === 5;
+                if (isEditModeProfile) {
+                    setIsEditMode(true);
+                    // Pre-check terms in edit mode
+                    setFormData(prev => ({ ...prev, agreeToTermsV2: true, confirmMarriageIntent: true }));
+                    // Always start at step 1 when editing
+                    setCurrentStep(1);
+                }
+                
                 // Map DB fields back to formData
                 setFormData(prev => ({
                     ...prev,
@@ -120,13 +130,15 @@ const OnboardingPage = () => {
                     countryOfResidence: profile.country_of_residence || profile.location_country || '',
                 }));
 
-                // Resume at correct step
-                if (profile.onboarding_step && profile.onboarding_step > 1 && profile.onboarding_step <= totalSteps) {
-                    setCurrentStep(profile.onboarding_step);
-                } else if (profile.onboarding_step === totalSteps) {
-                     navigate('/dashboard');
-                } else {
-                    setCurrentStep(2); // Default to 2 if step 1 data exists but step not saved
+                // Resume at correct step (only for incomplete profiles, not edit mode)
+                if (!isEditModeProfile) {
+                    if (profile.onboarding_step && profile.onboarding_step > 1 && profile.onboarding_step <= totalSteps) {
+                        setCurrentStep(profile.onboarding_step);
+                    } else if (profile.onboarding_step === totalSteps) {
+                         navigate('/dashboard');
+                    } else {
+                        setCurrentStep(2); // Default to 2 if step 1 data exists but step not saved
+                    }
                 }
             }
         }
@@ -160,9 +172,13 @@ const OnboardingPage = () => {
     if (!formData.name.trim()) { errors.name = "Full Name is required."; isValid = false; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email)) { errors.email = "Please enter a valid email address."; isValid = false; }
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-    if (!formData.password || !passwordRegex.test(formData.password)) { errors.password = "Password must be at least 8 characters, with at least 1 letter and 1 number."; isValid = false; }
-    if (formData.password !== formData.confirmPassword) { errors.confirmPassword = "Passwords do not match."; isValid = false; }
+    
+    // Password validation only required for new signups, not when editing
+    if (!isEditMode) {
+      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+      if (!formData.password || !passwordRegex.test(formData.password)) { errors.password = "Password must be at least 8 characters, with at least 1 letter and 1 number."; isValid = false; }
+      if (formData.password !== formData.confirmPassword) { errors.confirmPassword = "Passwords do not match."; isValid = false; }
+    }
     if (!formData.dateOfBirth) isValid = false;
     if (!formData.locationCountry) isValid = false;
     if (formData.locationCountry === 'United States' && !formData.locationState) isValid = false;
@@ -336,32 +352,39 @@ const OnboardingPage = () => {
               // Check if profile exists (handle PGRST116 gracefully)
               const { data: existingProfile, error: checkError } = await supabase
                   .from('profiles')
-                  .select('id')
+                  .select('id, onboarding_step')
                   .eq('id', authenticatedUserId)
                   .maybeSingle(); // Use maybeSingle() instead of single() to avoid PGRST116
               
               let profileError = null;
+              const isExistingProfile = existingProfile && !checkError;
               
-              if (existingProfile && !checkError) {
+              if (isExistingProfile) {
                   // Profile exists, update it
+                  const updateData = {
+                      email: formData.email,
+                      full_name: formData.name,
+                      date_of_birth: formData.dateOfBirth,
+                      location_city: formData.locationCity,
+                      location_country: formData.locationCountry,
+                      location_state: formData.locationState,
+                      country_of_origin: formData.countryOfOrigin,
+                      country_of_residence: formData.locationCountry, // Same as location_country
+                      identify_as: formData.identifyAs,
+                      looking_for_gender: formData.lookingForGender,
+                      serious_relationship: formData.seriousRelationship,
+                      updated_at: new Date().toISOString()
+                  };
+                  
+                  // Only update onboarding_step and status if not in edit mode (use state variable)
+                  if (!isEditMode) {
+                      updateData.onboarding_step = 2;
+                      updateData.status = 'pending_review';
+                  }
+                  
                   const { error: updateError } = await supabase
                       .from('profiles')
-                      .update({
-                          email: formData.email,
-                          full_name: formData.name,
-                          date_of_birth: formData.dateOfBirth,
-                          location_city: formData.locationCity,
-                          location_country: formData.locationCountry,
-                          location_state: formData.locationState,
-                          country_of_origin: formData.countryOfOrigin,
-                          country_of_residence: formData.locationCountry, // Same as location_country
-                          identify_as: formData.identifyAs,
-                          looking_for_gender: formData.lookingForGender,
-                          serious_relationship: formData.seriousRelationship,
-                          onboarding_step: 2,
-                          status: 'pending_review',
-                          updated_at: new Date().toISOString()
-                      })
+                      .update(updateData)
                       .eq('id', authenticatedUserId);
                   profileError = updateError;
               } else {
@@ -402,7 +425,7 @@ const OnboardingPage = () => {
                       console.warn('Profile check returned no rows, but this is expected for new users');
                   } else {
                       toast({ 
-                          title: "Profile Creation Failed", 
+                          title: "Profile Update Failed", 
                           description: profileError.message || "Please try again or contact support.",
                           variant: "destructive"
                       });
@@ -411,7 +434,11 @@ const OnboardingPage = () => {
                   return;
               }
               
-              toast({ title: "Account Created!", description: "Let's build your profile." });
+              // Only show "Account Created!" for new signups, not when editing existing profile
+              // Use the state variable isEditMode, not the local one
+              if (!isEditMode) {
+                  toast({ title: "Account Created!", description: "Let's build your profile." });
+              }
               setCurrentStep(2);
           }
         }
@@ -514,10 +541,18 @@ const OnboardingPage = () => {
              // Store basic profile in local storage for quick access if needed, but primary is now Supabase
              localStorage.setItem('userProfile', JSON.stringify({ ...formData, id: session.user.id }));
              
-             toast({
-                title: "Profile Activated! 🎉",
-                description: "Welcome to Marryzen!",
-             });
+             // Show different messages for new signup vs editing
+             if (isEditMode) {
+                 toast({
+                    title: "Profile Updated! ✅",
+                    description: "Your changes have been saved.",
+                 });
+             } else {
+                 toast({
+                    title: "Profile Activated! 🎉",
+                    description: "Welcome to Marryzen!",
+                 });
+             }
              navigate('/dashboard');
         }
 
@@ -554,6 +589,7 @@ const OnboardingPage = () => {
           formData={formData} 
           updateFormData={updateFormData} 
           errors={step1Errors}
+          isEditMode={isEditMode}
         />
       );
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
@@ -566,35 +602,22 @@ const OnboardingPage = () => {
 
   // Validations for button states (Visual Only)
   const isStep1Valid = () => {
-       return formData.name && formData.email && formData.password && formData.confirmPassword && 
+       const baseFields = formData.name && formData.email && 
               formData.dateOfBirth && formData.locationCountry && formData.identifyAs && 
               formData.seriousRelationship && formData.agreeToTerms;
+       
+       // Password fields are only required for new signups, not when editing
+       if (isEditMode) {
+         return baseFields;
+       }
+       
+       return baseFields && formData.password && formData.confirmPassword;
   };
   const isStep2Complete = formData.photos && formData.photos.length > 0;
   const isStep3Complete = formData.cultures?.length > 0 && formData.coreValues?.length > 0 && formData.faithLifestyle;
   const isStep4Complete = formData.bio?.length >= 50 && formData.willingToRelocate && formData.familyGoals;
   // Check if this is an edit (profile already exists and onboarding is complete)
   const [isEditMode, setIsEditMode] = useState(false);
-  
-  useEffect(() => {
-    const checkEditMode = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_step')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        // If profile exists and onboarding_step is 5, we're in edit mode
-        if (profile && profile.onboarding_step === 5) {
-          setIsEditMode(true);
-          // Pre-check terms in edit mode
-          setFormData(prev => ({ ...prev, agreeToTermsV2: true, confirmMarriageIntent: true }));
-        }
-      }
-    };
-    checkEditMode();
-  }, []);
 
   const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && (isEditMode || formData.agreeToTermsV2);
 
@@ -617,15 +640,26 @@ const OnboardingPage = () => {
           </AnimatePresence>
 
           <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F3E8D9]">
-            {currentStep > 1 ? (
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="text-[#C85A72] hover:bg-[#F9E7EB] hover:text-[#C85A72] font-semibold px-6"
-              >
-                ← Back
-              </Button>
-            ) : ( <div /> )}
+            <div className="flex gap-3">
+              {currentStep > 1 && (
+                <Button
+                  variant="ghost"
+                  onClick={handleBack}
+                  className="text-[#C85A72] hover:bg-[#F9E7EB] hover:text-[#C85A72] font-semibold px-6"
+                >
+                  ← Back
+                </Button>
+              )}
+              {isEditMode && (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/profile')}
+                  className="text-[#706B67] hover:bg-[#F3E8D9] hover:text-[#1F1F1F] font-semibold px-6"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
             
             <div className="flex flex-col items-end">
                 {currentStep === totalSteps && (
@@ -645,7 +679,7 @@ const OnboardingPage = () => {
                     (currentStep === totalSteps && !isStep5Complete)
                   }
                 >
-                  {isLoading ? 'Processing...' : (currentStep === totalSteps ? 'Activate Profile' : 'Continue')}
+                  {isLoading ? 'Processing...' : (currentStep === totalSteps ? (isEditMode ? 'Save Changes' : 'Activate Profile') : 'Continue')}
                 </Button>
             </div>
           </div>
