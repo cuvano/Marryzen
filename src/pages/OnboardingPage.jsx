@@ -147,8 +147,9 @@ const OnboardingPage = () => {
   }, [navigate]);
 
   const cultures = [
-    'African', 'Asian', 'European / White', 'Middle Eastern', 'Latin American', 
-    'Native American', 'Pacific Islander', 'Mixed Heritage', 'Other'
+    'African American / Black', 'Asian', 'Australian', 'Central & Southern African', 
+    'European / White', 'Hispanic', 'Latin American', 'Middle Eastern', 
+    'Native American', 'North African', 'Pacific Islander', 'Mixed Heritage', 'Other'
   ];
   
   const coreValues = [
