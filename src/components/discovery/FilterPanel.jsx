@@ -120,13 +120,15 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
             <AccordionTrigger className="hover:no-underline font-bold text-[#1F1F1F]">Basic Filters</AccordionTrigger>
             <AccordionContent className="space-y-6 pt-2">
               <div className="space-y-3">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <Label>Age Range</Label>
-                  <span className="text-xs font-medium text-[#706B67]">{filters.ageRange[0]} - {filters.ageRange[1]}</span>
+                  <span className="text-sm font-semibold text-[#1F1F1F]">{filters.ageRange[0]} - {filters.ageRange[1]}</span>
                 </div>
                 <Slider 
                   value={filters.ageRange} 
-                  min={18} max={70} step={1} 
+                  min={18} 
+                  max={70} 
+                  step={1} 
                   minStepsBetweenThumbs={1}
                   onValueChange={(v) => handleChange('ageRange', v)} 
                 />
