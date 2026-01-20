@@ -42,7 +42,6 @@ const COUNTRIES = [
 ].sort();
 
 const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, resultsCount, onClear, onSave, onPremiumFeatureClick }) => {
-  const [expandedCountries, setExpandedCountries] = useState(false);
   const [expandedLanguages, setExpandedLanguages] = useState(false);
 
   const handleChange = (key, value) => {
@@ -230,24 +229,10 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
 
                 <PremiumLock label="Location" feature="advanced_filters">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Countries (Multiple Selection)</Label>
-                      {COUNTRIES.length > 10 && (
-                        <button
-                          onClick={() => setExpandedCountries(!expandedCountries)}
-                          className="text-xs text-[#E6B450] hover:text-[#D0A23D] flex items-center gap-1"
-                        >
-                          {expandedCountries ? (
-                            <>Show Less <ChevronUp className="w-3 h-3" /></>
-                          ) : (
-                            <>Show All <ChevronDown className="w-3 h-3" /></>
-                          )}
-                        </button>
-                      )}
-                    </div>
+                    <Label>Countries (Multiple Selection)</Label>
                     <div className="border border-[#E6DCD2] rounded-md bg-white max-h-[200px] overflow-y-auto p-2">
                       <div className="grid grid-cols-1 gap-2">
-                        {(expandedCountries ? COUNTRIES : COUNTRIES.slice(0, 10)).map(country => (
+                        {COUNTRIES.map(country => (
                           <label
                             key={country}
                             className="flex items-center space-x-2 p-2 rounded hover:bg-[#FAF7F2] cursor-pointer"
