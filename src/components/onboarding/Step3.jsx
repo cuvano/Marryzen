@@ -150,7 +150,11 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => updateFormData('hasChildren', false)}
+                        onClick={() => {
+                            updateFormData('hasChildren', false);
+                            // Clear childrenLiveWithYou when selecting No
+                            updateFormData('childrenLiveWithYou', undefined);
+                        }}
                         className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
                             formData.hasChildren === false
                                 ? 'bg-[#E6B450] text-white border-[#E6B450]'
@@ -160,6 +164,39 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
                         No
                     </button>
                 </div>
+                {formData.hasChildren === true && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4"
+                    >
+                        <Label className="text-[#333333] font-semibold text-sm mb-2 block">Do they live with you?</Label>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => updateFormData('childrenLiveWithYou', true)}
+                                className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                                    formData.childrenLiveWithYou === true
+                                        ? 'bg-[#E6B450] text-white border-[#E6B450]'
+                                        : 'bg-white text-[#333333] border-[#E6DCD2]'
+                                }`}
+                            >
+                                Yes
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => updateFormData('childrenLiveWithYou', false)}
+                                className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                                    formData.childrenLiveWithYou === false
+                                        ? 'bg-[#E6B450] text-white border-[#E6B450]'
+                                        : 'bg-white text-[#333333] border-[#E6DCD2]'
+                                }`}
+                            >
+                                No
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">

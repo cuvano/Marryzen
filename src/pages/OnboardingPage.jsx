@@ -58,6 +58,7 @@ const OnboardingPage = () => {
     drinking: '',
     maritalHistory: '',
     hasChildren: false,
+    childrenLiveWithYou: undefined,
     education: '',
     educationLevel: '',
     job: '',
@@ -122,6 +123,7 @@ const OnboardingPage = () => {
                     drinking: profile.drinking || '',
                     maritalHistory: profile.marital_status || '',
                     hasChildren: profile.has_children || false,
+                    childrenLiveWithYou: profile.children_live_with_you,
                     education: profile.education || '',
                     educationLevel: profile.education || '', // Both map to the same "education" column
                     job: profile.occupation || profile.job || '', // Try occupation first, fallback to job
@@ -163,8 +165,14 @@ const OnboardingPage = () => {
     'English', 'Spanish', 'French', 'Arabic', 'Turkish', 'Hindi', 'Portuguese', 
     'Russian', 'Mandarin (Chinese)', 'Japanese', 'Korean', 'Urdu', 'German', 
     'Italian', 'Persian (Farsi)', 'Bengali', 'Polish', 'Dutch', 'Swahili', 
-    'Indonesian', 'Other'
-  ].sort();
+    'Indonesian', 'Ukrainian', 'Punjabi', 'Filipino', 'Vietnamese', 'Thai', 
+    'Tamil', 'Telugu', 'Hebrew', 'Malay', 'Nepali', 'Kazakh', 'Uzbek', 'Other'
+  ].sort((a, b) => {
+    // Sort alphabetically but keep "Other" at the end
+    if (a === 'Other') return 1;
+    if (b === 'Other') return -1;
+    return a.localeCompare(b);
+  });
 
   // --- Validation Logic ---
   const validateStep1 = () => {
@@ -477,6 +485,7 @@ const OnboardingPage = () => {
                 drinking: formData.drinking || null,
                 marital_status: formData.maritalHistory || null,
                 has_children: formData.hasChildren || false,
+                children_live_with_you: formData.hasChildren === true ? (formData.childrenLiveWithYou !== undefined ? formData.childrenLiveWithYou : null) : null,
                 onboarding_step: 4
             };
             
