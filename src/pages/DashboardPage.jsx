@@ -45,7 +45,10 @@ const DashboardPage = () => {
       setLoading(true);
       try {
       const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
         // Check email verification status
         setEmailVerified(user.email_confirmed_at !== null);
@@ -64,13 +67,25 @@ const DashboardPage = () => {
         if (profile) {
            setUserProfile(profile);
           
+          // Debug: Log profile status
+          console.log('Dashboard - Initial Profile Load:', {
+            status: profile.status,
+            statusType: typeof profile.status,
+            statusLower: profile.status?.toLowerCase()?.trim(),
+            isApproved: profile.status?.toLowerCase()?.trim() === 'approved',
+            fullProfile: profile
+          });
+          
           // Fetch real stats from database
           await fetchRealStats(user.id, profile);
           
-          // Fetch suggested profiles only if approved
-          if (profile.status === 'approved') {
+          // Fetch suggested profiles only if approved (case-insensitive check)
+          const profileStatusLower = profile.status?.toLowerCase()?.trim();
+          if (profileStatusLower === 'approved') {
             await fetchSuggestedProfiles(user.id, profile);
           }
+        } else {
+          console.log('Dashboard - No profile found');
         }
       } catch (error) {
         // Ignore 404 NOT_FOUND errors
@@ -91,21 +106,52 @@ const DashboardPage = () => {
 
     init();
     
-    // Refresh email verification status periodically and on focus
-    const checkEmailVerification = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+    // Refresh profile and email verification status periodically and on focus
+    const refreshProfileStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Refresh email verification
         setEmailVerified(user.email_confirmed_at !== null);
+        
+        // Refresh profile status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status, onboarding_step')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (profile) {
+          setUserProfile(prev => prev ? { ...prev, status: profile.status, onboarding_step: profile.onboarding_step } : profile);
+          
+          // Debug logging
+          console.log('Dashboard - Profile Status Refresh:', {
+            status: profile.status,
+            statusLower: profile.status?.toLowerCase()?.trim(),
+            isApproved: profile.status?.toLowerCase()?.trim() === 'approved'
+          });
+        }
+      } catch (error) {
+        console.error('Error refreshing profile status:', error);
       }
     };
     
-    const interval = setInterval(checkEmailVerification, 5000); // Check every 5 seconds
-    const handleFocus = () => checkEmailVerification();
+    const interval = setInterval(refreshProfileStatus, 10000); // Check every 10 seconds
+    const handleFocus = () => refreshProfileStatus();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshProfileStatus();
+      }
+    };
+    
     window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [navigate, toast]);
 
@@ -271,6 +317,9 @@ const DashboardPage = () => {
   };
 
   const getStatusBadge = (status) => {
+    // Normalize status to lowercase for case-insensitive matching
+    const normalizedStatus = status ? String(status).toLowerCase().trim() : 'pending_review';
+    
     const statusConfig = {
       'pending_review': { 
         label: 'Pending Review', 
@@ -306,7 +355,7 @@ const DashboardPage = () => {
       }
     };
 
-    return statusConfig[status] || statusConfig['pending_review'];
+    return statusConfig[normalizedStatus] || statusConfig['pending_review'];
   };
 
   const getNextSteps = (profile) => {
@@ -393,13 +442,20 @@ const DashboardPage = () => {
     );
   }
 
-  const statusConfig = userProfile ? getStatusBadge(userProfile.status) : null;
+  // Safely get status badge, handle null/undefined status
+  const statusConfig = userProfile && userProfile.status ? getStatusBadge(userProfile.status) : null;
   const nextSteps = getNextSteps(userProfile);
 
+  // Check if profile is approved (case-insensitive)
+  // Handle null, undefined, or empty string status
+  const profileStatus = userProfile?.status;
+  const profileStatusLower = profileStatus ? String(profileStatus).toLowerCase().trim() : '';
+  const isApproved = profileStatusLower === 'approved';
+  
   const marriageTools = [
-    { icon: Search, title: 'Find Marriage Matches', description: 'View compatible profiles', action: () => navigate('/discovery'), bg: 'bg-[#EAF2F7]', iconColor: 'text-[#3B82F6]', disabled: userProfile?.status !== 'approved' },
+    { icon: Search, title: 'Find Marriage Matches', description: 'View compatible profiles', action: () => navigate('/discovery'), bg: 'bg-[#EAF2F7]', iconColor: 'text-[#3B82F6]', disabled: !isApproved },
     { icon: MessageCircle, title: 'Conversations', description: 'Continue meaningful discussions', action: () => navigate('/chat'), bg: 'bg-[#F0FDF4]', iconColor: 'text-[#22C55E]', disabled: false },
-    { icon: Send, title: 'Send Introduction', description: 'Express sincere interest', action: () => navigate('/discovery'), bg: 'bg-[#FDF2F8]', iconColor: 'text-[#EC4899]', disabled: userProfile?.status !== 'approved' },
+    { icon: Send, title: 'Send Introduction', description: 'Express sincere interest', action: () => navigate('/discovery'), bg: 'bg-[#FDF2F8]', iconColor: 'text-[#EC4899]', disabled: !isApproved },
     { icon: Crown, title: 'Upgrade for Serious Features', description: 'Unlock advanced filters', action: () => navigate('/premium'), bg: 'bg-[#FFFBEB]', iconColor: 'text-[#F59E0B]', disabled: false }
   ];
 
@@ -434,7 +490,7 @@ const DashboardPage = () => {
                     <h3 className={`font-bold ${statusConfig.text}`}>Profile Status: {statusConfig.label}</h3>
                   </div>
                   <p className={`text-sm ${statusConfig.text} opacity-90`}>{statusConfig.description}</p>
-                  {userProfile.status === 'pending_review' && (
+                  {(userProfile.status?.toLowerCase()?.trim() === 'pending_review') && (
                     <Button 
                       size="sm" 
                       onClick={() => navigate('/profile')} 
@@ -575,7 +631,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Suggested Profiles (only show if approved) */}
-        {userProfile?.status === 'approved' && (
+        {(userProfile?.status?.toLowerCase()?.trim() === 'approved') && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 

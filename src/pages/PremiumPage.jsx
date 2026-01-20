@@ -43,11 +43,15 @@ const PremiumPage = () => {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('status, onboarding_step, full_name, is_premium, premium_expires_at')
         .eq('id', user.id)
         .maybeSingle();
+
+      if (profileError) {
+        console.error('Premium Page - Profile fetch error:', profileError);
+      }
 
       // Handle case where premium_expires_at column might not exist yet
       if (profile && !('premium_expires_at' in profile)) {
@@ -64,12 +68,18 @@ const PremiumPage = () => {
         const isApprovedCheck = statusLower === 'approved';
         console.log('Premium Page - Profile Status Debug:', {
           status: profile.status,
+          statusType: typeof profile.status,
+          statusValue: JSON.stringify(profile.status),
           statusLower: statusLower,
           isApproved: isApprovedCheck,
           onboarding_step: profile.onboarding_step,
           hasStatus: !!profile.status,
-          isProfileComplete: profile && (profile.onboarding_step === 5 || !!profile.status)
+          isProfileComplete: profile && (profile.onboarding_step === 5 || !!profile.status),
+          fullProfile: profile
         });
+        
+        // Force re-render to update isApproved state
+        // The isApproved variable is computed from profileStatus, so setting profileStatus should update it
       } else {
         console.log('Premium Page - No profile found');
       }
@@ -204,10 +214,22 @@ const PremiumPage = () => {
   };
 
   // Check status with case-insensitive comparison and trim whitespace
-  const statusLower = profileStatus?.status?.toLowerCase()?.trim();
+  // Handle null, undefined, or empty string status
+  const profileStatusValue = profileStatus?.status;
+  const statusLower = profileStatusValue ? String(profileStatusValue).toLowerCase().trim() : '';
   const isApproved = statusLower === 'approved';
   const isPending = statusLower === 'pending_review';
   const isRejected = statusLower === 'rejected';
+  
+  // Debug logging for status check
+  console.log('Premium Page - Status Check:', {
+    profileStatus: profileStatus,
+    statusValue: profileStatusValue,
+    statusType: typeof profileStatusValue,
+    statusLower: statusLower,
+    isApproved: isApproved,
+    profileCheckLoading: profileCheckLoading
+  });
   // Profile is complete if:
   // 1. onboarding_step is 5 OR
   // 2. status is set (pending/approved/rejected means they completed onboarding)
@@ -402,7 +424,11 @@ const PremiumPage = () => {
                         <div className="text-[#706B67] text-xs font-medium">billed every {plan.duration}</div>
                     </div>
                     <div className="mt-auto">
-                        {!isApproved ? (
+                        {profileCheckLoading ? (
+                          <div className="w-full py-6 px-4 text-center bg-gray-100 border border-gray-300 rounded-lg">
+                            <p className="text-sm text-gray-600 font-medium">Loading...</p>
+                          </div>
+                        ) : !isApproved ? (
                           <div className="w-full py-6 px-4 text-center bg-gray-100 border border-gray-300 rounded-lg">
                             <p className="text-sm text-gray-600 font-medium">
                               {isPending 
