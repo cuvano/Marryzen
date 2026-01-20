@@ -6,9 +6,18 @@ import { Link } from 'react-router-dom';
 
 const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
   const marriageIntents = [
-    'Marriage Only (Primary Intent)',
-    'Serious Relationship With Clear Path to Marriage',
-    'Marriage Goal Within 1–2 Years'
+    {
+      value: 'Traditional Marriage Mindset',
+      description: 'I am only interested in communicating for marriage.'
+    },
+    {
+      value: 'Marriage Within 1–2 Years',
+      description: 'I am actively preparing for marriage within the next 1–2 years.'
+    },
+    {
+      value: 'Serious Relationship → Marriage',
+      description: 'I want to build a serious relationship that leads to marriage.'
+    }
   ];
 
   return (
@@ -20,24 +29,29 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
         </div>
         
         <div>
-          <Label className="text-[#333333] font-bold text-base mb-4 block">What is your timeline? (Required)</Label>
+          <Label className="text-[#333333] font-bold text-base mb-4 block">What is your marriage timeline? (Required)</Label>
           <div className="space-y-3">
             {marriageIntents.map((goal) => {
-              const isSelected = formData.relationshipGoal === goal;
+              const isSelected = formData.relationshipGoal === goal.value;
               return (
                 <div
-                  key={goal}
-                  className={`p-5 rounded-xl cursor-pointer transition-all border text-left flex items-center gap-3 ${
+                  key={goal.value}
+                  className={`p-5 rounded-xl cursor-pointer transition-all border text-left ${
                     isSelected
                       ? 'bg-[#E6B450] text-[#1F1F1F] border-[#E6B450] shadow-md'
                       : 'bg-white text-[#1F1F1F] border-[#E6DCD2] hover:border-[#C85A72]'
                   }`}
-                  onClick={() => updateFormData('relationshipGoal', goal)}
+                  onClick={() => updateFormData('relationshipGoal', goal.value)}
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-[#1F1F1F]' : 'border-[#C85A72]'}`}>
-                      {isSelected && <div className="w-2.5 h-2.5 bg-[#1F1F1F] rounded-full" />}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'border-[#1F1F1F]' : 'border-[#C85A72]'}`}>
+                        {isSelected && <div className="w-2.5 h-2.5 bg-[#1F1F1F] rounded-full" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-base mb-1">{goal.value}</div>
+                      <div className="text-sm text-[#706B67]">{goal.description}</div>
+                    </div>
                   </div>
-                  <span className="font-bold text-base">{goal}</span>
                 </div>
               );
             })}
