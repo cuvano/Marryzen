@@ -27,6 +27,7 @@ import BillingPage from '@/pages/BillingPage';
 import ReferralPage from '@/pages/ReferralPage';
 import RewardsPage from '@/pages/RewardsPage';
 import NotificationsPage from '@/pages/NotificationsPage';
+import AccountSettingsPage from '@/pages/AccountSettingsPage';
 
 // Legal Pages
 import TermsOfService from '@/pages/legal/TermsOfService';
@@ -87,6 +88,7 @@ function App() {
                           <Route path="/referrals" element={<ReferralPage />} />
                           <Route path="/rewards" element={<RewardsPage />} />
                           <Route path="/notifications" element={<NotificationsPage />} />
+                          <Route path="/account-settings" element={<AccountSettingsPage />} />
                       </Route>
                       
                       {/* Legal Routes */}
