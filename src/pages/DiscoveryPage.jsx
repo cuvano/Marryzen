@@ -542,7 +542,7 @@ const DiscoveryPage = () => {
       setFilters(loadedFilters);
       setActivePreferenceId(pref.id);
       toast({ 
-        title: `Loaded "${pref.preference_name}"`, 
+        title: `Loaded "${pref.name || 'Saved Preferences'}"`, 
         description: "Filters have been applied. Results are being updated..." 
       });
       
