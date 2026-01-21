@@ -470,12 +470,30 @@ const MatchesPage = () => {
                     <p className="text-xs text-[#706B67] mb-4">
                       {new Date(interaction.createdAt).toLocaleDateString()}
                     </p>
-                    <Button 
-                      className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                      onClick={() => navigate(`/profile/${interaction.profile.id}`)}
-                    >
-                      View Profile
-                    </Button>
+                    <div className="flex flex-col gap-2 mt-auto">
+                      <Button 
+                        className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                        onClick={() => navigate(`/profile/${interaction.profile.id}`)}
+                      >
+                        View Profile
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
+                        onClick={async () => {
+                          try {
+                            await supabase.from('user_interactions').delete().eq('id', interaction.id);
+                            setPastInteractions(prev => prev.filter(p => p.id !== interaction.id));
+                            // Refresh matches/suggestions in case this frees the profile
+                            fetchData();
+                          } catch (e) {
+                            console.error('Failed to reset interaction', e);
+                          }
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
