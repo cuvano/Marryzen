@@ -375,20 +375,20 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                Clear All
              </Button>
          </div>
-         <div className="flex gap-2">
-           {onSave && (
-             <Button 
-               variant="outline" 
-               onClick={onSave} 
-               className="flex-1 border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]"
-             >
+        <div className="flex gap-2">
+          {onSave && isPremium && (
+            <Button 
+              variant="outline" 
+              onClick={onSave} 
+              className="flex-1 border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]"
+            >
                Save Search
-             </Button>
-           )}
-           <Button onClick={onApply} className={`${onSave ? 'flex-1' : 'w-full'} bg-[#1F1F1F] text-white hover:bg-[#333333]`}>
-             Apply Filters
-           </Button>
-         </div>
+            </Button>
+          )}
+          <Button onClick={onApply} className={`${onSave && isPremium ? 'flex-1' : 'w-full'} bg-[#1F1F1F] text-white hover:bg-[#333333]`}>
+            Apply Filters
+          </Button>
+        </div>
       </div>
     </div>
   );

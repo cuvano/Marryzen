@@ -428,6 +428,19 @@ const DiscoveryPage = () => {
         return;
       }
 
+      // Premium check - Save/Load Search is premium-only
+      if (!currentUser.is_premium) {
+        setIsSavePrefModalOpen(false);
+        setPremiumModalFeature('Save/Load Search Preferences');
+        setPremiumModalOpen(true);
+        toast({ 
+          title: "Premium Feature", 
+          description: "Save and load search preferences is a premium feature. Upgrade to unlock this feature.", 
+          variant: "default"
+        });
+        return;
+      }
+
       try {
       const { data, error } = await supabase.from('user_preferences').insert({
           user_id: currentUser.id,
@@ -485,6 +498,18 @@ const DiscoveryPage = () => {
 
   const loadPreference = (pref) => {
       if (!pref) return;
+      
+      // Premium check - Save/Load Search is premium-only
+      if (!currentUser?.is_premium) {
+        setPremiumModalFeature('Save/Load Search Preferences');
+        setPremiumModalOpen(true);
+        toast({ 
+          title: "Premium Feature", 
+          description: "Save and load search preferences is a premium feature. Upgrade to unlock this feature.", 
+          variant: "default"
+        });
+        return;
+      }
       
       const loadedFilters = {
           ...defaultFilters,
@@ -930,35 +955,37 @@ const DiscoveryPage = () => {
                                 <Shield className="w-3 h-3 mr-1" /> Verified
                             </Button>
 
-                            {/* Saved Prefs Dropdown */}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="bg-white border-dashed border-[#C85A72] text-[#C85A72] hover:bg-[#C85A72]/5">
-                                        <BookHeart className="w-4 h-4 mr-2" /> {activePreferenceId ? savedPreferences.find(p => p.id === activePreferenceId)?.preference_name : 'Load Saved'}
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>Saved Preferences</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {savedPreferences.length === 0 ? (
-                                        <div className="p-2 text-xs text-gray-500 text-center">No saved preferences</div>
-                                    ) : (
-                                        savedPreferences.map(pref => (
-                                            <DropdownMenuItem key={pref.id} onClick={() => loadPreference(pref)} className="justify-between group">
-                                                <span>{pref.preference_name}</span>
-                                                <Trash2 
-                                                    className="w-3 h-3 text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-600 cursor-pointer" 
-                                                    onClick={(e) => deletePreference(pref.id, e)}
-                                                />
-                                            </DropdownMenuItem>
-                                        ))
-                                    )}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => setIsSavePrefModalOpen(true)}>
-                                        <Save className="w-3 h-3 mr-2" /> Save Current Filters
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {/* Saved Prefs Dropdown - Premium Only */}
+                            {currentUser?.is_premium && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="bg-white border-dashed border-[#C85A72] text-[#C85A72] hover:bg-[#C85A72]/5">
+                                            <BookHeart className="w-4 h-4 mr-2" /> {activePreferenceId ? savedPreferences.find(p => p.id === activePreferenceId)?.preference_name : 'Load Saved'}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56">
+                                        <DropdownMenuLabel>Saved Preferences</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {savedPreferences.length === 0 ? (
+                                            <div className="p-2 text-xs text-gray-500 text-center">No saved preferences</div>
+                                        ) : (
+                                            savedPreferences.map(pref => (
+                                                <DropdownMenuItem key={pref.id} onClick={() => loadPreference(pref)} className="justify-between group">
+                                                    <span>{pref.preference_name}</span>
+                                                    <Trash2 
+                                                        className="w-3 h-3 text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-600 cursor-pointer" 
+                                                        onClick={(e) => deletePreference(pref.id, e)}
+                                                    />
+                                                </DropdownMenuItem>
+                                            ))
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => setIsSavePrefModalOpen(true)}>
+                                            <Save className="w-3 h-3 mr-2" /> Save Current Filters
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                          </div>
                     </div>
 
