@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award, Shield, Crown } from 'lucide-react';
+import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award, Shield, Lock } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import {
   DropdownMenu,
@@ -274,10 +274,10 @@ const Header = () => {
                             <Gift size={16} /> My Rewards
                         </button>
                         <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                            <Crown size={16} /> Premium
+                            <Settings size={16} /> Account Settings
                         </button>
                         <button onClick={() => { navigate('/account-settings'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                             <Settings size={16} /> Account Settings
+                             <Lock size={16} /> Change Password
                         </button>
                         {isAdmin && (
                           <>
