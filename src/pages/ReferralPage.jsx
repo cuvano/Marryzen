@@ -211,10 +211,10 @@ const ReferralPage = () => {
                         <Button 
                             size="sm"
                             variant="outline"
-                            className="border-[#1DA1F2] text-[#1DA1F2] hover:bg-[#1DA1F2]/10" 
+                            className="border-[#000000] text-[#000000] hover:bg-[#000000]/10" 
                             onClick={shareViaTwitter}
                         >
-                            <Share2 className="w-4 h-4 mr-2" /> Twitter
+                            <Share2 className="w-4 h-4 mr-2" /> X
                         </Button>
                         <Button 
                             size="sm"
