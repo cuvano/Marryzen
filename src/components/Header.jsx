@@ -171,7 +171,7 @@ const Header = () => {
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
               <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
-              <NavItem label="Discovery" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="Filter Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               
               {/* Notifications */}
