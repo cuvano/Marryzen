@@ -34,6 +34,10 @@ ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS cover_photo TEXT;
 
+-- Add missing columns to messages table (read receipts)
+ALTER TABLE messages
+ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+
 -- Note: Other columns should already exist from your initial schema:
 -- id, email, full_name, date_of_birth, location_city, location_country,
 -- identify_as, looking_for_gender, religious_affiliation, faith_lifestyle,
@@ -158,6 +162,7 @@ WITH CHECK (
 DROP POLICY IF EXISTS "Users can view messages in their conversations" ON messages;
 DROP POLICY IF EXISTS "Users can send messages" ON messages;
 DROP POLICY IF EXISTS "Users can update their own messages" ON messages;
+DROP POLICY IF EXISTS "Users can mark messages as read" ON messages;
 
 -- Policy: Users can view messages in conversations they're part of
 CREATE POLICY "Users can view messages in their conversations"
@@ -193,6 +198,29 @@ FOR UPDATE
 TO authenticated
 USING (sender_id = auth.uid())
 WITH CHECK (sender_id = auth.uid());
+
+-- Policy: Users can mark messages as read (read receipts)
+-- Allows the recipient (the other conversation participant) to set read_at
+CREATE POLICY "Users can mark messages as read"
+ON messages
+FOR UPDATE
+TO authenticated
+USING (
+  sender_id != auth.uid()
+  AND EXISTS (
+    SELECT 1 FROM conversations
+    WHERE conversations.id = messages.conversation_id
+    AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+  )
+)
+WITH CHECK (
+  sender_id != auth.uid()
+  AND EXISTS (
+    SELECT 1 FROM conversations
+    WHERE conversations.id = messages.conversation_id
+    AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+  )
+);
 
 -- ============================================
 -- REFERRALS TABLE POLICIES
@@ -238,6 +266,7 @@ WITH CHECK (user_id = auth.uid());
 -- ============================================
 
 DROP POLICY IF EXISTS "Users can view their interactions" ON user_interactions;
+DROP POLICY IF EXISTS "Users can view interactions about them" ON user_interactions;
 DROP POLICY IF EXISTS "Users can create interactions" ON user_interactions;
 
 -- Policy: Users can view their own interactions
@@ -246,6 +275,13 @@ ON user_interactions
 FOR SELECT
 TO authenticated
 USING (user_id = auth.uid());
+
+-- Policy: Users can view interactions about them (e.g., who liked them)
+CREATE POLICY "Users can view interactions about them"
+ON user_interactions
+FOR SELECT
+TO authenticated
+USING (target_user_id = auth.uid());
 
 -- Policy: Users can create their own interactions
 CREATE POLICY "Users can create interactions"

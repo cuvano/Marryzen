@@ -30,6 +30,22 @@ const ChatPage = () => {
   
   const messagesEndRef = useRef(null);
 
+  const markConversationAsRead = async () => {
+    if (!currentUser || !activeConversation) return;
+    try {
+      // Mark any messages sent TO the current user as read
+      await supabase
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('conversation_id', activeConversation.id)
+        .eq('recipient_id', currentUser.id)
+        .is('read_at', null);
+    } catch (e) {
+      // Non-fatal (RLS/schema may not be updated yet)
+      console.error('Mark read failed:', e);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -87,6 +103,8 @@ const ChatPage = () => {
             .eq('conversation_id', activeConversation.id)
             .order('created_at');
         setMessages(data || []);
+        // Mark messages as read after loading
+        await markConversationAsRead();
     };
     fetchMessages();
 
@@ -94,6 +112,10 @@ const ChatPage = () => {
     const channel = supabase.channel(`convo:${activeConversation.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConversation.id}` }, (payload) => {
             setMessages(prev => [...prev, { ...payload.new, reactions: [] }]);
+            // If the new message is for me and I'm viewing this convo, mark it as read
+            if (payload.new?.recipient_id === currentUser?.id) {
+              markConversationAsRead();
+            }
         })
         .on('broadcast', { event: 'typing' }, (payload) => {
              if (payload.payload.userId !== currentUser.id) {
@@ -345,6 +367,12 @@ const ChatPage = () => {
                                 <div className={`rounded-2xl px-4 py-2 text-sm ${msg.sender_id === currentUser.id ? 'bg-[#E6B450] text-[#1F1F1F]' : 'bg-white border'}`}>
                                     {msg.content}
                                 </div>
+                                {/* Read Receipt (Premium only) */}
+                                {currentUser?.is_premium && msg.sender_id === currentUser.id && (
+                                  <div className="mt-1 text-[10px] text-[#706B67] text-right">
+                                    {msg.read_at ? 'Seen' : 'Delivered'}
+                                  </div>
+                                )}
                                 {/* Reaction Picker Trigger */}
                                 <Popover>
                                     <PopoverTrigger asChild>

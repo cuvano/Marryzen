@@ -13,18 +13,22 @@ const MatchesPage = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pastInteractions, setPastInteractions] = useState([]);
-  const [activeTab, setActiveTab] = useState('matches'); // 'matches' or 'interactions'
+  const [likesReceived, setLikesReceived] = useState([]);
+  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you'
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
     fetchPastInteractions();
+    fetchLikesReceived();
     
     // Check URL for tab parameter
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
     if (tab === 'interactions') {
       setActiveTab('interactions');
+    } else if (tab === 'likes-you') {
+      setActiveTab('likes-you');
     }
   }, []);
 
@@ -198,6 +202,64 @@ const MatchesPage = () => {
     }
   };
 
+  const fetchLikesReceived = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Requires RLS policy allowing select where target_user_id = auth.uid()
+      const { data: likes, error } = await supabase
+        .from('user_interactions')
+        .select(`
+          id,
+          created_at,
+          from_user:user_id(
+            id,
+            full_name,
+            photos,
+            location_city,
+            location_country,
+            date_of_birth,
+            is_premium
+          )
+        `)
+        .eq('target_user_id', user.id)
+        .eq('interaction_type', 'like')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching likes received:', error);
+        return;
+      }
+
+      const formatted = (likes || []).map(like => {
+        const profile = like.from_user;
+        const age = profile?.date_of_birth
+          ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+          : null;
+
+        return {
+          id: like.id,
+          createdAt: like.created_at,
+          profile: {
+            id: profile?.id,
+            full_name: profile?.full_name,
+            photos: profile?.photos || [],
+            location_city: profile?.location_city,
+            location_country: profile?.location_country,
+            age,
+            is_premium: profile?.is_premium
+          }
+        };
+      });
+
+      setLikesReceived(formatted);
+    } catch (e) {
+      console.error('Error fetching likes received:', e);
+    }
+  };
+
   const getEmptyStateSuggestions = () => {
     const suggestions = [];
 
@@ -258,6 +320,17 @@ const MatchesPage = () => {
             >
               Past Interactions ({pastInteractions.length})
             </button>
+            <button
+              onClick={() => setActiveTab('likes-you')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'likes-you'
+                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+              }`}
+            >
+              Likes You
+              {userProfile?.is_premium ? ` (${likesReceived.length})` : ''}
+            </button>
           </div>
         </div>
 
@@ -266,6 +339,90 @@ const MatchesPage = () => {
             <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin"></div>
             <p className="text-[#706B67] font-medium">Loading...</p>
           </div>
+        ) : activeTab === 'likes-you' ? (
+          // Likes You Tab (Premium)
+          !userProfile?.is_premium ? (
+            <div className="bg-white rounded-2xl border border-[#E6DCD2] p-10 text-center">
+              <Crown className="w-14 h-14 mx-auto text-[#E6B450] mb-4" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
+              <p className="text-[#706B67] mb-6 max-w-md mx-auto">
+                Seeing who liked you is a Premium feature. Upgrade to unlock your full list of likes.
+              </p>
+              <Button
+                onClick={() => navigate('/premium')}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+              >
+                <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
+              </Button>
+            </div>
+          ) : likesReceived.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {likesReceived.map(item => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square bg-slate-100 relative">
+                    {item.profile.photos?.[0] ? (
+                      <img
+                        src={item.profile.photos[0]}
+                        alt={item.profile.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <User className="w-16 h-16" />
+                      </div>
+                    )}
+                    {item.profile.is_premium && (
+                      <div className="absolute top-2 right-2">
+                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold">Liked you</Badge>
+                    </div>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{item.profile.full_name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      {item.profile.age && <span>{item.profile.age}</span>}
+                      {item.profile.location_city && (
+                        <>
+                          {item.profile.age && <span>•</span>}
+                          <MapPin className="w-3 h-3" />
+                          <span>{item.profile.location_city}</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#706B67] mb-4">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </p>
+                    <Button
+                      className="w-full mt-auto bg-[#1F1F1F] text-white hover:bg-[#333333] font-bold"
+                      onClick={() => navigate(`/profile/${item.profile.id}`)}
+                    >
+                      View Profile
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+              <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No likes yet</h3>
+              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                When someone likes you, they’ll appear here.
+              </p>
+              <Button
+                onClick={() => navigate('/discovery')}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+              >
+                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+              </Button>
+            </div>
+          )
         ) : activeTab === 'interactions' ? (
           // Past Interactions Tab
           pastInteractions.length > 0 ? (

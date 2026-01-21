@@ -170,7 +170,8 @@ const Header = () => {
           {user ? (
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-              <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
+              <NavItem label="Discovery" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               
               {/* Notifications */}
@@ -331,7 +332,8 @@ const Header = () => {
           {user ? (
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-              <NavItem label="My Matches" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
+              <NavItem label="Discovery" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               <NavItem 
                 label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
