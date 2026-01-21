@@ -13,7 +13,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
   CheckCircle, XCircle, Eye, Camera, Upload, Trash2, Crop, Loader2,
-  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText
+  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 
@@ -348,6 +348,20 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
     <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Back button for viewing other profiles */}
+        {!isOwnProfile && (
+          <div className="mb-4">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className="bg-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </div>
+        )}
+        
         {/* Header with Edit/Preview buttons */}
         {isOwnProfile && (
           <div className="flex justify-end gap-2 mb-4">
