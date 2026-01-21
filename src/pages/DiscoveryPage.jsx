@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DiscoveryPage = () => {
   const navigate = useNavigate();
@@ -1110,24 +1111,31 @@ const DiscoveryPage = () => {
 
                             {/* Carousel Container */}
                             <div className="flex-1 flex justify-center gap-2 md:gap-4 overflow-hidden">
-                                {profiles.slice(currentIndex, Math.min(currentIndex + 3, profiles.length)).map((profile, idx) => (
-                                    <div 
-                                        key={profile.id} 
-                                        className="flex-shrink-0 transition-all duration-300 w-[calc(33.333%-0.5rem)] min-w-[250px] max-w-[280px]"
-                                    >
-                                <ProfileCard 
-                                    profile={profile}
-                                    isFavorite={favorites.has(profile.id)}
-                                    onLike={(p) => handleInteraction(p, 'like')}
-                                    onPass={(p) => handleInteraction(p, 'pass')}
-                                    onFavorite={(p) => toggleFavorite(p)}
-                                            onClick={() => {
-                                                setSelectedProfile(profile);
-                                                setCurrentIndex(currentIndex + idx);
-                                            }}
-                                        />
-                                    </div>
-                                ))}
+                                <AnimatePresence initial={false}>
+                                    {profiles.slice(currentIndex, Math.min(currentIndex + 3, profiles.length)).map((profile, idx) => (
+                                        <motion.div
+                                            key={profile.id}
+                                            layout
+                                            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -20, scale: 0.98 }}
+                                            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+                                            className="flex-shrink-0 w-[calc(33.333%-0.5rem)] min-w-[250px] max-w-[280px]"
+                                        >
+                                            <ProfileCard 
+                                                profile={profile}
+                                                isFavorite={favorites.has(profile.id)}
+                                                onLike={(p) => handleInteraction(p, 'like')}
+                                                onPass={(p) => handleInteraction(p, 'pass')}
+                                                onFavorite={(p) => toggleFavorite(p)}
+                                                onClick={() => {
+                                                    setSelectedProfile(profile);
+                                                    setCurrentIndex(currentIndex + idx);
+                                                }}
+                                            />
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
                             </div>
 
                             {/* Next Button */}
