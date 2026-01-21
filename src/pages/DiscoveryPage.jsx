@@ -119,7 +119,7 @@ const DiscoveryPage = () => {
       setMatchingConfig(config);
 
       // Saved Prefs
-      const { data: prefs } = await supabase.from('user_preferences').select('*').eq('user_id', user.id);
+      const { data: prefs } = await supabase.from('user_preferences').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       setSavedPreferences(prefs || []);
 
       // Favorites
@@ -442,26 +442,31 @@ const DiscoveryPage = () => {
       }
 
       try {
+      // Store all filters in the filters JSONB column to match existing schema
+      const filtersData = {
+          ageRange: filters.ageRange,
+          distance: filters.distance || 50,
+          city: filters.city || '',
+          faith: filters.faith || '',
+          faithLifestyle: filters.faithLifestyle || '',
+          smoking: filters.smoking || '',
+          drinking: filters.drinking || '',
+          maritalStatus: filters.maritalStatus || '',
+          hasChildren: filters.hasChildren || '',
+          educationLevel: filters.educationLevel || '',
+          relationshipGoal: filters.relationshipGoal || '',
+          languages: filters.languages || [],
+          zodiacSign: filters.zodiacSign || '',
+          countries: filters.countries || [],
+          recentActive: filters.recentActive || false,
+          verifiedOnly: filters.verifiedOnly || false
+      };
+
       const { data, error } = await supabase.from('user_preferences').insert({
           user_id: currentUser.id,
-            preference_name: newPrefName.trim(),
-          age_min: filters.ageRange[0],
-          age_max: filters.ageRange[1],
-            distance_km: filters.distance || 50,
-          faith_ids: filters.faith ? [filters.faith] : [],
-            faith_lifestyle: filters.faithLifestyle || '',
-            smoking: filters.smoking || '',
-            drinking: filters.drinking || '',
-            marital_status: filters.maritalStatus || '',
-            has_children: filters.hasChildren || '',
-            education: filters.educationLevel || '',
-            relationship_goal: filters.relationshipGoal || '',
-            languages: filters.languages || [],
-            zodiac_sign: filters.zodiacSign || '',
-            countries: filters.countries || [],
-            recent_active: filters.recentActive || false,
-            verified_only: filters.verifiedOnly || false,
-          premium_only: false
+          name: newPrefName.trim(),
+          filters: filtersData,
+          is_default: false
         }).select().maybeSingle();
         
         if (error) {
@@ -476,7 +481,7 @@ const DiscoveryPage = () => {
 
         if (data) {
           // Refresh saved preferences list
-          const { data: prefs } = await supabase.from('user_preferences').select('*').eq('user_id', currentUser.id);
+          const { data: prefs } = await supabase.from('user_preferences').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
           setSavedPreferences(prefs || []);
           setActivePreferenceId(data.id);
           setIsSavePrefModalOpen(false);
@@ -511,23 +516,27 @@ const DiscoveryPage = () => {
         return;
       }
       
+      // Load filters from JSONB column
+      const filtersData = pref.filters || {};
+      
       const loadedFilters = {
           ...defaultFilters,
-          ageRange: [pref.age_min || 18, pref.age_max || 65],
-          distance: pref.distance_km || 50,
-          faith: pref.faith_ids?.[0] || '',
-          faithLifestyle: pref.faith_lifestyle || '',
-          smoking: pref.smoking || '',
-          drinking: pref.drinking || '',
-          maritalStatus: pref.marital_status || '',
-          hasChildren: pref.has_children || '',
-          educationLevel: pref.education || '',
-          relationshipGoal: pref.relationship_goal || '',
-          languages: Array.isArray(pref.languages) ? pref.languages : [],
-          zodiacSign: pref.zodiac_sign || '',
-          countries: Array.isArray(pref.countries) ? pref.countries : [],
-          recentActive: pref.recent_active || false,
-          verifiedOnly: pref.verified_only || false
+          ageRange: Array.isArray(filtersData.ageRange) ? filtersData.ageRange : [18, 65],
+          distance: filtersData.distance || 50,
+          city: filtersData.city || '',
+          faith: filtersData.faith || '',
+          faithLifestyle: filtersData.faithLifestyle || '',
+          smoking: filtersData.smoking || '',
+          drinking: filtersData.drinking || '',
+          maritalStatus: filtersData.maritalStatus || '',
+          hasChildren: filtersData.hasChildren || '',
+          educationLevel: filtersData.educationLevel || '',
+          relationshipGoal: filtersData.relationshipGoal || '',
+          languages: Array.isArray(filtersData.languages) ? filtersData.languages : [],
+          zodiacSign: filtersData.zodiacSign || '',
+          countries: Array.isArray(filtersData.countries) ? filtersData.countries : [],
+          recentActive: filtersData.recentActive || false,
+          verifiedOnly: filtersData.verifiedOnly || false
       };
       
       setFilters(loadedFilters);
@@ -960,7 +969,7 @@ const DiscoveryPage = () => {
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="bg-white border-dashed border-[#C85A72] text-[#C85A72] hover:bg-[#C85A72]/5">
-                                            <BookHeart className="w-4 h-4 mr-2" /> {activePreferenceId ? savedPreferences.find(p => p.id === activePreferenceId)?.preference_name : 'Load Saved'}
+                                            <BookHeart className="w-4 h-4 mr-2" /> {activePreferenceId ? savedPreferences.find(p => p.id === activePreferenceId)?.name : 'Load Saved'}
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56">
@@ -971,7 +980,7 @@ const DiscoveryPage = () => {
                                         ) : (
                                             savedPreferences.map(pref => (
                                                 <DropdownMenuItem key={pref.id} onClick={() => loadPreference(pref)} className="justify-between group">
-                                                    <span>{pref.preference_name}</span>
+                                                    <span>{pref.name}</span>
                                                     <Trash2 
                                                         className="w-3 h-3 text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-600 cursor-pointer" 
                                                         onClick={(e) => deletePreference(pref.id, e)}
