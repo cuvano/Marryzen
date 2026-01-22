@@ -312,7 +312,25 @@ const ChatPage = () => {
           setMessageText('');
           await supabase.from('conversations').update({ last_message_at: new Date() }).eq('id', activeConversation.id);
       } else {
-          toast({ title: "Failed to send", variant: "destructive" });
+          // Handle server-side message limit enforcement
+          if (error.message && error.message.includes('Daily message limit reached')) {
+              toast({ 
+                  title: "Daily Limit Reached", 
+                  description: "You've reached the daily limit of 10 messages. Upgrade to Premium for unlimited messaging.",
+                  variant: "destructive" 
+              });
+              // Refresh daily count to show accurate number
+              const today = new Date();
+              today.setHours(0,0,0,0);
+              const { count } = await supabase
+                 .from('messages')
+                 .select('*', { count: 'exact', head: true })
+                 .eq('sender_id', currentUser.id)
+                 .gte('created_at', today.toISOString());
+              setDailyMessageCount(count || 0);
+          } else {
+              toast({ title: "Failed to send", description: error.message || "An error occurred. Please try again.", variant: "destructive" });
+          }
       }
   };
 
