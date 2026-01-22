@@ -16,6 +16,7 @@ const ChatPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
+  const [partnerPremiumStatus, setPartnerPremiumStatus] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [dailyMessageCount, setDailyMessageCount] = useState(0);
@@ -72,13 +73,16 @@ const ChatPage = () => {
 
       const { data: convos } = await supabase
         .from('conversations')
-        .select(`*, user1:user1_id(id, full_name, photos), user2:user2_id(id, full_name, photos)`)
+        .select(`*, user1:user1_id(id, full_name, photos, is_premium, premium_expires_at), user2:user2_id(id, full_name, photos, is_premium, premium_expires_at)`)
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
       
       const formatted = convos?.map(c => {
           const partner = c.user1.id === user.id ? c.user2 : c.user1;
-          return { ...c, partner };
+          // Check if partner is premium
+          const isPartnerPremium = partner.is_premium && 
+            (!partner.premium_expires_at || new Date(partner.premium_expires_at) > new Date());
+          return { ...c, partner: { ...partner, is_premium_active: isPartnerPremium } };
       }) || [];
       
       setConversations(formatted);
@@ -86,7 +90,21 @@ const ChatPage = () => {
 
       if (conversationId) {
           const active = formatted.find(c => c.id === conversationId);
-          if (active) setActiveConversation(active);
+          if (active) {
+            setActiveConversation(active);
+            // Fetch partner's premium status
+            const { data: partnerProfile } = await supabase
+              .from('profiles')
+              .select('is_premium, premium_expires_at')
+              .eq('id', active.partner.id)
+              .maybeSingle();
+            
+            if (partnerProfile) {
+              const isPremiumActive = partnerProfile.is_premium && 
+                (!partnerProfile.premium_expires_at || new Date(partnerProfile.premium_expires_at) > new Date());
+              setPartnerPremiumStatus(isPremiumActive);
+            }
+          }
       }
     };
     init();
@@ -94,6 +112,23 @@ const ChatPage = () => {
 
   useEffect(() => {
     if (!activeConversation) return;
+    
+    // Fetch partner's premium status
+    const fetchPartnerPremiumStatus = async () => {
+      if (activeConversation?.partner?.id) {
+        const { data: partnerProfile } = await supabase
+          .from('profiles')
+          .select('is_premium, premium_expires_at')
+          .eq('id', activeConversation.partner.id)
+          .maybeSingle();
+        
+        if (partnerProfile) {
+          const isPremiumActive = partnerProfile.is_premium && 
+            (!partnerProfile.premium_expires_at || new Date(partnerProfile.premium_expires_at) > new Date());
+          setPartnerPremiumStatus(isPremiumActive);
+        }
+      }
+    };
     
     // Fetch Messages & Reactions
     const fetchMessages = async () => {
@@ -106,6 +141,8 @@ const ChatPage = () => {
         // Mark messages as read after loading
         await markConversationAsRead();
     };
+    
+    fetchPartnerPremiumStatus();
     fetchMessages();
 
     // Messages Channel
@@ -360,9 +397,19 @@ const ChatPage = () => {
          <div className="flex-1 overflow-y-auto">
              {conversations.map(convo => (
                 <div key={convo.id} onClick={() => navigate(`/chat/${convo.id}`)} className={`p-4 border-b cursor-pointer hover:bg-[#FAF7F2] flex gap-3 ${activeConversation?.id === convo.id ? 'bg-[#FAF7F2]' : ''}`}>
-                    <img src={convo.partner.photos?.[0] || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-full object-cover" />
+                    <div className="relative">
+                        <img src={convo.partner.photos?.[0] || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-full object-cover" />
+                        {convo.partner.is_premium_active && (
+                          <Crown className="absolute -top-1 -right-1 w-4 h-4 text-[#E6B450] fill-[#E6B450] bg-white rounded-full" />
+                        )}
+                    </div>
                     <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{convo.partner.full_name}</h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-sm">{convo.partner.full_name}</h3>
+                            {convo.partner.is_premium_active && (
+                              <Crown className="w-3 h-3 text-[#E6B450] fill-[#E6B450]" title="Premium Member" />
+                            )}
+                        </div>
                         <p className="text-xs text-slate-500 truncate">Click to chat...</p>
                     </div>
                 </div>
@@ -376,14 +423,21 @@ const ChatPage = () => {
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => navigate('/chat')}><ArrowLeft/></Button>
                         <h3 className="font-bold">{activeConversation.partner.full_name}</h3>
+                        {partnerPremiumStatus && (
+                          <Crown className="w-4 h-4 text-[#E6B450] fill-[#E6B450]" title="Premium Member" />
+                        )}
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.map(msg => (
                         <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
                             <div className="relative group max-w-[80%]">
-                                <div className={`rounded-2xl px-4 py-2 text-sm ${msg.sender_id === currentUser.id ? 'bg-[#E6B450] text-[#1F1F1F]' : 'bg-white border'}`}>
+                                <div className={`rounded-2xl px-4 py-2 text-sm ${msg.sender_id === currentUser.id ? 'bg-[#E6B450] text-[#1F1F1F]' : 'bg-white border'} relative`}>
                                     {msg.content}
+                                    {/* Premium Badge for messages from premium users */}
+                                    {msg.sender_id !== currentUser.id && partnerPremiumStatus && (
+                                      <Crown className="absolute -top-1 -right-1 w-4 h-4 text-[#E6B450] fill-[#E6B450]" />
+                                    )}
                                 </div>
                                 {/* Read Receipt (Premium only) */}
                                 {currentUser?.is_premium && msg.sender_id === currentUser.id && (

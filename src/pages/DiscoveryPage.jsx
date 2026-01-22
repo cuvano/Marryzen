@@ -47,7 +47,7 @@ const DiscoveryPage = () => {
   
   // Usage tracking
   const [dailyLikeCount, setDailyLikeCount] = useState(0);
-  const LIKE_LIMIT_FREE = 50;
+  const LIKE_LIMIT_FREE = 10;
   
   // Throttling state
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -127,10 +127,42 @@ const DiscoveryPage = () => {
       const { data: favs } = await supabase.from('favorites').select('favorited_user_id').eq('user_id', user.id);
       setFavorites(new Set(favs?.map(f => f.favorited_user_id) || []));
 
+      // Fetch daily like count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('user_interactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('interaction_type', 'like')
+        .gte('created_at', today.toISOString());
+      
+      setDailyLikeCount(count || 0);
+
       setLoading(false);
     };
     init();
   }, [navigate]);
+
+  // Fetch daily like count when currentUser changes
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const fetchDailyLikeCount = async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('user_interactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id)
+        .eq('interaction_type', 'like')
+        .gte('created_at', today.toISOString());
+      
+      setDailyLikeCount(count || 0);
+    };
+    
+    fetchDailyLikeCount();
+  }, [currentUser]);
 
   // Persist Filters
   useEffect(() => {
@@ -322,7 +354,7 @@ const DiscoveryPage = () => {
         return;
       }
       
-      // Check daily like limit for free users
+      // Check daily like limit (only for free users, premium is unlimited)
       if (!currentUser?.is_premium && dailyLikeCount >= LIKE_LIMIT_FREE) {
         toast({ 
           title: "Daily Limit Reached", 
@@ -381,8 +413,31 @@ const DiscoveryPage = () => {
             }
         }
     } else {
-        // Restore profile on error
-        setProfiles(prev => [...prev, target]);
+        // Handle server-side like limit enforcement
+        if (error && error.message && error.message.includes('Daily like limit reached')) {
+          toast({ 
+            title: "Daily Limit Reached", 
+            description: `You've reached the daily limit of ${LIKE_LIMIT_FREE} likes. Upgrade to Premium for unlimited likes.`,
+            variant: "destructive" 
+          });
+          if (!currentUser?.is_premium) {
+            openPremiumModal && openPremiumModal();
+          }
+          // Refresh daily count to show accurate number
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const { count } = await supabase
+            .from('user_interactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', currentUser.id)
+            .eq('interaction_type', 'like')
+            .gte('created_at', today.toISOString());
+          setDailyLikeCount(count || 0);
+        } else {
+          // Restore profile on other errors
+          setProfiles(prev => [...prev, target]);
+          toast({ title: "Error", description: error?.message || "Failed to process action. Please try again.", variant: "destructive" });
+        }
     }
   };
 
@@ -918,13 +973,19 @@ const DiscoveryPage = () => {
                         <div className="flex items-center gap-2">
                           <Heart className="w-4 h-4 text-[#E6B450]" />
                           <span className="text-sm text-[#1F1F1F]">
-                            Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
-                            {dailyLikeCount >= LIKE_LIMIT_FREE - 5 && dailyLikeCount < LIKE_LIMIT_FREE && (
-                              <span className="text-yellow-600 ml-2">• Limit soon</span>
+                            {currentUser?.is_premium ? (
+                              <>Likes today: <span className="font-bold">Unlimited</span></>
+                            ) : (
+                              <>
+                                Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
+                                {dailyLikeCount >= LIKE_LIMIT_FREE - 3 && dailyLikeCount < LIKE_LIMIT_FREE && (
+                                  <span className="text-yellow-600 ml-2">• Limit soon</span>
+                                )}
+                              </>
                             )}
                           </span>
                         </div>
-                        {dailyLikeCount >= LIKE_LIMIT_FREE && (
+                        {!currentUser?.is_premium && dailyLikeCount >= LIKE_LIMIT_FREE && (
                           <Button 
                             size="sm" 
                             onClick={() => openPremiumModal && openPremiumModal()}

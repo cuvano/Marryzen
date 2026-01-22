@@ -476,6 +476,81 @@ GRANT EXECUTE ON FUNCTION public.count_today_messages(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.enforce_message_limit() TO authenticated;
 
 -- ============================================
+-- LIKE LIMIT ENFORCEMENT
+-- ============================================
+-- Free users: 10 likes per day
+-- Premium users: Unlimited
+
+-- Helper Function: Count today's likes
+CREATE OR REPLACE FUNCTION public.count_today_likes(user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  like_count INTEGER;
+  today_start TIMESTAMPTZ;
+BEGIN
+  -- Get start of today in UTC
+  today_start := DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC';
+  
+  -- Count likes sent today by this user
+  SELECT COUNT(*) INTO like_count
+  FROM public.user_interactions
+  WHERE user_id = user_id
+  AND interaction_type = 'like'
+  AND created_at >= today_start;
+  
+  RETURN COALESCE(like_count, 0);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger Function: Enforce like limit
+CREATE OR REPLACE FUNCTION public.enforce_like_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  user_is_premium BOOLEAN;
+  today_like_count INTEGER;
+  daily_limit INTEGER := 10;  -- Free users: 10 likes per day
+BEGIN
+  -- Only enforce for 'like' interactions
+  IF NEW.interaction_type != 'like' THEN
+    RETURN NEW;
+  END IF;
+  
+  -- Check if user is premium
+  user_is_premium := public.is_user_premium(NEW.user_id);
+  
+  -- Premium users have unlimited likes
+  IF user_is_premium THEN
+    RETURN NEW;
+  END IF;
+  
+  -- For free users, check daily limit
+  today_like_count := public.count_today_likes(NEW.user_id);
+  
+  -- Check if limit reached (count before this insert, so >= means limit reached)
+  IF today_like_count >= daily_limit THEN
+    RAISE EXCEPTION 'Daily like limit reached. You have used % likes today. Upgrade to Premium for unlimited likes.', 
+      today_like_count
+      USING ERRCODE = 'P0001', -- Custom error code
+            HINT = 'Upgrade to Premium to get unlimited likes';
+  END IF;
+  
+  -- Allow the insert
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger that runs BEFORE INSERT on user_interactions
+DROP TRIGGER IF EXISTS enforce_like_limit_trigger ON public.user_interactions;
+CREATE TRIGGER enforce_like_limit_trigger
+  BEFORE INSERT ON public.user_interactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_like_limit();
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.count_today_likes(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.enforce_like_limit() TO authenticated;
+
+-- ============================================
 -- PART 3: PERFORMANCE INDEXES
 -- ============================================
 
@@ -691,6 +766,7 @@ WITH CHECK (viewer_id = auth.uid());
 -- ✅ Super admin restrictions (Matching & Platform settings)
 -- ✅ Profile views tracking (profile_views table)
 -- ✅ Server-side message limit enforcement (10/day for free users, unlimited for premium)
+-- ✅ Server-side like limit enforcement (10/day for free users, unlimited for premium)
 -- ✅ Support tickets system (support_tickets table)
 -- 
 -- Column Checklist:

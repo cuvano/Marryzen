@@ -280,6 +280,7 @@ const PremiumPage = () => {
   const features = [
     { name: 'Profile Photos', free: 'Max 4 Photos', premium: 'Max 12 Photos' },
     { name: 'Messaging', free: '10 / day', premium: 'Unlimited' },
+    { name: 'Daily Likes', free: '10 / day', premium: 'Unlimited' },
     { name: 'Verified Badge', free: false, premium: true },
     { name: 'Read Receipts', free: false, premium: true },
     { name: 'See Who Liked You', free: false, premium: true },
