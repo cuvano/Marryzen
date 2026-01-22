@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -16,11 +16,13 @@ import Step5 from '@/components/onboarding/Step5';
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [step1Errors, setStep1Errors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState(null);
+  const [referralCode, setReferralCode] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -69,6 +71,20 @@ const OnboardingPage = () => {
 
   // Initialize and check for existing session/profile
   useEffect(() => {
+    // Check for referral code in URL
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setReferralCode(refCode);
+      // Store in localStorage to persist across page refreshes
+      localStorage.setItem('referral_code', refCode);
+    } else {
+      // Check localStorage for saved referral code
+      const savedRefCode = localStorage.getItem('referral_code');
+      if (savedRefCode) {
+        setReferralCode(savedRefCode);
+      }
+    }
+
     const initSession = async () => {
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         setSession(existingSession);
@@ -443,6 +459,51 @@ const OnboardingPage = () => {
                   return;
               }
               
+              // Create referral record if referral code exists (only for new signups)
+              if (!isEditMode && referralCode) {
+                try {
+                  // Find the referrer by referral code
+                  const { data: referrerProfile, error: referrerError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('referral_code', referralCode)
+                    .maybeSingle();
+
+                  if (referrerError && referrerError.code !== 'PGRST116' && referrerError.code !== 'NOT_FOUND') {
+                    console.error('Error finding referrer:', referrerError);
+                  }
+
+                  // Only create referral if referrer exists and it's not self-referral
+                  if (referrerProfile && referrerProfile.id !== authenticatedUserId) {
+                    const { error: referralError } = await supabase
+                      .from('referrals')
+                      .insert({
+                        referrer_id: referrerProfile.id,
+                        referred_user_id: authenticatedUserId,
+                        status: 'pending' // Will be updated to 'completed' when profile is approved
+                      });
+
+                    if (referralError) {
+                      console.error('Error creating referral:', referralError);
+                      // Don't block signup if referral creation fails
+                    } else {
+                      console.log('Referral created successfully');
+                      // Clear referral code from localStorage after successful creation
+                      localStorage.removeItem('referral_code');
+                    }
+                  } else if (referrerProfile && referrerProfile.id === authenticatedUserId) {
+                    console.warn('Self-referral detected, skipping');
+                    localStorage.removeItem('referral_code');
+                  } else {
+                    console.warn('Referral code not found:', referralCode);
+                    localStorage.removeItem('referral_code');
+                  }
+                } catch (refErr) {
+                  console.error('Error processing referral:', refErr);
+                  // Don't block signup if referral processing fails
+                }
+              }
+
               // Only show "Account Created!" for new signups, not when editing existing profile
               // Use the state variable isEditMode, not the local one
               if (!isEditMode) {

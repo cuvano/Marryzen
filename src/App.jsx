@@ -72,6 +72,7 @@ function App() {
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                       <Route path="/reset-password" element={<ResetPasswordPage />} />
+                      <Route path="/join" element={<OnboardingPage />} />
                       <Route path="/onboarding" element={<OnboardingPage />} />
                       
                       {/* Authenticated Routes with Global Header */}
