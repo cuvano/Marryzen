@@ -109,7 +109,7 @@ const ReferralPage = () => {
 
   const shareViaEmail = () => {
     const subject = encodeURIComponent('Join me on Marryzen');
-    const body = encodeURIComponent(`Hi!\n\nI'd like to invite you to join Marryzen, a serious marriage matchmaking platform.\n\nUse my referral link: ${referralLink}\n\nWhen you sign up and get approved, we both get 1 month of Premium free!\n\nLooking forward to seeing you there!`);
+    const body = encodeURIComponent(`Hi!\n\nI'd like to invite you to join Marryzen, a serious marriage matchmaking platform.\n\nUse my referral link: ${referralLink}\n\nWhen you sign up and get approved, we both get 7 days of Premium free!\n\nLooking forward to seeing you there!`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
@@ -157,7 +157,7 @@ const ReferralPage = () => {
         <Card className="mb-8 border-[#E6B450] bg-[#FFFBEB]">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Share2 className="w-5 h-5"/> Your Unique Referral Link</CardTitle>
-                <CardDescription>Share this link. When friends sign up and get approved, you both get 1 month of Premium free!</CardDescription>
+                <CardDescription>Share this link. When friends sign up and get approved, you both get 7 days of Premium free!</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col md:flex-row gap-4">
@@ -258,7 +258,7 @@ const ReferralPage = () => {
                             <Gift className="w-8 h-8 text-white" />
                         </div>
                         <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">3. Reward Issued</h3>
-                        <p className="text-sm text-[#706B67]">You both receive 1 month of Premium free! Rewards are automatically added to your account</p>
+                        <p className="text-sm text-[#706B67]">You both receive 7 days of Premium free! Rewards are automatically added to your account</p>
                     </div>
                 </div>
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

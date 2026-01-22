@@ -38,13 +38,13 @@ const ReferralTerms = () => {
                 <p className="text-[#706B67] mb-4">
                   The Marryzen Referral Program allows you to earn rewards by inviting friends to join our platform. 
                   When a friend you refer signs up and gets their profile approved, both you and your friend receive 
-                  1 month of Premium membership free.
+                  7 days of Premium membership free.
                 </p>
                 <ol className="list-decimal list-inside space-y-2 text-[#706B67] ml-4">
                   <li>Share your unique referral link or code with friends</li>
                   <li>Your friend signs up using your referral link/code</li>
                   <li>Your friend completes their profile and gets approved</li>
-                  <li>Both you and your friend receive 1 month of Premium free</li>
+                  <li>Both you and your friend receive 7 days of Premium free</li>
                 </ol>
               </section>
 
@@ -101,7 +101,7 @@ const ReferralTerms = () => {
                 <h2 className="text-xl font-bold mb-3">Reward Eligibility</h2>
                 <ul className="list-disc list-inside space-y-2 text-[#706B67] ml-4">
                   <li>Rewards are issued automatically within 24 hours of the referred friend's profile approval</li>
-                  <li>Both the referrer and referee receive 1 month of Premium membership</li>
+                  <li>Both the referrer and referee receive 7 days of Premium membership</li>
                   <li>Premium rewards are added directly to your account</li>
                   <li>Rewards cannot be transferred, sold, or exchanged for cash</li>
                   <li>Rewards expire if not used within 90 days of issuance</li>

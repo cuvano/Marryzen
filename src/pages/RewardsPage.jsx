@@ -118,8 +118,8 @@ const RewardsPage = () => {
   };
 
   const activatePremiumReward = async (reward, userId) => {
-    // Parse the reward value (e.g., "1 month", "30 days")
-    const value = reward.value || reward.reward_value || '1 month';
+    // Parse the reward value (e.g., "7 days", "1 month")
+    const value = reward.value || reward.reward_value || '7 days';
     const days = parsePremiumDays(value);
     
     if (!days) {
@@ -185,7 +185,7 @@ const RewardsPage = () => {
   };
 
   const parsePremiumDays = (value) => {
-    if (!value) return 30; // Default to 30 days
+    if (!value) return 7; // Default to 7 days
     
     const lowerValue = value.toLowerCase();
     
@@ -207,7 +207,7 @@ const RewardsPage = () => {
       return parseInt(numberMatch[1]);
     }
     
-    return 30; // Default fallback
+    return 7; // Default fallback (7 days)
   };
 
   const getStatusBadge = (status) => {
