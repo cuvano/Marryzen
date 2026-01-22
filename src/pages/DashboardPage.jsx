@@ -452,6 +452,10 @@ const DashboardPage = () => {
   const profileStatusLower = profileStatus ? String(profileStatus).toLowerCase().trim() : '';
   const isApproved = profileStatusLower === 'approved';
   
+  // Check if user is admin
+  const userRole = userProfile?.role?.toLowerCase();
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  
   const marriageTools = [
     { icon: Search, title: 'Find Marriage Matches', description: 'View compatible profiles', action: () => navigate('/discovery'), bg: 'bg-[#EAF2F7]', iconColor: 'text-[#3B82F6]', disabled: !isApproved },
     { icon: MessageCircle, title: 'Conversations', description: 'Continue meaningful discussions', action: () => navigate('/chat'), bg: 'bg-[#F0FDF4]', iconColor: 'text-[#22C55E]', disabled: false },
@@ -515,16 +519,18 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* Safety Notice */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.15 }}
-            className="bg-[#F0FDF4] border border-[#BBF7D0] flex items-center p-4 rounded-xl"
-          >
-            <ShieldCheck className="w-5 h-5 text-[#15803D] mr-3 flex-shrink-0" />
-            <p className="text-sm text-[#166534] font-medium">All members have confirmed serious marriage intentions.</p>
-          </motion.div>
+          {/* Safety Notice - Only show to admins */}
+          {isAdmin && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.15 }}
+              className="bg-[#F0FDF4] border border-[#BBF7D0] flex items-center p-4 rounded-xl"
+            >
+              <ShieldCheck className="w-5 h-5 text-[#15803D] mr-3 flex-shrink-0" />
+              <p className="text-sm text-[#166534] font-medium">All members have confirmed serious marriage intentions.</p>
+            </motion.div>
+          )}
         </motion.div>
         
         {/* Stats Grid */}
