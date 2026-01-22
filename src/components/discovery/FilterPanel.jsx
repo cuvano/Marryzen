@@ -365,8 +365,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
       </div>
 
       <div className="p-5 border-t border-[#E6DCD2] bg-[#FAF7F2] space-y-3">
-         <div className="flex justify-between items-center text-sm">
-             <span className="text-[#706B67] font-medium">{resultsCount} {resultsCount === 1 ? 'profile' : 'profiles'} match</span>
+         <div className="flex justify-end items-center text-sm">
              <Button 
                variant="link" 
                className="text-[#C85A72] h-auto p-0 hover:text-[#9F4758] font-medium" 

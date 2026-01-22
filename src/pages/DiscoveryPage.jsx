@@ -1152,28 +1152,6 @@ const DiscoveryPage = () => {
                                 <ChevronRight className="w-6 h-6" />
                             </Button>
                         </div>
-
-                        {/* Carousel Indicators */}
-                        {profiles.length > 3 && (
-                            <div className="flex justify-center gap-2 mt-6">
-                                {Array.from({ length: Math.ceil(profiles.length / 3) }).map((_, idx) => (
-                                    <button
-                                        key={idx}
-                                        className={`h-2 rounded-full transition-all ${
-                                            Math.floor(currentIndex / 3) === idx 
-                                                ? 'w-8 bg-[#E6B450]' 
-                                                : 'w-2 bg-[#E6DCD2]'
-                                        }`}
-                                        onClick={() => setCurrentIndex(idx * 3)}
-                                />
-                            ))}
-                        </div>
-                        )}
-
-                        {/* Profile Counter */}
-                        <div className="text-center mt-4 text-sm text-[#706B67]">
-                            Showing {Math.min(currentIndex + 1, profiles.length)} of {profiles.length} profiles
-                        </div>
                     </div>
                 )}
 
