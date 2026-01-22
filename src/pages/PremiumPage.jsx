@@ -287,9 +287,9 @@ const PremiumPage = () => {
     { name: 'View Recently Active Only', free: false, premium: true },
     { name: 'View Verified Profiles Only', free: false, premium: true },
     { name: 'Select Countries (Multiple Selection)', free: false, premium: true },
-    { name: 'Adjust Distance', free: true, premium: true },
-    { name: 'Filter Education Level', free: true, premium: true },
-    { name: 'Filter Zodiac Sign', free: true, premium: true },
+    { name: 'Adjust Distance', free: false, premium: true },
+    { name: 'Filter Education Level', free: false, premium: true },
+    { name: 'Filter Zodiac Sign', free: false, premium: true },
     { name: 'Save or Load Search', free: false, premium: true },
     { name: 'Priority Support', free: false, premium: true },
   ];
