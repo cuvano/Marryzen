@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin, Eye } from 'lucide-react';
+import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin, Eye, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Footer from '@/components/Footer';
@@ -15,7 +15,8 @@ const MatchesPage = () => {
   const [pastInteractions, setPastInteractions] = useState([]);
   const [likesReceived, setLikesReceived] = useState([]);
   const [profileViews, setProfileViews] = useState([]);
-  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views'
+  const [favorites, setFavorites] = useState([]);
+  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views' | 'favorites'
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const MatchesPage = () => {
     fetchPastInteractions();
     fetchLikesReceived();
     fetchProfileViews();
+    fetchFavorites();
     
     // Check URL for tab parameter
     const params = new URLSearchParams(window.location.search);
@@ -33,6 +35,8 @@ const MatchesPage = () => {
       setActiveTab('likes-you');
     } else if (tab === 'profile-views') {
       setActiveTab('profile-views');
+    } else if (tab === 'favorites') {
+      setActiveTab('favorites');
     }
   }, []);
 
@@ -321,6 +325,63 @@ const MatchesPage = () => {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch favorited profiles
+      const { data: favs, error } = await supabase
+        .from('favorites')
+        .select(`
+          id,
+          created_at,
+          favorited_user:favorited_user_id(
+            id,
+            full_name,
+            photos,
+            location_city,
+            location_country,
+            date_of_birth,
+            is_premium
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching favorites:', error);
+        return;
+      }
+
+      const formatted = (favs || []).map(fav => {
+        const profile = fav.favorited_user;
+        const age = profile?.date_of_birth
+          ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+          : null;
+
+        return {
+          id: fav.id,
+          createdAt: fav.created_at,
+          profile: {
+            id: profile?.id,
+            full_name: profile?.full_name,
+            photos: profile?.photos || [],
+            location_city: profile?.location_city,
+            location_country: profile?.location_country,
+            age,
+            is_premium: profile?.is_premium
+          }
+        };
+      });
+
+      setFavorites(formatted);
+    } catch (e) {
+      console.error('Error fetching favorites:', e);
+    }
+  };
+
   const getEmptyStateSuggestions = () => {
     const suggestions = [];
 
@@ -402,6 +463,16 @@ const MatchesPage = () => {
             >
               Who Viewed You
               {userProfile?.is_premium ? ` (${profileViews.length})` : ''}
+            </button>
+            <button
+              onClick={() => setActiveTab('favorites')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'favorites'
+                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+              }`}
+            >
+              Favorites ({favorites.length})
             </button>
           </div>
         </div>
@@ -588,6 +659,95 @@ const MatchesPage = () => {
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profile views yet</h3>
               <p className="text-[#706B67] mb-8 max-w-md mx-auto">
                 When someone views your profile, they'll appear here.
+              </p>
+              <Button
+                onClick={() => navigate('/discovery')}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+              >
+                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+              </Button>
+            </div>
+          )
+        ) : activeTab === 'favorites' ? (
+          // Favorites Tab
+          favorites.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favorites.map(item => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square bg-slate-100 relative">
+                    {item.profile.photos?.[0] ? (
+                      <img
+                        src={item.profile.photos[0]}
+                        alt={item.profile.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <User className="w-16 h-16" />
+                      </div>
+                    )}
+                    {item.profile.is_premium && (
+                      <div className="absolute top-2 right-2">
+                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-red-500 text-white font-bold">
+                        <Star className="w-3 h-3 mr-1 fill-white" />
+                        Favorited
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{item.profile.full_name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      {item.profile.age && <span>{item.profile.age}</span>}
+                      {item.profile.location_city && (
+                        <>
+                          {item.profile.age && <span>•</span>}
+                          <MapPin className="w-3 h-3" />
+                          <span>{item.profile.location_city}</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#706B67] mb-4">
+                      Favorited {new Date(item.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex flex-col gap-2 mt-auto">
+                      <Button 
+                        className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                        onClick={() => navigate(`/profile/${item.profile.id}`)}
+                      >
+                        View Profile
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
+                        onClick={async () => {
+                          try {
+                            await supabase.from('favorites').delete().eq('id', item.id);
+                            setFavorites(prev => prev.filter(f => f.id !== item.id));
+                          } catch (e) {
+                            console.error('Failed to remove favorite', e);
+                          }
+                        }}
+                      >
+                        Remove from Favorites
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+              <Star className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No favorites yet</h3>
+              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                Profiles you favorite will appear here. Click the heart icon on any profile to add them to your favorites!
               </p>
               <Button
                 onClick={() => navigate('/discovery')}
