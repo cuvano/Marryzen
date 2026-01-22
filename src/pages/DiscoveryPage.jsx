@@ -1092,27 +1092,13 @@ const DiscoveryPage = () => {
                         hasPrevious={currentIndex > 0}
                     />
                 ) : (
-                    // Carousel View - 3 profiles side-by-side
+                    // Carousel View - 3 profiles side-by-side (no navigation buttons)
                     <div className="relative w-full">
                         <div className="flex items-center justify-center gap-2 md:gap-6 w-full">
-                            {/* Previous Button */}
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-12 w-12 rounded-full border-2 border-[#E6DCD2] hover:border-[#E6B450] bg-white shadow-md flex-shrink-0"
-                                onClick={() => {
-                                    const prevIndex = Math.max(0, currentIndex - 3);
-                                    setCurrentIndex(prevIndex);
-                                }}
-                                disabled={currentIndex === 0}
-                            >
-                                <ChevronLeft className="w-6 h-6" />
-                            </Button>
-
                             {/* Carousel Container */}
                             <div className="flex-1 flex justify-center gap-2 md:gap-4 overflow-hidden">
                                 <AnimatePresence initial={false}>
-                                    {profiles.slice(currentIndex, Math.min(currentIndex + 3, profiles.length)).map((profile, idx) => (
+                                    {profiles.slice(0, 3).map((profile, idx) => (
                                         <motion.div
                                             key={profile.id}
                                             layout
@@ -1130,27 +1116,13 @@ const DiscoveryPage = () => {
                                                 onFavorite={(p) => toggleFavorite(p)}
                                                 onClick={() => {
                                                     setSelectedProfile(profile);
-                                                    setCurrentIndex(currentIndex + idx);
+                                                    setCurrentIndex(idx);
                                                 }}
                                             />
                                         </motion.div>
                                     ))}
                                 </AnimatePresence>
                             </div>
-
-                            {/* Next Button */}
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-12 w-12 rounded-full border-2 border-[#E6DCD2] hover:border-[#E6B450] bg-white shadow-md flex-shrink-0"
-                                onClick={() => {
-                                    const nextIndex = Math.min(profiles.length - 3, currentIndex + 3);
-                                    setCurrentIndex(nextIndex >= 0 ? nextIndex : 0);
-                                }}
-                                disabled={currentIndex >= profiles.length - 3}
-                            >
-                                <ChevronRight className="w-6 h-6" />
-                            </Button>
                         </div>
                     </div>
                 )}
