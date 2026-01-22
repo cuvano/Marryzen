@@ -618,10 +618,18 @@ const MatchesPage = () => {
                         <User className="w-16 h-16" />
                       </div>
                     )}
-                    <div className="absolute top-2 left-2">
-                      <Badge className={interaction.interactionType === 'like' ? 'bg-green-600 text-white' : 'bg-gray-500 text-white'}>
-                        {interaction.interactionType === 'like' ? 'Liked' : 'Passed'}
-                      </Badge>
+                    <div className="absolute top-3 left-3">
+                      {interaction.interactionType === 'like' ? (
+                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
+                          <Heart className="w-4 h-4 fill-white" />
+                          <span className="font-bold text-sm">Liked</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
+                          <X className="w-4 h-4" />
+                          <span className="font-bold text-sm">Passed</span>
+                        </div>
+                      )}
                     </div>
                     {interaction.profile.is_premium && (
                       <div className="absolute top-2 right-2">
