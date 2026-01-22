@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin } from 'lucide-react';
+import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Footer from '@/components/Footer';
@@ -14,13 +14,15 @@ const MatchesPage = () => {
   const [loading, setLoading] = useState(true);
   const [pastInteractions, setPastInteractions] = useState([]);
   const [likesReceived, setLikesReceived] = useState([]);
-  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you'
+  const [profileViews, setProfileViews] = useState([]);
+  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views'
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
     fetchPastInteractions();
     fetchLikesReceived();
+    fetchProfileViews();
     
     // Check URL for tab parameter
     const params = new URLSearchParams(window.location.search);
@@ -29,6 +31,8 @@ const MatchesPage = () => {
       setActiveTab('interactions');
     } else if (tab === 'likes-you') {
       setActiveTab('likes-you');
+    } else if (tab === 'profile-views') {
+      setActiveTab('profile-views');
     }
   }, []);
 
@@ -260,6 +264,63 @@ const MatchesPage = () => {
     }
   };
 
+  const fetchProfileViews = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch profile views (who viewed this user's profile)
+      const { data: views, error } = await supabase
+        .from('profile_views')
+        .select(`
+          id,
+          viewed_at,
+          viewer:viewer_id(
+            id,
+            full_name,
+            photos,
+            location_city,
+            location_country,
+            date_of_birth,
+            is_premium
+          )
+        `)
+        .eq('viewed_profile_id', user.id)
+        .order('viewed_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching profile views:', error);
+        return;
+      }
+
+      const formatted = (views || []).map(view => {
+        const profile = view.viewer;
+        const age = profile?.date_of_birth
+          ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+          : null;
+
+        return {
+          id: view.id,
+          viewedAt: view.viewed_at,
+          profile: {
+            id: profile?.id,
+            full_name: profile?.full_name,
+            photos: profile?.photos || [],
+            location_city: profile?.location_city,
+            location_country: profile?.location_country,
+            age,
+            is_premium: profile?.is_premium
+          }
+        };
+      });
+
+      setProfileViews(formatted);
+    } catch (e) {
+      console.error('Error fetching profile views:', e);
+    }
+  };
+
   const getEmptyStateSuggestions = () => {
     const suggestions = [];
 
@@ -331,6 +392,17 @@ const MatchesPage = () => {
               Likes You
               {userProfile?.is_premium ? ` (${likesReceived.length})` : ''}
             </button>
+            <button
+              onClick={() => setActiveTab('profile-views')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'profile-views'
+                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+              }`}
+            >
+              Who Viewed You
+              {userProfile?.is_premium ? ` (${profileViews.length})` : ''}
+            </button>
           </div>
         </div>
 
@@ -340,34 +412,37 @@ const MatchesPage = () => {
             <p className="text-[#706B67] font-medium">Loading...</p>
           </div>
         ) : activeTab === 'likes-you' ? (
-          // Likes You Tab (Premium)
-          !userProfile?.is_premium ? (
-            <div className="bg-white rounded-2xl border border-[#E6DCD2] p-10 text-center">
-              <Crown className="w-14 h-14 mx-auto text-[#E6B450] mb-4" />
-              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
-              <p className="text-[#706B67] mb-6 max-w-md mx-auto">
-                Seeing who liked you is a Premium feature. Upgrade to unlock your full list of likes.
-              </p>
-              <Button
-                onClick={() => navigate('/premium')}
-                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
-              >
-                <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
-              </Button>
-            </div>
-          ) : likesReceived.length > 0 ? (
+          // Likes You Tab - Show blurred for free users, full for premium
+          likesReceived.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {likesReceived.map(item => (
                 <div
                   key={item.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow relative"
                 >
+                  {/* Blur overlay for free users */}
+                  {!userProfile?.is_premium && (
+                    <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
+                      <Crown className="w-12 h-12 text-[#E6B450] mb-3" />
+                      <h4 className="font-bold text-lg text-[#1F1F1F] mb-2">Premium Feature</h4>
+                      <p className="text-sm text-[#706B67] text-center mb-4">
+                        Unlock to see who liked you
+                      </p>
+                      <Button
+                        onClick={() => navigate('/premium')}
+                        className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                      >
+                        <Crown className="w-4 h-4 mr-2" /> Unlock Premium
+                      </Button>
+                    </div>
+                  )}
+                  
                   <div className="aspect-square bg-slate-100 relative">
                     {item.profile.photos?.[0] ? (
                       <img
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-md' : ''}`}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
@@ -383,11 +458,13 @@ const MatchesPage = () => {
                       <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold">Liked you</Badge>
                     </div>
                   </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{item.profile.full_name}</h3>
+                  <div className={`p-4 flex-1 flex flex-col ${!userProfile?.is_premium ? 'opacity-50' : ''}`}>
+                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
+                      {userProfile?.is_premium ? item.profile.full_name : 'Hidden Profile'}
+                    </h3>
                     <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
-                      {item.profile.age && <span>{item.profile.age}</span>}
-                      {item.profile.location_city && (
+                      {userProfile?.is_premium && item.profile.age && <span>{item.profile.age}</span>}
+                      {userProfile?.is_premium && item.profile.location_city && (
                         <>
                           {item.profile.age && <span>•</span>}
                           <MapPin className="w-3 h-3" />
@@ -396,13 +473,17 @@ const MatchesPage = () => {
                       )}
                     </div>
                     <p className="text-xs text-[#706B67] mb-4">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {userProfile?.is_premium ? new Date(item.createdAt).toLocaleDateString() : 'Upgrade to see details'}
                     </p>
                     <Button
-                      className="w-full mt-auto bg-[#1F1F1F] text-white hover:bg-[#333333] font-bold"
-                      onClick={() => navigate(`/profile/${item.profile.id}`)}
+                      className={`w-full mt-auto font-bold ${userProfile?.is_premium ? 'bg-[#1F1F1F] text-white hover:bg-[#333333]' : 'bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]'}`}
+                      onClick={() => userProfile?.is_premium ? navigate(`/profile/${item.profile.id}`) : navigate('/premium')}
                     >
-                      View Profile
+                      {userProfile?.is_premium ? 'View Profile' : (
+                        <>
+                          <Crown className="w-4 h-4 mr-2" /> Unlock to View
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -414,6 +495,99 @@ const MatchesPage = () => {
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No likes yet</h3>
               <p className="text-[#706B67] mb-8 max-w-md mx-auto">
                 When someone likes you, they’ll appear here.
+              </p>
+              <Button
+                onClick={() => navigate('/discovery')}
+                className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+              >
+                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+              </Button>
+            </div>
+          )
+        ) : activeTab === 'profile-views' ? (
+          // Who Viewed Your Profile Tab - Show blurred for free users, full for premium
+          profileViews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {profileViews.map(item => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow relative"
+                >
+                  {/* Blur overlay for free users */}
+                  {!userProfile?.is_premium && (
+                    <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
+                      <Crown className="w-12 h-12 text-[#E6B450] mb-3" />
+                      <h4 className="font-bold text-lg text-[#1F1F1F] mb-2">Premium Feature</h4>
+                      <p className="text-sm text-[#706B67] text-center mb-4">
+                        Unlock to see who viewed your profile
+                      </p>
+                      <Button
+                        onClick={() => navigate('/premium')}
+                        className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                      >
+                        <Crown className="w-4 h-4 mr-2" /> Unlock Premium
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="aspect-square bg-slate-100 relative">
+                    {item.profile.photos?.[0] ? (
+                      <img
+                        src={item.profile.photos[0]}
+                        alt={item.profile.full_name}
+                        className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-md' : ''}`}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <User className="w-16 h-16" />
+                      </div>
+                    )}
+                    {item.profile.is_premium && (
+                      <div className="absolute top-2 right-2">
+                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-blue-600 text-white font-bold">Viewed you</Badge>
+                    </div>
+                  </div>
+                  <div className={`p-4 flex-1 flex flex-col ${!userProfile?.is_premium ? 'opacity-50' : ''}`}>
+                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
+                      {userProfile?.is_premium ? item.profile.full_name : 'Hidden Profile'}
+                    </h3>
+                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      {userProfile?.is_premium && item.profile.age && <span>{item.profile.age}</span>}
+                      {userProfile?.is_premium && item.profile.location_city && (
+                        <>
+                          {item.profile.age && <span>•</span>}
+                          <MapPin className="w-3 h-3" />
+                          <span>{item.profile.location_city}</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#706B67] mb-4">
+                      {userProfile?.is_premium ? new Date(item.viewedAt).toLocaleDateString() : 'Upgrade to see details'}
+                    </p>
+                    <Button
+                      className={`w-full mt-auto font-bold ${userProfile?.is_premium ? 'bg-[#1F1F1F] text-white hover:bg-[#333333]' : 'bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]'}`}
+                      onClick={() => userProfile?.is_premium ? navigate(`/profile/${item.profile.id}`) : navigate('/premium')}
+                    >
+                      {userProfile?.is_premium ? 'View Profile' : (
+                        <>
+                          <Crown className="w-4 h-4 mr-2" /> Unlock to View
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+              <Eye className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profile views yet</h3>
+              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                When someone views your profile, they'll appear here.
               </p>
               <Button
                 onClick={() => navigate('/discovery')}

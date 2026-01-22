@@ -82,12 +82,32 @@ const ProfilePage = () => {
       } else if (data) {
         setProfile(data);
         setEditBio(data.bio || '');
+        
+        // Track profile view (if viewing someone else's profile)
+        if (userId && session && session.user.id !== userId) {
+          trackProfileView(userId, session.user.id);
+        }
       }
     } catch (error) {
       console.error(error);
       toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const trackProfileView = async (viewedProfileId, viewerId) => {
+    try {
+      // Track profile view (only if viewing someone else's profile)
+      await supabase.from('profile_views').insert({
+        viewer_id: viewerId,
+        viewed_profile_id: viewedProfileId,
+        viewed_at: new Date().toISOString()
+      }).select().maybeSingle();
+      // Ignore errors (e.g., duplicate views within same hour)
+    } catch (error) {
+      // Silently fail - view tracking is not critical
+      console.log('Profile view tracking:', error);
     }
   };
 

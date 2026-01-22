@@ -394,6 +394,88 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
+-- MESSAGE LIMIT ENFORCEMENT
+-- ============================================
+-- Enforces the 10 messages/day limit for free users
+-- Premium users have unlimited messages
+
+-- Helper Function: Check if user is premium
+CREATE OR REPLACE FUNCTION public.is_user_premium(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 
+    FROM public.profiles 
+    WHERE id = user_id 
+    AND is_premium = true
+    AND (premium_expires_at IS NULL OR premium_expires_at > NOW())
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper Function: Count today's messages
+CREATE OR REPLACE FUNCTION public.count_today_messages(user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  message_count INTEGER;
+  today_start TIMESTAMPTZ;
+BEGIN
+  -- Get start of today in UTC
+  today_start := DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC';
+  
+  -- Count messages sent today by this user
+  SELECT COUNT(*) INTO message_count
+  FROM public.messages
+  WHERE sender_id = user_id
+  AND created_at >= today_start;
+  
+  RETURN COALESCE(message_count, 0);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger Function: Enforce message limit
+CREATE OR REPLACE FUNCTION public.enforce_message_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  user_is_premium BOOLEAN;
+  today_message_count INTEGER;
+  daily_limit INTEGER := 10;
+BEGIN
+  -- Check if user is premium
+  user_is_premium := public.is_user_premium(NEW.sender_id);
+  
+  -- If premium, allow unlimited messages
+  IF user_is_premium THEN
+    RETURN NEW;
+  END IF;
+  
+  -- For free users, check daily limit
+  today_message_count := public.count_today_messages(NEW.sender_id);
+  
+  IF today_message_count >= daily_limit THEN
+    RAISE EXCEPTION 'Daily message limit reached. You have sent % messages today. Upgrade to Premium for unlimited messaging.', today_message_count
+      USING ERRCODE = 'P0001', -- Custom error code
+            HINT = 'Upgrade to Premium to send unlimited messages';
+  END IF;
+  
+  -- Allow the insert
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger that runs BEFORE INSERT
+DROP TRIGGER IF EXISTS enforce_message_limit_trigger ON public.messages;
+CREATE TRIGGER enforce_message_limit_trigger
+  BEFORE INSERT ON public.messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_message_limit();
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.is_user_premium(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.count_today_messages(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.enforce_message_limit() TO authenticated;
+
+-- ============================================
 -- PART 3: PERFORMANCE INDEXES
 -- ============================================
 
@@ -476,6 +558,43 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 -- ORDER BY ordinal_position;
 
 -- ============================================
+-- PROFILE_VIEWS TABLE SETUP
+-- ============================================
+
+-- Create profile_views table to track who viewed whose profile
+CREATE TABLE IF NOT EXISTS profile_views (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  viewer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  viewed_profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_profile_views_viewer_id ON profile_views(viewer_id);
+CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_profile_id ON profile_views(viewed_profile_id);
+CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_at ON profile_views(viewed_at DESC);
+
+-- RLS Policies
+
+-- Policy: Users can view who viewed their profile (for premium users)
+CREATE POLICY "Users can view who viewed their profile"
+ON profile_views
+FOR SELECT
+TO authenticated
+USING (viewed_profile_id = auth.uid());
+
+-- Policy: Users can insert views when they view someone's profile
+CREATE POLICY "Users can create profile views"
+ON profile_views
+FOR INSERT
+TO authenticated
+WITH CHECK (viewer_id = auth.uid());
+
+-- ============================================
 -- SETUP COMPLETE
 -- ============================================
 -- Your database is now configured for production with:
@@ -486,6 +605,8 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 -- ✅ Performance indexes for fast queries
 -- ✅ Admin access controls
 -- ✅ Super admin restrictions (Matching & Platform settings)
+-- ✅ Profile views tracking (profile_views table)
+-- ✅ Server-side message limit enforcement (10/day for free users, unlimited for premium)
 -- 
 -- Column Checklist:
 -- ✅ occupation (Job/Profession)
