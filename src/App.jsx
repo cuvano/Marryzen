@@ -28,6 +28,7 @@ import ReferralPage from '@/pages/ReferralPage';
 import RewardsPage from '@/pages/RewardsPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import AccountSettingsPage from '@/pages/AccountSettingsPage';
+import HelpSupportPage from '@/pages/HelpSupportPage';
 
 // Legal Pages
 import TermsOfService from '@/pages/legal/TermsOfService';
@@ -89,6 +90,7 @@ function App() {
                           <Route path="/rewards" element={<RewardsPage />} />
                           <Route path="/notifications" element={<NotificationsPage />} />
                           <Route path="/account-settings" element={<AccountSettingsPage />} />
+                          <Route path="/help" element={<HelpSupportPage />} />
                       </Route>
                       
                       {/* Legal Routes */}

@@ -592,6 +592,7 @@ TO authenticated
 USING (viewed_profile_id = auth.uid());
 
 -- Policy: Users can insert views when they view someone's profile
+-- Note: For INSERT policies, only WITH CHECK is allowed (not USING)
 CREATE POLICY "Users can create profile views"
 ON profile_views
 FOR INSERT
