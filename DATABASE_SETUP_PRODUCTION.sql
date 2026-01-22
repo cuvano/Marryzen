@@ -558,6 +558,85 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 -- ORDER BY ordinal_position;
 
 -- ============================================
+-- SUPPORT TICKETS TABLE SETUP
+-- ============================================
+
+-- Create support_tickets table
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  is_priority BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  admin_notes TEXT
+);
+
+-- Enable RLS
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_email ON support_tickets(email);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_is_priority ON support_tickets(is_priority);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_priority_created ON support_tickets(is_priority DESC, created_at DESC);
+
+-- RLS Policies
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can create support tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Users can view their own tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can view all tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can update tickets" ON support_tickets;
+
+-- Policy: Users can create support tickets
+CREATE POLICY "Users can create support tickets"
+ON support_tickets
+FOR INSERT
+TO authenticated
+WITH CHECK (true);  -- Anyone authenticated can create a ticket
+
+-- Policy: Users can view their own tickets
+CREATE POLICY "Users can view their own tickets"
+ON support_tickets
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid() OR email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+
+-- Policy: Admins can view all tickets
+CREATE POLICY "Admins can view all tickets"
+ON support_tickets
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
+
+-- Policy: Admins can update tickets
+CREATE POLICY "Admins can update tickets"
+ON support_tickets
+FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
+
+-- ============================================
 -- PROFILE_VIEWS TABLE SETUP
 -- ============================================
 
@@ -612,6 +691,7 @@ WITH CHECK (viewer_id = auth.uid());
 -- ✅ Super admin restrictions (Matching & Platform settings)
 -- ✅ Profile views tracking (profile_views table)
 -- ✅ Server-side message limit enforcement (10/day for free users, unlimited for premium)
+-- ✅ Support tickets system (support_tickets table)
 -- 
 -- Column Checklist:
 -- ✅ occupation (Job/Profession)

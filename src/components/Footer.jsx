@@ -26,13 +26,13 @@ const Footer = ({ isProfileFooter = false }) => {
           Marryzen is a private, values-based platform created strictly for serious marriage and long-term commitment. Casual dating, hookups, and inappropriate behavior are not permitted.
         </p>
         <div className="flex justify-center gap-6 text-sm mb-8 flex-wrap font-medium">
-            <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
             <Link to="/terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Terms of Service</Link>
             <Link to="/privacy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Privacy Policy</Link>
             <Link to="/community-guidelines" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Community Guidelines</Link>
             <Link to="/safety" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Safety</Link>
             <Link to="/billing" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing Terms</Link>
             <Link to="/cookie-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Cookie Policy</Link>
+            <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
         </div>
         <p className="text-xs text-[#706B67]">
           © {new Date().getFullYear()} Marryzen. All rights reserved. Users are responsible for their own conduct. We facilitate introductions; we are not responsible for offline interactions. You must be 18+ to use this service.

@@ -291,6 +291,7 @@ const PremiumPage = () => {
     { name: 'Filter Education Level', free: true, premium: true },
     { name: 'Filter Zodiac Sign', free: true, premium: true },
     { name: 'Save or Load Search', free: false, premium: true },
+    { name: 'Priority Support', free: '24-48 hours', premium: '4-12 hours' },
   ];
 
   return (

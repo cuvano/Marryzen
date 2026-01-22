@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/customSupabaseClient';
 import { 
   HelpCircle, Mail, MessageSquare, BookOpen, Shield, 
-  CreditCard, User, Settings, Search, ChevronDown, ChevronUp 
+  CreditCard, User, Settings, Search, ChevronDown, ChevronUp, Crown
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 
 const HelpSupportPage = () => {
   const navigate = useNavigate();
@@ -23,21 +25,79 @@ const HelpSupportPage = () => {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_premium, full_name, premium_expires_at')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          if (profile) {
+            setUserProfile(profile);
+            // Check if premium is active (not expired)
+            const isPremiumActive = profile.is_premium && 
+              (!profile.premium_expires_at || new Date(profile.premium_expires_at) > new Date());
+            setIsPremium(isPremiumActive);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: Implement actual support ticket submission
-    // For now, just show a success message
-    setTimeout(() => {
+    try {
+      // Get current user if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
+
+      // Call the Supabase Edge Function to send support email
+      const { data, error } = await supabase.functions.invoke('send-support-email', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          userId: userId
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const responseTime = isPremium 
+        ? "We've received your message and will get back to you within 4-12 hours (Priority Support)."
+        : "We've received your message and will get back to you within 24-48 hours.";
+      
       toast({
         title: "Message Sent",
-        description: "We've received your message and will get back to you within 24-48 hours.",
+        description: responseTime,
       });
       setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      console.error('Error sending support message:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -196,16 +256,23 @@ const HelpSupportPage = () => {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          {/* Contact Form */}
+        {/* Contact Form */}
+        <div className="max-w-2xl mx-auto mb-12">
           <Card className="border-[#E6DCD2]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#1F1F1F]">
                 <Mail className="w-5 h-5 text-[#E6B450]" />
                 Contact Support
+                {isPremium && (
+                  <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold ml-2">
+                    <Crown className="w-3 h-3 mr-1" /> Priority
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
-                Send us a message and we'll get back to you within 24-48 hours.
+                {isPremium 
+                  ? "Send us a message and we'll get back to you within 4-12 hours (Priority Support)."
+                  : "Send us a message and we'll get back to you within 24-48 hours."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -268,41 +335,6 @@ const HelpSupportPage = () => {
                   {isSubmitting ? 'Sending...' : 'Send Message'}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Support Info */}
-          <Card className="border-[#E6DCD2]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#1F1F1F]">
-                <MessageSquare className="w-5 h-5 text-[#E6B450]" />
-                Get Help
-              </CardTitle>
-              <CardDescription>
-                Other ways to reach us
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-[#FFFBEB] rounded-lg border border-[#E6DCD2]">
-                <h3 className="font-semibold text-[#1F1F1F] mb-2">Response Time</h3>
-                <p className="text-sm text-[#706B67]">
-                  We typically respond within 24-48 hours during business days.
-                </p>
-              </div>
-              <div className="p-4 bg-[#FFFBEB] rounded-lg border border-[#E6DCD2]">
-                <h3 className="font-semibold text-[#1F1F1F] mb-2">Before Contacting Us</h3>
-                <ul className="text-sm text-[#706B67] space-y-1 list-disc list-inside">
-                  <li>Check the FAQ section below</li>
-                  <li>Review our Community Guidelines</li>
-                  <li>Check your Account Settings</li>
-                </ul>
-              </div>
-              <div className="p-4 bg-[#FFFBEB] rounded-lg border border-[#E6DCD2]">
-                <h3 className="font-semibold text-[#1F1F1F] mb-2">Urgent Issues</h3>
-                <p className="text-sm text-[#706B67]">
-                  For safety concerns or urgent matters, please use the Report feature on the user's profile.
-                </p>
-              </div>
             </CardContent>
           </Card>
         </div>
