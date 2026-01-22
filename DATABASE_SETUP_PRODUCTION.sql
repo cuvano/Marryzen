@@ -580,6 +580,10 @@ CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_at ON profile_views(viewed_a
 
 -- RLS Policies
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view who viewed their profile" ON profile_views;
+DROP POLICY IF EXISTS "Users can create profile views" ON profile_views;
+
 -- Policy: Users can view who viewed their profile (for premium users)
 CREATE POLICY "Users can view who viewed their profile"
 ON profile_views

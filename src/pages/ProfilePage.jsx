@@ -85,7 +85,10 @@ const ProfilePage = () => {
         
         // Track profile view (if viewing someone else's profile)
         if (userId && session && session.user.id !== userId) {
+          console.log('Tracking profile view:', { viewedProfileId: userId, viewerId: session.user.id });
           trackProfileView(userId, session.user.id);
+        } else {
+          console.log('Skipping profile view tracking:', { userId, hasSession: !!session, currentUserId: session?.user?.id });
         }
       }
     } catch (error) {
@@ -99,15 +102,21 @@ const ProfilePage = () => {
   const trackProfileView = async (viewedProfileId, viewerId) => {
     try {
       // Track profile view (only if viewing someone else's profile)
-      await supabase.from('profile_views').insert({
+      const { data, error } = await supabase.from('profile_views').insert({
         viewer_id: viewerId,
         viewed_profile_id: viewedProfileId,
         viewed_at: new Date().toISOString()
       }).select().maybeSingle();
-      // Ignore errors (e.g., duplicate views within same hour)
+      
+      if (error) {
+        console.error('Profile view tracking error:', error);
+        // Don't show error to user - view tracking is not critical
+      } else {
+        console.log('Profile view tracked successfully:', data);
+      }
     } catch (error) {
       // Silently fail - view tracking is not critical
-      console.log('Profile view tracking:', error);
+      console.error('Profile view tracking exception:', error);
     }
   };
 
