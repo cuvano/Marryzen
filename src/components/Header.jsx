@@ -275,7 +275,7 @@ const Header = () => {
                             <Gift size={16} /> My Rewards
                         </button>
                         <button onClick={() => { navigate('/premium'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
-                            <Settings size={16} /> Account Settings
+                            <Settings size={16} /> Premium
                         </button>
                         <button onClick={() => { navigate('/account-settings'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-[#333333] hover:bg-[#FAF7F2] flex items-center gap-2">
                              <Lock size={16} /> Change Password

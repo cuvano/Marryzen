@@ -291,7 +291,7 @@ const PremiumPage = () => {
     { name: 'Filter Education Level', free: true, premium: true },
     { name: 'Filter Zodiac Sign', free: true, premium: true },
     { name: 'Save or Load Search', free: false, premium: true },
-    { name: 'Priority Support', free: '24-48 hours', premium: '4-12 hours' },
+    { name: 'Priority Support', free: false, premium: true },
   ];
 
   return (
@@ -400,10 +400,22 @@ const PremiumPage = () => {
                     <div key={idx} className="grid grid-cols-3 p-4 items-center hover:bg-[#FAF7F2]/50 transition-colors">
                         <div className="text-[#333333] text-sm font-semibold">{feature.name}</div>
                         <div className="text-center text-[#706B67] text-sm flex justify-center font-medium">
-                            {feature.free === false ? <X className="w-5 h-5 text-gray-300" /> : feature.free}
+                            {feature.free === false ? (
+                                <X className="w-5 h-5 text-gray-300" />
+                            ) : feature.free === true ? (
+                                <Check className="w-5 h-5 text-gray-400" />
+                            ) : (
+                                feature.free
+                            )}
                         </div>
                         <div className="text-center text-[#1F1F1F] font-semibold text-sm flex justify-center">
-                             {feature.premium === true ? <Check className="w-5 h-5 text-[#E6B450]" /> : feature.premium}
+                            {feature.premium === true ? (
+                                <Check className="w-5 h-5 text-[#E6B450]" />
+                            ) : feature.premium === false ? (
+                                <X className="w-5 h-5 text-gray-300" />
+                            ) : (
+                                feature.premium
+                            )}
                         </div>
                     </div>
                 ))}
