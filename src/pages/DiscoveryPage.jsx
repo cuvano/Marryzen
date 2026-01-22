@@ -1097,15 +1097,39 @@ const DiscoveryPage = () => {
                         <div className="flex items-center justify-center gap-2 md:gap-6 w-full">
                             {/* Carousel Container */}
                             <div className="flex-1 flex justify-center gap-2 md:gap-4 overflow-hidden">
-                                <AnimatePresence initial={false}>
+                                <AnimatePresence initial={false} mode="popLayout">
                                     {profiles.slice(0, 3).map((profile, idx) => (
                                         <motion.div
                                             key={profile.id}
                                             layout
-                                            initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: -20, scale: 0.98 }}
-                                            transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+                                            initial={{ opacity: 0, x: 20, scale: 0.96, filter: "blur(4px)" }}
+                                            animate={{ 
+                                                opacity: 1, 
+                                                x: 0, 
+                                                scale: 1,
+                                                filter: "blur(0px)",
+                                                transition: {
+                                                    type: "spring",
+                                                    stiffness: 280,
+                                                    damping: 28,
+                                                    mass: 0.6,
+                                                    delay: idx * 0.05
+                                                }
+                                            }}
+                                            exit={{ 
+                                                opacity: 0, 
+                                                x: -20, 
+                                                scale: 0.96,
+                                                filter: "blur(4px)",
+                                                transition: {
+                                                    type: "spring",
+                                                    stiffness: 400,
+                                                    damping: 30,
+                                                    duration: 0.3,
+                                                    ease: [0.25, 0.1, 0.25, 1]
+                                                }
+                                            }}
+                                            layoutId={`carousel-profile-${profile.id}`}
                                             className="flex-shrink-0 w-[calc(33.333%-0.5rem)] min-w-[250px] max-w-[280px]"
                                         >
                                             <ProfileCard 

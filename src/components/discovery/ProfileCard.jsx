@@ -8,10 +8,39 @@ import { Badge } from '@/components/ui/badge';
 const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick }) => {
   return (
     <motion.div 
-        layout 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
+        layout
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ 
+            opacity: 1, 
+            scale: 1,
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                mass: 0.5
+            }
+        }}
+        exit={{ 
+            opacity: 0, 
+            scale: 0.94,
+            transition: {
+                type: "spring",
+                stiffness: 500,
+                damping: 35,
+                duration: 0.3,
+                ease: [0.25, 0.1, 0.25, 1]
+            }
+        }}
+        whileHover={{ 
+            scale: 1.015,
+            y: -4,
+            transition: { 
+                type: "spring",
+                stiffness: 400,
+                damping: 25,
+                duration: 0.2
+            }
+        }}
         className="bg-white border border-[#E6DCD2] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all group relative"
     >
         <div className="relative aspect-[3/4] overflow-hidden cursor-pointer" onClick={onClick}>
