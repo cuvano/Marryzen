@@ -13,9 +13,10 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
   CheckCircle, XCircle, Eye, Camera, Upload, Trash2, Crop, Loader2,
-  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft
+  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft, Flag
 } from 'lucide-react';
 import Footer from '@/components/Footer';
+import ReportUserModal from '@/components/ReportUserModal';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -38,12 +39,17 @@ const ProfilePage = () => {
   const [selfieImage, setSelfieImage] = useState(null);
   const [uploadingSelfie, setUploadingSelfie] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [referralInfo, setReferralInfo] = useState(null);
 
   const isOwnProfile = !userId;
 
   useEffect(() => {
     fetchProfile();
     fetchAuthInfo();
+    if (isOwnProfile) {
+      fetchReferralInfo();
+    }
     
     // Refresh email verification status periodically and on focus
     const interval = setInterval(fetchAuthInfo, 5000); // Check every 5 seconds
@@ -54,7 +60,7 @@ const ProfilePage = () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId]);
+  }, [userId, isOwnProfile]);
 
   const fetchAuthInfo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,6 +68,39 @@ const ProfilePage = () => {
       setUserEmail(user.email);
       const isVerified = user.email_confirmed_at !== null;
       setEmailVerified(isVerified);
+    }
+  };
+
+  const fetchReferralInfo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if this user was referred by someone
+      const { data: referral, error } = await supabase
+        .from('referrals')
+        .select(`
+          *,
+          referrer:referrer_id(referral_code, full_name)
+        `)
+        .eq('referred_user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching referral info:', error);
+        return;
+      }
+
+      if (referral && referral.referrer) {
+        setReferralInfo({
+          referralCode: referral.referrer.referral_code,
+          referrerName: referral.referrer.full_name,
+          status: referral.status,
+          createdAt: referral.created_at
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching referral info:', error);
     }
   };
 
@@ -593,7 +632,20 @@ const ProfilePage = () => {
                   <MapPin size={16} /> {profile.location_city || 'Not set'}, {profile.location_country || 'Not set'}
                     </p>
                 </div>
-                {profile.is_premium && <Badge className="bg-[#E6B450] text-[#1F1F1F]">Premium Member</Badge>}
+                <div className="flex items-center gap-2">
+                    {profile.is_premium && <Badge className="bg-[#E6B450] text-[#1F1F1F]">Premium Member</Badge>}
+                    {!isOwnProfile && (
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsReportModalOpen(true)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                            <Flag className="w-4 h-4 mr-2" />
+                            Report
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
       </div>
@@ -665,6 +717,43 @@ const ProfilePage = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Referral Code Display */}
+            {isOwnProfile && referralInfo && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-[#E6B450]" />
+                    Referral Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-[#706B67]">
+                      You signed up using a referral code from <strong className="text-[#1F1F1F]">{referralInfo.referrerName}</strong>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-[#706B67]">Referral Code:</span>
+                      <span className="text-sm font-mono text-[#706B67] bg-[#FAF7F2] px-2 py-1 rounded border border-[#E6DCD2]">
+                        {referralInfo.referralCode}
+                      </span>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        referralInfo.status === 'completed' 
+                          ? 'border-green-300 text-green-700' 
+                          : referralInfo.status === 'pending'
+                          ? 'border-yellow-300 text-yellow-700'
+                          : 'border-gray-300 text-gray-600'
+                      }
+                    >
+                      Status: {referralInfo.status.charAt(0).toUpperCase() + referralInfo.status.slice(1)}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Profile Approved & Identity Verification Card */}
             {isOwnProfile && (
@@ -1310,6 +1399,16 @@ const ProfilePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Report User Modal */}
+      {!isOwnProfile && profile && (
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserName={profile.full_name}
+          reportedUserId={profile.id}
+        />
+      )}
     </div>
   );
 };

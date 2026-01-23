@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { X, ShieldAlert, Send, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/lib/customSupabaseClient';
 
-const ReportUserModal = ({ isOpen, onClose, reportedUserName }) => {
+const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) => {
   const { toast } = useToast();
   const [selectedReason, setSelectedReason] = useState('');
   const [otherReason, setOtherReason] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reportReasons = [
     'Fake Profile',
@@ -21,9 +23,7 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName }) => {
     'Other',
   ];
 
-  const handleSubmitReport = () => {
-    // In a real app, this would send a report to the backend.
-    // We'll simulate it here.
+  const handleSubmitReport = async () => {
     if (!selectedReason) {
       toast({
         title: "Please select a reason",
@@ -42,9 +42,65 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName }) => {
       return;
     }
 
-    // Simulate backend submission
-    console.log(`Report submitted for ${reportedUserName}: ${selectedReason}`, otherReason);
-    setIsSubmitted(true);
+    if (!reportedUserId) {
+      toast({
+        title: "Error",
+        description: "Unable to identify the user to report.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to submit a report.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const reasonText = selectedReason === 'Other' ? otherReason.trim() : selectedReason;
+
+      const { error } = await supabase
+        .from('user_reports')
+        .insert({
+          reporter_id: user.id,
+          reported_user_id: reportedUserId,
+          reason_category: selectedReason,
+          reason_details: reasonText,
+          status: 'open'
+        });
+
+      if (error) {
+        console.error('Error submitting report:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to submit report. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitted(true);
+      toast({
+        title: "Report Submitted",
+        description: "Thank you for helping keep our community safe.",
+      });
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit report. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    }
   };
   
   const handleClose = () => {
@@ -118,8 +174,13 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName }) => {
                         Marryzen is a private, values-based platform created strictly for serious marriage and long-term commitment. Casual dating, hookups, and inappropriate behavior are not permitted.
                     </p>
 
-                    <Button onClick={handleSubmitReport} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3">
-                        <Send className="w-4 h-4 mr-2" /> Submit Report
+                    <Button 
+                      onClick={handleSubmitReport} 
+                      disabled={isSubmitting}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3"
+                    >
+                        <Send className="w-4 h-4 mr-2" /> 
+                        {isSubmitting ? 'Submitting...' : 'Submit Report'}
                     </Button>
                 </>
             ) : (
