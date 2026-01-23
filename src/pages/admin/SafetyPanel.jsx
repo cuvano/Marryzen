@@ -18,23 +18,123 @@ const SafetyPanel = () => {
 
   const fetchReports = async () => {
     setLoading(true);
-    let query = supabase
-        .from('user_reports')
-        .select(`
-            *,
-            reporter:reporter_id(full_name, email),
-            reported:reported_user_id(full_name, email, status, id)
-        `)
-        .order('created_at', { ascending: false });
+    try {
+      // First check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Error", description: "Not authenticated", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
 
-    if (filter !== 'all') {
-        query = query.eq('status', filter);
+      // Check admin role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      console.log('Admin profile check:', { userId: user.id, role: profile?.role });
+
+      if (!profile || !['admin', 'super_admin'].includes(profile.role?.toLowerCase())) {
+        toast({ 
+          title: "Access Denied", 
+          description: `Admin role required. Current role: ${profile?.role || 'none'}`, 
+          variant: "destructive" 
+        });
+        setLoading(false);
+        return;
+      }
+
+      // First try a simple query to see if we can access reports at all
+      console.log('Fetching reports with filter:', filter);
+      let query = supabase
+          .from('user_reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+      if (filter !== 'all') {
+          query = query.eq('status', filter);
+          console.log('Applied status filter:', filter);
+      }
+
+      console.log('Executing query...');
+      const { data, error } = await query;
+      console.log('Query completed. Data length:', data?.length, 'Error:', error);
+      
+      // If we get an RLS error, try to diagnose it
+      if (error && (error.code === '42501' || error.message?.includes('row-level security'))) {
+        console.error('RLS Policy Error detected!');
+        console.error('This means the RLS policy is blocking the query.');
+        console.error('Your user ID:', user.id);
+        console.error('Your role:', profile?.role);
+        console.error('Expected: admin or super_admin');
+        
+        // Try to verify the role check works
+        const { data: roleCheck } = await supabase
+          .from('profiles')
+          .select('id, role')
+          .eq('id', user.id)
+          .eq('role', profile?.role)
+          .single();
+        console.log('Role verification query result:', roleCheck);
+      }
+      
+      if (error) {
+        console.error('Error fetching reports:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        console.error('Error code:', error.code);
+        console.error('Error hint:', error.hint);
+        toast({ 
+          title: "Error", 
+          description: error.message || "Failed to load reports. Check console for details.", 
+          variant: "destructive" 
+        });
+        setReports([]);
+      } else {
+        console.log('Reports fetched:', data?.length || 0, 'reports');
+        console.log('Reports data:', data);
+        
+        // If we got reports, now fetch the related profile data
+        if (data && data.length > 0) {
+          // Fetch reporter and reported user profiles separately
+          const reporterIds = [...new Set(data.map(r => r.reporter_id))];
+          const reportedIds = [...new Set(data.map(r => r.reported_user_id))];
+          
+          const { data: reporters } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', reporterIds);
+          
+          const { data: reportedUsers } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, status')
+            .in('id', reportedIds);
+          
+          // Map profiles to reports
+          const reportsWithProfiles = data.map(report => ({
+            ...report,
+            reporter: reporters?.find(p => p.id === report.reporter_id),
+            reported: reportedUsers?.find(p => p.id === report.reported_user_id)
+          }));
+          
+          setReports(reportsWithProfiles);
+        } else {
+          setReports([]);
+          console.log('No reports found with filter:', filter);
+        }
+      }
+    } catch (err) {
+      console.error('Exception fetching reports:', err);
+      toast({ 
+        title: "Error", 
+        description: err.message || "An unexpected error occurred", 
+        variant: "destructive" 
+      });
+      setReports([]);
+    } finally {
+      setLoading(false);
     }
-
-    const { data, error } = await query;
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else setReports(data || []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -85,9 +185,15 @@ const SafetyPanel = () => {
       </div>
 
       <div className="grid gap-4">
-        {loading ? <div className="text-slate-500">Loading reports...</div> : 
-         reports.length === 0 ? <div className="text-slate-500 py-10 text-center border border-dashed border-slate-800 rounded">No reports found in this filter.</div> :
-         reports.map(report => (
+        {loading ? (
+          <div className="text-slate-500 py-10 text-center">Loading reports...</div>
+        ) : reports.length === 0 ? (
+          <div className="text-slate-500 py-10 text-center border border-dashed border-slate-800 rounded">
+            <p className="mb-2">No reports found with filter: <strong>{filter}</strong></p>
+            <p className="text-xs text-slate-600">Try selecting "All History" to see all reports, or check the browser console for errors.</p>
+          </div>
+        ) : (
+          reports.map(report => (
              <Card key={report.id} className="bg-slate-900 border-slate-800 text-slate-200">
                  <CardHeader className="pb-2 flex flex-row items-start justify-between">
                      <div>
@@ -103,7 +209,7 @@ const SafetyPanel = () => {
                  </CardHeader>
                  <CardContent>
                      <div className="bg-slate-950 p-4 rounded border border-slate-800 mb-4 italic text-slate-300">
-                         "{report.reason_text}"
+                         "{report.reason_details || report.reason_category}"
                      </div>
                      
                      <div className="flex justify-end gap-2">
@@ -143,7 +249,7 @@ const SafetyPanel = () => {
                  </CardContent>
              </Card>
          ))
-        }
+        )}
       </div>
     </div>
   );
