@@ -38,6 +38,10 @@ ADD COLUMN IF NOT EXISTS cover_photo TEXT;
 ALTER TABLE messages
 ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
 
+-- Add missing columns to user_reports table
+ALTER TABLE user_reports
+ADD COLUMN IF NOT EXISTS reason_details TEXT;
+
 -- Note: Other columns should already exist from your initial schema:
 -- id, email, full_name, date_of_birth, location_city, location_country,
 -- identify_as, looking_for_gender, religious_affiliation, faith_lifestyle,

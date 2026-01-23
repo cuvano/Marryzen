@@ -64,6 +64,7 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) 
         return;
       }
 
+      // For "Other" category, use the custom text; otherwise use the category name
       const reasonText = selectedReason === 'Other' ? otherReason.trim() : selectedReason;
 
       const { error } = await supabase
@@ -72,7 +73,7 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) 
           reporter_id: user.id,
           reported_user_id: reportedUserId,
           reason_category: selectedReason,
-          reason_details: reasonText,
+          reason_details: reasonText, // Store the full reason text
           status: 'open'
         });
 
@@ -143,10 +144,10 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) 
                         {reportReasons.map((reason) => (
                         <div
                             key={reason}
-                            className={`p-3 rounded-lg cursor-pointer transition-colors text-white text-sm font-medium ${
+                            className={`p-3 rounded-lg cursor-pointer transition-colors text-sm font-medium ${
                             selectedReason === reason
-                                ? 'bg-white text-purple-600 ring-2 ring-white'
-                                : 'glass-effect hover:bg-white/20'
+                                ? 'bg-white text-[#1F1F1F] ring-2 ring-white font-semibold'
+                                : 'glass-effect text-white hover:bg-white/20'
                             }`}
                             onClick={() => setSelectedReason(reason)}
                         >
