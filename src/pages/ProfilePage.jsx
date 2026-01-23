@@ -34,6 +34,10 @@ const ProfilePage = () => {
   const [tempCoverImage, setTempCoverImage] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [isSelfieDialogOpen, setIsSelfieDialogOpen] = useState(false);
+  const [selfieImage, setSelfieImage] = useState(null);
+  const [uploadingSelfie, setUploadingSelfie] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
 
   const isOwnProfile = !userId;
 
@@ -101,15 +105,29 @@ const ProfilePage = () => {
 
   const trackProfileView = async (viewedProfileId, viewerId) => {
     try {
+      // Don't track if viewing own profile
+      if (viewedProfileId === viewerId) {
+        return;
+      }
+
       // Track profile view (only if viewing someone else's profile)
-      const { data, error } = await supabase.from('profile_views').insert({
-        viewer_id: viewerId,
-        viewed_profile_id: viewedProfileId,
-        viewed_at: new Date().toISOString()
-      }).select().maybeSingle();
+      // Note: viewed_at has a DEFAULT, so we don't need to set it manually
+      const { data, error } = await supabase
+        .from('profile_views')
+        .insert({
+          viewer_id: viewerId,
+          viewed_profile_id: viewedProfileId
+        })
+        .select()
+        .maybeSingle();
       
       if (error) {
-        console.error('Profile view tracking error:', error);
+        // If it's a duplicate key error, that's fine - view already tracked
+        if (error.code === '23505') {
+          console.log('Profile view already tracked (duplicate)');
+        } else {
+          console.error('Profile view tracking error:', error);
+        }
         // Don't show error to user - view tracking is not critical
       } else {
         console.log('Profile view tracked successfully:', data);
@@ -164,6 +182,57 @@ const ProfilePage = () => {
       { label: 'Relationship Goal', completed: !!profile.relationship_goal, required: false },
       { label: 'Family Goals', completed: !!profile.family_goals, required: false },
     ];
+  };
+
+  const handleUploadSelfie = async () => {
+    if (!selfieImage || !isOwnProfile) return;
+
+    setUploadingSelfie(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setUploadingSelfie(false);
+        return;
+      }
+
+      // Compress the selfie image
+      const compressed = await compressImage(selfieImage, 800, 0.85);
+
+      // Update profile with selfie and set status to pending
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          selfie_url: compressed,
+          identity_verification_status: 'pending'
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Selfie upload error:', error);
+        throw error;
+      }
+
+      setProfile(prev => ({ 
+        ...prev, 
+        selfie_url: compressed,
+        identity_verification_status: 'pending'
+      }));
+      setIsSelfieDialogOpen(false);
+      setSelfieImage(null);
+      toast({ 
+        title: "Selfie Submitted", 
+        description: "Your selfie has been submitted for admin review. You'll be notified once it's verified." 
+      });
+    } catch (error) {
+      console.error('Selfie upload error:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to upload selfie. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploadingSelfie(false);
+    }
   };
 
   const handleSaveBio = async () => {
@@ -597,53 +666,90 @@ const ProfilePage = () => {
               </CardContent>
             </Card>
 
-            {/* Safety & Verification Card */}
+            {/* Profile Approved & Identity Verification Card */}
             {isOwnProfile && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-[#C85A72]" />
-                    Safety & Verification
+                    Profile Approved & Identity Verification
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Only show email verification section if not verified */}
-                  {!emailVerified && (
-                    <div className="flex items-center justify-between">
+                  {/* Profile Approved Status */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#706B67]" />
+                      <span className="text-sm text-[#1F1F1F]">Profile Approved</span>
+                    </div>
+                    {profile.status === 'approved' ? (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" /> Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                        <AlertCircle className="w-3 h-3 mr-1" /> {profile.status === 'pending_review' ? 'Pending Review' : 'Not Approved'}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Identity Verified Status */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#706B67]" />
+                      <span className="text-sm text-[#1F1F1F]">Identity Verified</span>
+                    </div>
+                    {profile.identity_verification_status === 'verified' ? (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                      </Badge>
+                    ) : profile.identity_verification_status === 'pending' ? (
+                      <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                        <AlertCircle className="w-3 h-3 mr-1" /> Pending Review
+                      </Badge>
+                    ) : profile.identity_verification_status === 'rejected' ? (
+                      <Badge variant="outline" className="border-red-300 text-red-700">
+                        <XCircle className="w-3 h-3 mr-1" /> Rejected
+                      </Badge>
+                    ) : (
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-[#706B67]" />
-                        <span className="text-sm text-[#1F1F1F]">Email Verified</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                          <AlertCircle className="w-3 h-3 mr-1" /> Pending
+                        <Badge variant="outline" className="border-gray-300 text-gray-600">
+                          Not Verified
                         </Badge>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate('/verify-email')}
+                          onClick={() => setIsSelfieDialogOpen(true)}
                           className="text-xs"
                         >
-                          Verify Now
+                          <Camera className="w-3 h-3 mr-1" /> Verify Identity
                         </Button>
                       </div>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Profile Verified</span>
-                    </div>
-                    {profile.is_verified ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-gray-300 text-gray-600">
-                        Not Verified
-                      </Badge>
                     )}
                   </div>
+
+                  {/* Show selfie if uploaded but pending/rejected */}
+                  {(profile.identity_verification_status === 'pending' || profile.identity_verification_status === 'rejected') && profile.selfie_url && (
+                    <div className="pt-2 border-t border-[#E6DCD2]">
+                      <p className="text-xs text-[#706B67] mb-2">Your selfie submission:</p>
+                      <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-[#E6DCD2]">
+                        <img src={profile.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
+                      </div>
+                      {profile.identity_verification_status === 'rejected' && (
+                        <p className="text-xs text-red-600 mt-2">
+                          Your verification was rejected. Please submit a new selfie.
+                        </p>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsSelfieDialogOpen(true)}
+                        className="mt-2 text-xs"
+                      >
+                        <Camera className="w-3 h-3 mr-1" /> Resubmit
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
             </Card>
             )}
@@ -914,6 +1020,296 @@ const ProfilePage = () => {
         }}
         uploading={uploadingPhoto}
       />
+
+      {/* Selfie Verification Dialog */}
+      <Dialog 
+        open={isSelfieDialogOpen} 
+        onOpenChange={(open) => {
+          // Prevent closing if camera is active or if we have a selfie image that hasn't been submitted
+          if (!open && (isCameraActive || (selfieImage && !uploadingSelfie))) {
+            return;
+          }
+          setIsSelfieDialogOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Identity Verification</DialogTitle>
+            <CardDescription>
+              Take a selfie to verify your identity. An admin will review it to ensure you match your profile photos.
+            </CardDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {!selfieImage ? (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-[#E6DCD2] rounded-lg p-8 text-center">
+                  <Camera className="w-12 h-12 mx-auto text-[#706B67] mb-4" />
+                  <p className="text-sm text-[#706B67] mb-4">
+                    Please take a clear selfie showing your face
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          setIsCameraActive(true);
+                          // Request camera access
+                          const stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'user' } // Front-facing camera
+                          });
+                          
+                          // Create video element to show camera preview
+                          const video = document.createElement('video');
+                          video.srcObject = stream;
+                          video.autoplay = true;
+                          video.playsInline = true;
+                          video.muted = true; // Required for autoplay in some browsers
+                          
+                          // Create a modal/dialog to show camera preview
+                          const cameraModal = document.createElement('div');
+                          cameraModal.style.cssText = `
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: rgba(0, 0, 0, 0.9);
+                            z-index: 10000;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 20px;
+                          `;
+                          
+                          const videoContainer = document.createElement('div');
+                          videoContainer.style.cssText = `
+                            position: relative;
+                            max-width: 90vw;
+                            max-height: 70vh;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            background: #000;
+                          `;
+                          
+                          video.style.cssText = `
+                            width: 100%;
+                            height: auto;
+                            display: block;
+                            max-width: 640px;
+                          `;
+                          
+                          videoContainer.appendChild(video);
+                          
+                          const buttonContainer = document.createElement('div');
+                          buttonContainer.style.cssText = `
+                            display: flex;
+                            gap: 12px;
+                            z-index: 10001;
+                          `;
+                          
+                          const captureButton = document.createElement('button');
+                          captureButton.textContent = 'Capture';
+                          captureButton.style.cssText = `
+                            padding: 12px 24px;
+                            background: #E6B450;
+                            color: #1F1F1F;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-size: 16px;
+                            pointer-events: auto;
+                            opacity: 0.5;
+                          `;
+                          captureButton.disabled = true;
+                          
+                          const cancelButton = document.createElement('button');
+                          cancelButton.textContent = 'Cancel';
+                          cancelButton.style.cssText = `
+                            padding: 12px 24px;
+                            background: #fff;
+                            color: #1F1F1F;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-size: 16px;
+                            pointer-events: auto;
+                          `;
+                          
+                          buttonContainer.appendChild(captureButton);
+                          buttonContainer.appendChild(cancelButton);
+                          
+                          cameraModal.appendChild(videoContainer);
+                          cameraModal.appendChild(buttonContainer);
+                          document.body.appendChild(cameraModal);
+                          
+                          // Wait for video to be ready
+                          video.addEventListener('loadedmetadata', () => {
+                            video.play().then(() => {
+                              captureButton.disabled = false;
+                              captureButton.style.opacity = '1';
+                            }).catch(err => {
+                              console.error('Error playing video:', err);
+                            });
+                          });
+                          
+                          // Cleanup function
+                          const cleanup = () => {
+                            try {
+                              stream.getTracks().forEach(track => track.stop());
+                              if (cameraModal && cameraModal.parentNode) {
+                                document.body.removeChild(cameraModal);
+                              }
+                              setIsCameraActive(false);
+                            } catch (err) {
+                              console.error('Error during cleanup:', err);
+                              setIsCameraActive(false);
+                            }
+                          };
+                          
+                          // Capture photo
+                          const handleCapture = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            try {
+                              if (!video || video.readyState < 2) {
+                                toast({
+                                  title: "Camera Not Ready",
+                                  description: "Please wait for the camera to load.",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              if (video.videoWidth === 0 || video.videoHeight === 0) {
+                                toast({
+                                  title: "Invalid Video",
+                                  description: "Camera stream is not ready. Please try again.",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              const canvas = document.createElement('canvas');
+                              canvas.width = video.videoWidth;
+                              canvas.height = video.videoHeight;
+                              const ctx = canvas.getContext('2d');
+                              ctx.drawImage(video, 0, 0);
+                              
+                              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                              setSelfieImage(dataUrl);
+                              cleanup();
+                            } catch (err) {
+                              console.error('Error capturing photo:', err);
+                              toast({
+                                title: "Capture Failed",
+                                description: "Failed to capture photo. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          };
+                          
+                          // Cancel
+                          const handleCancel = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            cleanup();
+                          };
+                          
+                          captureButton.addEventListener('click', handleCapture);
+                          cancelButton.addEventListener('click', handleCancel);
+                          
+                          // Also handle cleanup on modal click (outside buttons)
+                          cameraModal.addEventListener('click', (e) => {
+                            if (e.target === cameraModal) {
+                              cleanup();
+                            }
+                          });
+                          
+                        } catch (error) {
+                          console.error('Error accessing camera:', error);
+                          setIsCameraActive(false);
+                          toast({ 
+                            title: "Camera Access Denied", 
+                            description: "Please allow camera access or use 'Upload Photo' instead.", 
+                            variant: "destructive" 
+                          });
+                        }
+                      }}
+                    >
+                      <Camera className="w-4 h-4 mr-2" /> Take Selfie
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setSelfieImage(event.target.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      <Upload className="w-4 h-4 mr-2" /> Upload Photo
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative w-full aspect-square max-w-xs mx-auto rounded-lg overflow-hidden border-2 border-[#E6DCD2]">
+                  <img src={selfieImage} alt="Selfie" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelfieImage(null)}
+                    disabled={uploadingSelfie}
+                  >
+                    Retake
+                  </Button>
+                  <Button
+                    onClick={handleUploadSelfie}
+                    disabled={uploadingSelfie}
+                    className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+                  >
+                    {uploadingSelfie ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Submit for Review
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsSelfieDialogOpen(false);
+              setSelfieImage(null);
+            }} disabled={uploadingSelfie}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

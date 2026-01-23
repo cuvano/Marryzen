@@ -450,20 +450,20 @@ const MatchesPage = () => {
                   : 'text-[#706B67] hover:text-[#1F1F1F]'
               }`}
             >
-              Likes You
-              {userProfile?.is_premium ? ` (${likesReceived.length})` : ''}
+              Likes You ({likesReceived.length})
             </button>
-            <button
-              onClick={() => setActiveTab('profile-views')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'profile-views'
-                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                  : 'text-[#706B67] hover:text-[#1F1F1F]'
-              }`}
-            >
-              Who Viewed You
-              {userProfile?.is_premium ? ` (${profileViews.length})` : ''}
-            </button>
+            {userProfile?.is_premium && (
+              <button
+                onClick={() => setActiveTab('profile-views')}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  activeTab === 'profile-views'
+                    ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                    : 'text-[#706B67] hover:text-[#1F1F1F]'
+                }`}
+              >
+                Who Viewed You ({profileViews.length})
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('favorites')}
               className={`px-4 py-2 font-medium transition-colors ${
@@ -483,7 +483,7 @@ const MatchesPage = () => {
             <p className="text-[#706B67] font-medium">Loading...</p>
           </div>
         ) : activeTab === 'likes-you' ? (
-          // Likes You Tab - Show blurred for free users, full for premium
+          // Likes You Tab - Show blurred profiles for basic users, full for premium
           likesReceived.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {likesReceived.map(item => (
@@ -491,47 +491,35 @@ const MatchesPage = () => {
                   key={item.id}
                   className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow relative"
                 >
-                  {/* Blur overlay for free users */}
-                  {!userProfile?.is_premium && (
-                    <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
-                      <Crown className="w-12 h-12 text-[#E6B450] mb-3" />
-                      <h4 className="font-bold text-lg text-[#1F1F1F] mb-2">Premium Feature</h4>
-                      <p className="text-sm text-[#706B67] text-center mb-4">
-                        Unlock to see who liked you
-                      </p>
-                      <Button
-                        onClick={() => navigate('/premium')}
-                        className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                      >
-                        <Crown className="w-4 h-4 mr-2" /> Unlock Premium
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="aspect-square bg-slate-100 relative">
+                  <div className="aspect-square bg-slate-100 relative overflow-hidden">
                     {item.profile.photos?.[0] ? (
                       <img
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
-                        className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-md' : ''}`}
+                        className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-lg scale-110' : ''}`}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
                         <User className="w-16 h-16" />
                       </div>
                     )}
-                    {item.profile.is_premium && (
-                      <div className="absolute top-2 right-2">
+                    {!userProfile?.is_premium && (
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                        <Crown className="w-16 h-16 text-white/60" />
+                      </div>
+                    )}
+                    {item.profile.is_premium && userProfile?.is_premium && (
+                      <div className="absolute top-2 right-2 z-10">
                         <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
                       </div>
                     )}
-                    <div className="absolute top-2 left-2">
+                    <div className="absolute top-2 left-2 z-10">
                       <Badge className="bg-[#E6B450] text-[#1F1F1F] font-bold">Liked you</Badge>
                     </div>
                   </div>
-                  <div className={`p-4 flex-1 flex flex-col ${!userProfile?.is_premium ? 'opacity-50' : ''}`}>
+                  <div className={`p-4 flex-1 flex flex-col ${!userProfile?.is_premium ? 'opacity-60' : ''}`}>
                     <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
-                      {userProfile?.is_premium ? item.profile.full_name : 'Hidden Profile'}
+                      {userProfile?.is_premium ? item.profile.full_name : 'Someone liked you'}
                     </h3>
                     <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
                       {userProfile?.is_premium && item.profile.age && <span>{item.profile.age}</span>}
@@ -542,9 +530,12 @@ const MatchesPage = () => {
                           <span>{item.profile.location_city}</span>
                         </>
                       )}
+                      {!userProfile?.is_premium && (
+                        <span className="text-xs italic">Upgrade to see details</span>
+                      )}
                     </div>
                     <p className="text-xs text-[#706B67] mb-4">
-                      {userProfile?.is_premium ? new Date(item.createdAt).toLocaleDateString() : 'Upgrade to see details'}
+                      {userProfile?.is_premium ? new Date(item.createdAt).toLocaleDateString() : 'Unlock Premium to see who liked you'}
                     </p>
                     <Button
                       className={`w-full mt-auto font-bold ${userProfile?.is_premium ? 'bg-[#1F1F1F] text-white hover:bg-[#333333]' : 'bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]'}`}
@@ -552,7 +543,7 @@ const MatchesPage = () => {
                     >
                       {userProfile?.is_premium ? 'View Profile' : (
                         <>
-                          <Crown className="w-4 h-4 mr-2" /> Unlock to View
+                          <Crown className="w-4 h-4 mr-2" /> Unlock Premium
                         </>
                       )}
                     </Button>
@@ -576,95 +567,90 @@ const MatchesPage = () => {
             </div>
           )
         ) : activeTab === 'profile-views' ? (
-          // Who Viewed Your Profile Tab - Show blurred for free users, full for premium
-          profileViews.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {profileViews.map(item => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow relative"
-                >
-                  {/* Blur overlay for free users */}
-                  {!userProfile?.is_premium && (
-                    <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
-                      <Crown className="w-12 h-12 text-[#E6B450] mb-3" />
-                      <h4 className="font-bold text-lg text-[#1F1F1F] mb-2">Premium Feature</h4>
-                      <p className="text-sm text-[#706B67] text-center mb-4">
-                        Unlock to see who viewed your profile
+          // Who Viewed Your Profile Tab - Premium only feature
+          userProfile?.is_premium ? (
+            profileViews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {profileViews.map(item => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                  >
+                    <div className="aspect-square bg-slate-100 relative">
+                      {item.profile.photos?.[0] ? (
+                        <img
+                          src={item.profile.photos[0]}
+                          alt={item.profile.full_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <User className="w-16 h-16" />
+                        </div>
+                      )}
+                      {item.profile.is_premium && (
+                        <div className="absolute top-2 right-2">
+                          <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-blue-600 text-white font-bold">Viewed you</Badge>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
+                        {item.profile.full_name}
+                      </h3>
+                      <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                        {item.profile.age && <span>{item.profile.age}</span>}
+                        {item.profile.location_city && (
+                          <>
+                            {item.profile.age && <span>•</span>}
+                            <MapPin className="w-3 h-3" />
+                            <span>{item.profile.location_city}</span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#706B67] mb-4">
+                        {new Date(item.viewedAt).toLocaleDateString()}
                       </p>
                       <Button
-                        onClick={() => navigate('/premium')}
-                        className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                        className="w-full mt-auto font-bold bg-[#1F1F1F] text-white hover:bg-[#333333]"
+                        onClick={() => navigate(`/profile/${item.profile.id}`)}
                       >
-                        <Crown className="w-4 h-4 mr-2" /> Unlock Premium
+                        View Profile
                       </Button>
                     </div>
-                  )}
-                  
-                  <div className="aspect-square bg-slate-100 relative">
-                    {item.profile.photos?.[0] ? (
-                      <img
-                        src={item.profile.photos[0]}
-                        alt={item.profile.full_name}
-                        className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-md' : ''}`}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300">
-                        <User className="w-16 h-16" />
-                      </div>
-                    )}
-                    {item.profile.is_premium && (
-                      <div className="absolute top-2 right-2">
-                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 left-2">
-                      <Badge className="bg-blue-600 text-white font-bold">Viewed you</Badge>
-                    </div>
                   </div>
-                  <div className={`p-4 flex-1 flex flex-col ${!userProfile?.is_premium ? 'opacity-50' : ''}`}>
-                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
-                      {userProfile?.is_premium ? item.profile.full_name : 'Hidden Profile'}
-                    </h3>
-                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
-                      {userProfile?.is_premium && item.profile.age && <span>{item.profile.age}</span>}
-                      {userProfile?.is_premium && item.profile.location_city && (
-                        <>
-                          {item.profile.age && <span>•</span>}
-                          <MapPin className="w-3 h-3" />
-                          <span>{item.profile.location_city}</span>
-                        </>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#706B67] mb-4">
-                      {userProfile?.is_premium ? new Date(item.viewedAt).toLocaleDateString() : 'Upgrade to see details'}
-                    </p>
-                    <Button
-                      className={`w-full mt-auto font-bold ${userProfile?.is_premium ? 'bg-[#1F1F1F] text-white hover:bg-[#333333]' : 'bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]'}`}
-                      onClick={() => userProfile?.is_premium ? navigate(`/profile/${item.profile.id}`) : navigate('/premium')}
-                    >
-                      {userProfile?.is_premium ? 'View Profile' : (
-                        <>
-                          <Crown className="w-4 h-4 mr-2" /> Unlock to View
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+                <Eye className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+                <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profile views yet</h3>
+                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                  When someone views your profile, they'll appear here.
+                </p>
+                <Button
+                  onClick={() => navigate('/discovery')}
+                  className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+                >
+                  <Search className="w-4 h-4 mr-2" /> Browse Discovery
+                </Button>
+              </div>
+            )
           ) : (
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-              <Eye className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
-              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profile views yet</h3>
+              <Crown className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
               <p className="text-[#706B67] mb-8 max-w-md mx-auto">
-                When someone views your profile, they'll appear here.
+                See who viewed your profile is a Premium feature. Upgrade to unlock this feature and see who's interested in you!
               </p>
               <Button
-                onClick={() => navigate('/discovery')}
+                onClick={() => navigate('/premium')}
                 className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
               >
-                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+                <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
               </Button>
             </div>
           )

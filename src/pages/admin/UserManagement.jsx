@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon } from 'lucide-react';
+import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from '@/components/ui/switch';
@@ -254,6 +254,77 @@ const UserManagement = () => {
                                       </div>
                                    </div>
                                    
+                                   {/* Identity Verification Section */}
+                                   {selectedUser.selfie_url && (
+                                     <div className="space-y-2 border border-slate-700 rounded-lg p-4 bg-slate-950">
+                                       <h4 className="font-semibold text-yellow-400 flex items-center gap-2">
+                                         <ShieldAlert className="w-4 h-4" />
+                                         Identity Verification
+                                       </h4>
+                                       <div className="flex gap-4">
+                                         <div className="flex-1">
+                                           <Label className="text-slate-500 text-xs mb-2 block">Selfie Submission</Label>
+                                           <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-slate-700">
+                                             <img src={selectedUser.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
+                                           </div>
+                                         </div>
+                                         <div className="flex-1">
+                                           <Label className="text-slate-500 text-xs mb-2 block">Profile Photos (for comparison)</Label>
+                                           <div className="grid grid-cols-2 gap-2">
+                                             {selectedUser.photos?.slice(0, 4).map((photo, idx) => (
+                                               <div key={idx} className="relative w-full aspect-square rounded overflow-hidden border border-slate-700">
+                                                 <img src={photo} alt={`Profile ${idx + 1}`} className="w-full h-full object-cover" />
+                                               </div>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       </div>
+                                       <div className="mt-3">
+                                         <Label className="text-slate-500 text-xs mb-2 block">Verification Status</Label>
+                                         <select 
+                                           className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+                                           value={selectedUser.identity_verification_status || ''}
+                                           onChange={(e) => {
+                                             const newStatus = e.target.value || null;
+                                             updateUser(selectedUser.id, { identity_verification_status: newStatus });
+                                             if (newStatus === 'verified') {
+                                               updateUser(selectedUser.id, { is_verified: true });
+                                             }
+                                           }}
+                                         >
+                                           <option value="">Not Submitted</option>
+                                           <option value="pending">Pending Review</option>
+                                           <option value="verified">Verified</option>
+                                           <option value="rejected">Rejected</option>
+                                         </select>
+                                       </div>
+                                       <div className="flex gap-2 mt-3">
+                                         <Button
+                                           variant="outline"
+                                           size="sm"
+                                           onClick={() => {
+                                             updateUser(selectedUser.id, { identity_verification_status: 'verified', is_verified: true });
+                                             toast({ title: "Verified", description: "Identity verification approved." });
+                                           }}
+                                           className="flex-1 border-green-600 text-green-400 hover:bg-green-950"
+                                         >
+                                           <CheckCircle className="w-4 h-4 mr-2" /> Approve
+                                         </Button>
+                                         <Button
+                                           variant="outline"
+                                           size="sm"
+                                           onClick={() => {
+                                             updateUser(selectedUser.id, { identity_verification_status: 'rejected' });
+                                             toast({ title: "Rejected", description: "Identity verification rejected." });
+                                           }}
+                                           className="flex-1 border-red-600 text-red-400 hover:bg-red-950"
+                                         >
+                                           <XCircle className="w-4 h-4 mr-2" /> Reject
+                                         </Button>
+                                       </div>
+                                     </div>
+                                   )}
+
                                    <div className="space-y-2">
                                      <h4 className="font-semibold text-purple-400">Profile Details</h4>
                                      <div className="text-sm grid grid-cols-2 gap-2">

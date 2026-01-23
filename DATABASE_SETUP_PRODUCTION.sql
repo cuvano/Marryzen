@@ -721,7 +721,8 @@ CREATE TABLE IF NOT EXISTS profile_views (
   viewer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   viewed_profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT profile_views_viewer_viewed_unique UNIQUE (viewer_id, viewed_profile_id)
 );
 
 -- Enable RLS
@@ -737,6 +738,8 @@ CREATE INDEX IF NOT EXISTS idx_profile_views_viewed_at ON profile_views(viewed_a
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Users can view who viewed their profile" ON profile_views;
 DROP POLICY IF EXISTS "Users can create profile views" ON profile_views;
+DROP POLICY IF EXISTS "Users can update their profile views" ON profile_views;
+DROP POLICY IF EXISTS "Admins can view all profile views" ON profile_views;
 
 -- Policy: Users can view who viewed their profile (for premium users)
 CREATE POLICY "Users can view who viewed their profile"
@@ -746,12 +749,37 @@ TO authenticated
 USING (viewed_profile_id = auth.uid());
 
 -- Policy: Users can insert views when they view someone's profile
--- Note: For INSERT policies, only WITH CHECK is allowed (not USING)
+-- Prevents self-views and ensures viewer_id matches authenticated user
 CREATE POLICY "Users can create profile views"
 ON profile_views
 FOR INSERT
 TO authenticated
+WITH CHECK (
+  viewer_id = auth.uid() 
+  AND viewed_profile_id != auth.uid()  -- Prevent self-views
+  AND viewed_profile_id IS NOT NULL
+);
+
+-- Policy: Users can update their own profile views (for upsert operations)
+CREATE POLICY "Users can update their profile views"
+ON profile_views
+FOR UPDATE
+TO authenticated
+USING (viewer_id = auth.uid())
 WITH CHECK (viewer_id = auth.uid());
+
+-- Policy: Admins can view all profile views
+CREATE POLICY "Admins can view all profile views"
+ON profile_views
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('admin', 'super_admin')
+  )
+);
 
 -- ============================================
 -- SETUP COMPLETE
