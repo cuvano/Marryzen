@@ -43,8 +43,8 @@ const MatchesPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
       // Fetch user profile
       const { data: profile } = await supabase
@@ -58,19 +58,19 @@ const MatchesPage = () => {
       }
 
       // Fetch matches (conversations)
-      const { data, error } = await supabase
+    const { data, error } = await supabase
         .from('conversations')
         .select(`
-          id,
+            id,
           user1:user1_id(id, full_name, photos, location_city, location_country, date_of_birth, is_premium),
           user2:user2_id(id, full_name, photos, location_city, location_country, date_of_birth, is_premium),
-          last_message_at
+            last_message_at
         `)
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
-      if (error) console.error(error);
-      
+    if (error) console.error(error);
+    
       const formatted = (data || []).map(convo => {
         const otherUser = convo.user1.id === user.id ? convo.user2 : convo.user1;
         const age = otherUser.date_of_birth 
@@ -78,7 +78,7 @@ const MatchesPage = () => {
           : null;
         
         return {
-          conversationId: convo.id,
+            conversationId: convo.id,
           id: otherUser.id,
           full_name: otherUser.full_name,
           photos: otherUser.photos || [],
@@ -90,7 +90,7 @@ const MatchesPage = () => {
         };
       });
 
-      setMatches(formatted);
+    setMatches(formatted);
 
       // If no matches, fetch suggested profiles as fallback
       if (formatted.length === 0 && profile?.status === 'approved') {
@@ -99,7 +99,7 @@ const MatchesPage = () => {
     } catch (error) {
       console.error('Error fetching matches:', error);
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
 
@@ -411,7 +411,7 @@ const MatchesPage = () => {
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
+        <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
           <p className="text-[#706B67] mb-4">
             {activeTab === 'matches' 
               ? (matches.length > 0 
@@ -432,16 +432,18 @@ const MatchesPage = () => {
             >
               Matches ({matches.length})
             </button>
-            <button
-              onClick={() => setActiveTab('interactions')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'interactions'
-                  ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                  : 'text-[#706B67] hover:text-[#1F1F1F]'
-              }`}
-            >
-              Past Interactions ({pastInteractions.length})
-            </button>
+            {userProfile?.is_premium && (
+              <button
+                onClick={() => setActiveTab('interactions')}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  activeTab === 'interactions'
+                    ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
+                    : 'text-[#706B67] hover:text-[#1F1F1F]'
+                }`}
+              >
+                Past Interactions ({pastInteractions.length})
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('likes-you')}
               className={`px-4 py-2 font-medium transition-colors ${
@@ -744,132 +746,148 @@ const MatchesPage = () => {
             </div>
           )
         ) : activeTab === 'interactions' ? (
-          // Past Interactions Tab
-          pastInteractions.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pastInteractions.map(interaction => (
-                <div 
-                  key={interaction.id} 
-                  className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
-                >
-                  <div className="aspect-square bg-slate-100 relative">
-                    {interaction.profile.photos?.[0] ? (
-                      <img 
-                        src={interaction.profile.photos[0]} 
-                        alt={interaction.profile.full_name} 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300">
-                        <User className="w-16 h-16" />
-                      </div>
-                    )}
-                    <div className="absolute top-3 left-3">
-                      {interaction.interactionType === 'like' ? (
-                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
-                          <Heart className="w-4 h-4 fill-white" />
-                          <span className="font-bold text-sm">Liked</span>
-                        </div>
+          // Past Interactions Tab - Premium only feature
+          userProfile?.is_premium ? (
+            pastInteractions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pastInteractions.map(interaction => (
+                  <div 
+                    key={interaction.id} 
+                    className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
+                  >
+                    <div className="aspect-square bg-slate-100 relative">
+                      {interaction.profile.photos?.[0] ? (
+                        <img 
+                          src={interaction.profile.photos[0]} 
+                          alt={interaction.profile.full_name} 
+                          className="w-full h-full object-cover" 
+                        />
                       ) : (
-                        <div className="flex items-center gap-1.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
-                          <X className="w-4 h-4" />
-                          <span className="font-bold text-sm">Passed</span>
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <User className="w-16 h-16" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        {interaction.interactionType === 'like' ? (
+                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
+                            <Heart className="w-4 h-4 fill-white" />
+                            <span className="font-bold text-sm">Liked</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-white/20">
+                            <X className="w-4 h-4" />
+                            <span className="font-bold text-sm">Passed</span>
+                          </div>
+                        )}
+                      </div>
+                      {interaction.profile.is_premium && (
+                        <div className="absolute top-2 right-2">
+                          <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
                         </div>
                       )}
                     </div>
-                    {interaction.profile.is_premium && (
-                      <div className="absolute top-2 right-2">
-                        <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
+                    <div className="p-4 flex-1 flex flex-col">
+                      <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{interaction.profile.full_name}</h3>
+                      <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                        {interaction.profile.age && <span>{interaction.profile.age}</span>}
+                        {interaction.profile.location_city && (
+                          <>
+                            {interaction.profile.age && <span>•</span>}
+                            <MapPin className="w-3 h-3" />
+                            <span>{interaction.profile.location_city}</span>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{interaction.profile.full_name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
-                      {interaction.profile.age && <span>{interaction.profile.age}</span>}
-                      {interaction.profile.location_city && (
-                        <>
-                          {interaction.profile.age && <span>•</span>}
-                          <MapPin className="w-3 h-3" />
-                          <span>{interaction.profile.location_city}</span>
-                        </>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#706B67] mb-4">
-                      {new Date(interaction.createdAt).toLocaleDateString()}
-                    </p>
-                    <div className="flex flex-col gap-2 mt-auto">
-                      <Button 
-                        className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                        onClick={() => navigate(`/profile/${interaction.profile.id}`)}
-                      >
-                        View Profile
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
-                        onClick={async () => {
-                          try {
-                            await supabase.from('user_interactions').delete().eq('id', interaction.id);
-                            setPastInteractions(prev => prev.filter(p => p.id !== interaction.id));
-                            // Refresh matches/suggestions in case this frees the profile
-                            fetchData();
-                          } catch (e) {
-                            console.error('Failed to reset interaction', e);
-                          }
-                        }}
-                      >
-                        Reset
-                      </Button>
+                      <p className="text-xs text-[#706B67] mb-4">
+                        {new Date(interaction.createdAt).toLocaleDateString()}
+                      </p>
+                      <div className="flex flex-col gap-2 mt-auto">
+                        <Button 
+                          className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                          onClick={() => navigate(`/profile/${interaction.profile.id}`)}
+                        >
+                          View Profile
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
+                          onClick={async () => {
+                            try {
+                              await supabase.from('user_interactions').delete().eq('id', interaction.id);
+                              setPastInteractions(prev => prev.filter(p => p.id !== interaction.id));
+                              // Refresh matches/suggestions in case this frees the profile
+                              fetchData();
+                            } catch (e) {
+                              console.error('Failed to reset interaction', e);
+                            }
+                          }}
+                        >
+                          Reset
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
+                <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+                <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No past interactions</h3>
+                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                  Profiles you like or pass on will appear here. Start exploring to see your interaction history!
+                </p>
+                <Button 
+                  onClick={() => navigate('/discovery')} 
+                  className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
+                >
+                  <Search className="w-4 h-4 mr-2" /> Browse Discovery
+                </Button>
+              </div>
+            )
           ) : (
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-              <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
-              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No past interactions</h3>
+              <Crown className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
+              <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
               <p className="text-[#706B67] mb-8 max-w-md mx-auto">
-                Profiles you like or pass on will appear here. Start exploring to see your interaction history!
+                View Past Interactions is a Premium feature. Upgrade to unlock this feature and see your complete interaction history!
               </p>
-              <Button 
-                onClick={() => navigate('/discovery')} 
+              <Button
+                onClick={() => navigate('/premium')}
                 className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold px-8"
               >
-                <Search className="w-4 h-4 mr-2" /> Browse Discovery
+                <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
               </Button>
             </div>
           )
         ) : matches.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {matches.map(match => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {matches.map(match => (
               <div 
                 key={match.conversationId} 
                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
               >
-                <div className="aspect-square bg-slate-100 relative">
-                  {match.photos?.[0] ? (
+                        <div className="aspect-square bg-slate-100 relative">
+                            {match.photos?.[0] ? (
                     <img 
                       src={match.photos[0]} 
                       alt={match.full_name} 
                       className="w-full h-full object-cover" 
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-300">
                       <User className="w-16 h-16" />
-                    </div>
-                  )}
+                                </div>
+                            )}
                   <div className="absolute top-2 left-2">
                     <Badge className="bg-green-600 text-white">Matched</Badge>
                   </div>
                   {match.is_premium && (
                     <div className="absolute top-2 right-2">
                       <Crown className="w-5 h-5 text-[#E6B450] fill-[#E6B450]" />
-                    </div>
+                            </div>
                   )}
-                </div>
-                <div className="p-4 flex-1 flex flex-col">
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col">
                   <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{match.full_name}</h3>
                   <div className="flex items-center gap-1 text-sm text-[#706B67] mb-1">
                     {match.age && <span>{match.age}</span>}
@@ -881,17 +899,17 @@ const MatchesPage = () => {
                       </>
                     )}
                   </div>
-                  
-                  <Button 
+                            
+                            <Button 
                     className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                    onClick={() => navigate(`/chat/${match.conversationId}`)}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" /> Message
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+                                onClick={() => navigate(`/chat/${match.conversationId}`)}
+                            >
+                                <MessageSquare className="w-4 h-4 mr-2" /> Message
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         ) : (
           <div className="space-y-6">
             {/* Empty State */}

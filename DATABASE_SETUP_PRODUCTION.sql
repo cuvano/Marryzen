@@ -782,6 +782,257 @@ USING (
 );
 
 -- ============================================
+-- NOTIFICATIONS SYSTEM
+-- ============================================
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('new_match', 'new_message', 'intro_request', 'profile_approved', 'profile_rejected', 'referral_reward')),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  email_sent BOOLEAN DEFAULT FALSE,
+  email_sent_at TIMESTAMPTZ
+);
+
+-- Create user_preferences table for notification settings
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  notification_settings JSONB DEFAULT '{
+    "email_enabled": true,
+    "push_enabled": true,
+    "email_match": true,
+    "email_message": true,
+    "email_intro": true,
+    "email_profile": true,
+    "email_reward": true
+  }',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Indexes for notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_email_sent ON notifications(email_sent) WHERE email_sent = false;
+
+-- RLS Policies for notifications
+DROP POLICY IF EXISTS "Users can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON notifications;
+DROP POLICY IF EXISTS "System can create notifications" ON notifications;
+
+CREATE POLICY "Users can view their own notifications"
+ON notifications
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own notifications"
+ON notifications
+FOR UPDATE
+TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "System can create notifications"
+ON notifications
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- RLS Policies for user_preferences
+DROP POLICY IF EXISTS "Users can view their own preferences" ON user_preferences;
+DROP POLICY IF EXISTS "Users can update their own preferences" ON user_preferences;
+
+CREATE POLICY "Users can view their own preferences"
+ON user_preferences
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own preferences"
+ON user_preferences
+FOR ALL
+TO authenticated
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- Trigger Functions to automatically create notifications
+
+-- Function: Create notification when a match is created (mutual like)
+CREATE OR REPLACE FUNCTION notify_new_match()
+RETURNS TRIGGER AS $$
+DECLARE
+  user1_id UUID;
+  user2_id UUID;
+  user1_name TEXT;
+  user2_name TEXT;
+BEGIN
+  user1_id := NEW.user1_id;
+  user2_id := NEW.user2_id;
+  
+  SELECT full_name INTO user1_name FROM profiles WHERE id = user1_id;
+  SELECT full_name INTO user2_name FROM profiles WHERE id = user2_id;
+  
+  INSERT INTO notifications (user_id, type, title, body, metadata)
+  VALUES (
+    user1_id,
+    'new_match',
+    'New Match! 🎉',
+    COALESCE(user2_name, 'Someone') || ' liked you back! Start a conversation.',
+    jsonb_build_object('conversation_id', NEW.id, 'matched_user_id', user2_id)
+  );
+  
+  INSERT INTO notifications (user_id, type, title, body, metadata)
+  VALUES (
+    user2_id,
+    'new_match',
+    'New Match! 🎉',
+    COALESCE(user1_name, 'Someone') || ' liked you back! Start a conversation.',
+    jsonb_build_object('conversation_id', NEW.id, 'matched_user_id', user1_id)
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Create notifications when conversation is created (mutual match)
+DROP TRIGGER IF EXISTS trigger_notify_new_match ON conversations;
+CREATE TRIGGER trigger_notify_new_match
+AFTER INSERT ON conversations
+FOR EACH ROW
+EXECUTE FUNCTION notify_new_match();
+
+-- Function: Create notification when a new message is sent
+CREATE OR REPLACE FUNCTION notify_new_message()
+RETURNS TRIGGER AS $$
+DECLARE
+  receiver_id UUID;
+  sender_name TEXT;
+  conversation_id UUID;
+BEGIN
+  SELECT 
+    CASE 
+      WHEN NEW.sender_id = c.user1_id THEN c.user2_id
+      ELSE c.user1_id
+    END,
+    c.id
+  INTO receiver_id, conversation_id
+  FROM conversations c
+  WHERE c.id = NEW.conversation_id;
+  
+  IF receiver_id IS NULL OR receiver_id = NEW.sender_id THEN
+    RETURN NEW;
+  END IF;
+  
+  SELECT full_name INTO sender_name FROM profiles WHERE id = NEW.sender_id;
+  
+  INSERT INTO notifications (user_id, type, title, body, metadata)
+  VALUES (
+    receiver_id,
+    'new_message',
+    'New Message',
+    COALESCE(sender_name, 'Someone') || ' sent you a message: ' || LEFT(NEW.content, 50) || CASE WHEN LENGTH(NEW.content) > 50 THEN '...' ELSE '' END,
+    jsonb_build_object('conversation_id', conversation_id, 'message_id', NEW.id, 'sender_id', NEW.sender_id)
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Create notification when message is sent
+DROP TRIGGER IF EXISTS trigger_notify_new_message ON messages;
+CREATE TRIGGER trigger_notify_new_message
+AFTER INSERT ON messages
+FOR EACH ROW
+EXECUTE FUNCTION notify_new_message();
+
+-- Function: Create notification when profile status changes
+CREATE OR REPLACE FUNCTION notify_profile_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.status = NEW.status THEN
+    RETURN NEW;
+  END IF;
+  
+  IF NEW.status = 'approved' THEN
+    INSERT INTO notifications (user_id, type, title, body, metadata)
+    VALUES (
+      NEW.id,
+      'profile_approved',
+      'Profile Approved! ✅',
+      'Great news! Your profile has been approved. You can now start matching and messaging.',
+      jsonb_build_object('profile_id', NEW.id)
+    );
+  ELSIF NEW.status = 'rejected' THEN
+    INSERT INTO notifications (user_id, type, title, body, metadata)
+    VALUES (
+      NEW.id,
+      'profile_rejected',
+      'Profile Update Required',
+      'Your profile needs some updates. Please review and resubmit for approval.',
+      jsonb_build_object('profile_id', NEW.id)
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Create notification when profile status changes
+DROP TRIGGER IF EXISTS trigger_notify_profile_status ON profiles;
+CREATE TRIGGER trigger_notify_profile_status
+AFTER UPDATE OF status ON profiles
+FOR EACH ROW
+WHEN (OLD.status IS DISTINCT FROM NEW.status)
+EXECUTE FUNCTION notify_profile_status_change();
+
+-- Function: Create notification when referral reward is issued
+CREATE OR REPLACE FUNCTION notify_referral_reward()
+RETURNS TRIGGER AS $$
+DECLARE
+  referrer_id UUID;
+BEGIN
+  SELECT referrer_id INTO referrer_id
+  FROM referrals
+  WHERE id = NEW.referral_id;
+  
+  IF referrer_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  
+  INSERT INTO notifications (user_id, type, title, body, metadata)
+  VALUES (
+    referrer_id,
+    'referral_reward',
+    'Referral Reward Earned! 🎁',
+    'You earned a reward for referring a friend! Check your rewards page to claim it.',
+    jsonb_build_object('reward_id', NEW.id, 'referral_id', NEW.referral_id)
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: Create notification when reward is created from referral
+DROP TRIGGER IF EXISTS trigger_notify_referral_reward ON rewards;
+CREATE TRIGGER trigger_notify_referral_reward
+AFTER INSERT ON rewards
+FOR EACH ROW
+WHEN (NEW.referral_id IS NOT NULL)
+EXECUTE FUNCTION notify_referral_reward();
+
+-- ============================================
 -- SETUP COMPLETE
 -- ============================================
 -- Your database is now configured for production with:
@@ -796,6 +1047,8 @@ USING (
 -- ✅ Server-side message limit enforcement (10/day for free users, unlimited for premium)
 -- ✅ Server-side like limit enforcement (10/day for free users, unlimited for premium)
 -- ✅ Support tickets system (support_tickets table)
+-- ✅ Notifications system (notifications table with automatic triggers)
+-- ✅ User preferences for notification settings
 -- 
 -- Column Checklist:
 -- ✅ occupation (Job/Profession)
