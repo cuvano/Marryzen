@@ -143,6 +143,8 @@ serve(async (req) => {
       'intro_request': settings.email_intro,
       'profile_approved': settings.email_profile,
       'profile_rejected': settings.email_profile,
+      'profile_suspended': settings.email_profile,
+      'profile_banned': settings.email_profile,
       'referral_reward': settings.email_reward
     }[type]
 
@@ -280,6 +282,8 @@ function getEmailBody(type: string, title: string, body: string, metadata: any, 
       break
     case 'profile_approved':
     case 'profile_rejected':
+    case 'profile_suspended':
+    case 'profile_banned':
       actionUrl = `${baseUrl}/profile`
       actionButton = '<a href="' + actionUrl + '" style="display: inline-block; background-color: #E6B450; color: #1F1F1F; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px;">View Profile</a>'
       break

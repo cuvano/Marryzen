@@ -5,7 +5,21 @@
  * Score >= 0.5 is typically considered human, < 0.5 is likely a bot
  */
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+// Note: reCAPTCHA v3 site key is public (safe to expose in frontend).
+// Support a couple common env var names to reduce deployment misconfig issues.
+export const RECAPTCHA_SITE_KEY =
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+  import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY ||
+  '';
+
+export const isRecaptchaEnabled = Boolean(RECAPTCHA_SITE_KEY);
+
+let warnedNoKey = false;
+const warnNoKeyOnce = () => {
+  if (warnedNoKey) return;
+  warnedNoKey = true;
+  console.warn('reCAPTCHA site key not configured. CAPTCHA will be skipped.');
+};
 
 /**
  * Load reCAPTCHA v3 script dynamically
@@ -18,8 +32,8 @@ export const loadRecaptcha = () => {
     }
 
     if (!RECAPTCHA_SITE_KEY) {
-      console.warn('reCAPTCHA site key not configured. CAPTCHA will be skipped.');
-      resolve(); // Allow app to continue without CAPTCHA in dev
+      warnNoKeyOnce();
+      resolve(); // Allow app to continue without CAPTCHA when not configured
       return;
     }
 
@@ -52,7 +66,7 @@ export const loadRecaptcha = () => {
  */
 export const executeRecaptcha = async (action = 'submit') => {
   if (!RECAPTCHA_SITE_KEY) {
-    console.warn('reCAPTCHA not configured, returning empty token');
+    warnNoKeyOnce();
     return '';
   }
 

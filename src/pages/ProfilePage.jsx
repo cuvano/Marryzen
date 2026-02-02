@@ -733,8 +733,8 @@ const ProfilePage = () => {
                       You signed up using a referral code from <strong className="text-[#1F1F1F]">{referralInfo.referrerName}</strong>
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[#706B67]">Referral Code:</span>
-                      <span className="text-sm font-mono text-[#706B67] bg-[#FAF7F2] px-2 py-1 rounded border border-[#E6DCD2]">
+                      <span className="text-sm text-[#706B67]">Referral Code Used:</span>
+                      <span className="text-sm font-mono text-[#706B67]/60 bg-[#FAF7F2] px-3 py-1.5 rounded border border-[#E6DCD2] opacity-75 select-none">
                         {referralInfo.referralCode}
                       </span>
                     </div>

@@ -987,6 +987,24 @@ BEGIN
       'Your profile needs some updates. Please review and resubmit for approval.',
       jsonb_build_object('profile_id', NEW.id)
     );
+  ELSIF NEW.status = 'suspended' THEN
+    INSERT INTO notifications (user_id, type, title, body, metadata)
+    VALUES (
+      NEW.id,
+      'profile_suspended',
+      'Profile Suspended ⚠️',
+      'Your profile has been temporarily suspended. Please contact support for assistance.',
+      jsonb_build_object('profile_id', NEW.id)
+    );
+  ELSIF NEW.status = 'banned' THEN
+    INSERT INTO notifications (user_id, type, title, body, metadata)
+    VALUES (
+      NEW.id,
+      'profile_banned',
+      'Account Banned 🚫',
+      'Your account has been banned. Please contact support if you believe this is an error.',
+      jsonb_build_object('profile_id', NEW.id)
+    );
   END IF;
   
   RETURN NEW;

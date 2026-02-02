@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { isRecaptchaEnabled } from '@/lib/recaptcha';
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -323,16 +324,32 @@ const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) =>
           </div>
         )}
         
-        {/* Privacy/security notice - shows that protection is active */}
-        <div className="text-xs text-[#706B67] text-center pt-2 pb-2 flex items-center justify-center gap-1">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-          </svg>
-          <span>Protected by reCAPTCHA Privacy</span>
-          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#E6B450] hover:underline">Terms</a>
-          <span>•</span>
-          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="text-[#E6B450] hover:underline">Privacy</a>
-        </div>
+        {/* Privacy/security notice - only show when reCAPTCHA is actually enabled */}
+        {isRecaptchaEnabled && (
+          <div className="text-xs text-[#706B67] text-center pt-2 pb-2 flex items-center justify-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            <span>Protected by reCAPTCHA</span>
+            <a
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#E6B450] hover:underline"
+            >
+              Privacy
+            </a>
+            <span>•</span>
+            <a
+              href="https://policies.google.com/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#E6B450] hover:underline"
+            >
+              Terms
+            </a>
+          </div>
+        )}
       </div>
 
       <p className="text-[#706B67] text-sm text-center pt-4 font-medium">

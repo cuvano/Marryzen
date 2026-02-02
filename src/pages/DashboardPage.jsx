@@ -31,6 +31,7 @@ const DashboardPage = () => {
     introductionsSent: 0,
     profileInterest: 0
   });
+  const [referralInfo, setReferralInfo] = useState(null);
 
   useEffect(() => {
     // Check if status banner was dismissed or if it was already shown once

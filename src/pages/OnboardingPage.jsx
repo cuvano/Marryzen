@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { executeRecaptcha } from '@/lib/recaptcha';
+import { executeRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 import Step1 from '@/components/onboarding/Step1';
@@ -264,32 +264,37 @@ const OnboardingPage = () => {
           // Only execute reCAPTCHA for new signups (not for authenticated users editing their profile)
           let recaptchaTokenValue = '';
           if (!userId) {
-            // Execute reCAPTCHA v3 only for new signups
-            try {
-              recaptchaTokenValue = await executeRecaptcha('signup');
-              
-              // If token is empty and we're in production, show error
-              if (!recaptchaTokenValue && import.meta.env.PROD) {
-                toast({ 
-                  title: "Security Check Failed", 
-                  description: "Unable to verify your request. Please refresh the page and try again.",
-                  variant: "destructive" 
-                });
-                setIsLoading(false);
-                return;
+            // Execute reCAPTCHA v3 only when configured.
+            // If not configured, we skip it (signup should not hard-fail due to missing config).
+            if (isRecaptchaEnabled) {
+              try {
+                recaptchaTokenValue = await executeRecaptcha('signup');
+
+                // If token is empty and we're in production (with reCAPTCHA enabled), show error
+                if (!recaptchaTokenValue && import.meta.env.PROD) {
+                  toast({
+                    title: "Security Check Failed",
+                    description: "Unable to verify your request. Please refresh the page and try again.",
+                    variant: "destructive"
+                  });
+                  setIsLoading(false);
+                  return;
+                }
+              } catch (error) {
+                console.error('reCAPTCHA error:', error);
+                if (import.meta.env.PROD) {
+                  toast({
+                    title: "Security Check Failed",
+                    description: "Unable to verify your request. Please try again.",
+                    variant: "destructive"
+                  });
+                  setIsLoading(false);
+                  return;
+                }
               }
-            } catch (error) {
-              console.error('reCAPTCHA error:', error);
-              // In development, allow signup to continue
-              if (import.meta.env.PROD) {
-                toast({ 
-                  title: "Security Check Failed", 
-                  description: "Unable to verify your request. Please try again.",
-                  variant: "destructive" 
-                });
-                setIsLoading(false);
-                return;
-              }
+            } else if (import.meta.env.PROD) {
+              // Keep this as a soft warning in production so onboarding doesn't break for end-users.
+              console.warn('reCAPTCHA is not configured in production. Set VITE_RECAPTCHA_SITE_KEY to enable it.');
             }
           }
 

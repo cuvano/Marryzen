@@ -171,3 +171,33 @@ export async function notifyReferralReward(userId, rewardId, referralId) {
     }
   });
 }
+
+/**
+ * Helper function to create a profile suspension notification
+ */
+export async function notifyProfileSuspended(userId) {
+  return createNotification({
+    user_id: userId,
+    type: 'profile_suspended',
+    title: 'Profile Suspended ⚠️',
+    body: 'Your profile has been temporarily suspended. Please contact support for assistance.',
+    metadata: {
+      profile_id: userId
+    }
+  });
+}
+
+/**
+ * Helper function to create a profile ban notification
+ */
+export async function notifyProfileBanned(userId) {
+  return createNotification({
+    user_id: userId,
+    type: 'profile_banned',
+    title: 'Account Banned 🚫',
+    body: 'Your account has been banned. Please contact support if you believe this is an error.',
+    metadata: {
+      profile_id: userId
+    }
+  });
+}
