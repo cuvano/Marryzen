@@ -68,6 +68,15 @@ ALTER TABLE IF EXISTS user_reports ENABLE ROW LEVEL SECURITY;
 -- ============================================
 -- PROFILES TABLE POLICIES
 -- ============================================
+-- Helper so admin policy does not depend on RLS (avoids missing rows for admins)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
+  );
+$$;
 
 -- Drop existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
@@ -108,18 +117,12 @@ USING (
   AND id != auth.uid()
 );
 
--- Policy: Admins have full access to all profiles
+-- Policy: Admins have full access to all profiles (uses SECURITY DEFINER so all rows are visible)
 CREATE POLICY "Admins have full access"
 ON profiles
 FOR ALL
 TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND role IN ('admin', 'super_admin')
-  )
-);
+USING (public.is_admin());
 
 -- ============================================
 -- CONVERSATIONS TABLE POLICIES

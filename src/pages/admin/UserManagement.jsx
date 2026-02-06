@@ -5,61 +5,87 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon, XCircle } from 'lucide-react';
+import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
+// Display page size; fetch uses smaller batches to work around API caps
+const PAGE_SIZE = 30;
+const FETCH_BATCH = 25;
+
 const UserManagement = () => {
   const { toast } = useToast();
-  const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentAdminRole, setCurrentAdminRole] = useState(null);
+  const [page, setPage] = useState(1);
 
-  const fetchUsers = async () => {
+  const totalCount = allUsers.length;
+  const users = allUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const buildBaseQuery = (cursorId = null) => {
+    let q = supabase.from('profiles').select('*');
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'no_status') q = q.is('status', null);
+      else q = q.eq('status', filterStatus);
+    }
+    if (searchTerm) {
+      q = q.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+    q = q.order('id', { ascending: false });
+    if (cursorId != null) q = q.lt('id', cursorId);
+    return q.limit(FETCH_BATCH);
+  };
+
+  /**
+   * Fetch all users with id-based cursor so we get every profile regardless of
+   * created_at nulls or API row cap. Deduplicate by id, then sort by created_at.
+   */
+  const fetchAllUsers = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      
-      if (filterStatus !== 'all') {
-        if (filterStatus === 'no_status') {
-          // Show users with NULL status
-          query = query.is('status', null);
-        } else {
-          query = query.eq('status', filterStatus);
-        }
-      }
-      
-      if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-      }
+      const byId = new Map();
+      let cursorId = null;
+      let chunk;
 
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching users:', error);
-        toast({ 
-          title: "Error", 
-          description: error.message || "Could not load users. Check console for details.", 
-          variant: "destructive" 
-        });
-        setUsers([]);
-      } else {
-        console.log(`Fetched ${data?.length || 0} users`);
-        setUsers(data || []);
-      }
+      do {
+        const { data, error } = await buildBaseQuery(cursorId);
+
+        if (error) {
+          console.error('Error fetching users:', error);
+          toast({
+            title: "Error",
+            description: error.message || "Could not load users.",
+            variant: "destructive"
+          });
+          setAllUsers([]);
+          return;
+        }
+
+        chunk = data || [];
+        chunk.forEach((row) => byId.set(row.id, row));
+        if (chunk.length > 0) cursorId = chunk[chunk.length - 1].id;
+      } while (chunk.length > 0);
+
+      const accumulated = Array.from(byId.values()).sort((a, b) => {
+        const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return tb - ta;
+      });
+      setAllUsers(accumulated);
     } catch (err) {
       console.error('Unexpected error fetching users:', err);
-      toast({ 
-        title: "Error", 
-        description: "An unexpected error occurred while loading users.", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while loading users.",
+        variant: "destructive"
       });
-      setUsers([]);
+      setAllUsers([]);
     } finally {
       setLoading(false);
     }
@@ -67,7 +93,13 @@ const UserManagement = () => {
 
   useEffect(() => {
     checkAdminRole();
-    const debounce = setTimeout(fetchUsers, 500);
+  }, []);
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      setPage(1);
+      fetchAllUsers();
+    }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm, filterStatus]);
 
@@ -96,7 +128,7 @@ const UserManagement = () => {
 
     // Regular admins cannot change status of admins or super admins
     if (currentAdminRole !== 'super_admin' && updates.status) {
-      const targetUser = users.find(u => u.id === id);
+      const targetUser = allUsers.find(u => u.id === id);
       const targetRole = targetUser?.role?.toLowerCase();
       
       if (targetRole === 'admin' || targetRole === 'super_admin') {
@@ -114,7 +146,7 @@ const UserManagement = () => {
       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Updated Successfully", description: "User record modified." });
-      setUsers(users.map(u => u.id === id ? { ...u, ...updates } : u));
+      setAllUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
       if (selectedUser?.id === id) setSelectedUser({ ...selectedUser, ...updates });
     }
   };
@@ -383,6 +415,70 @@ const UserManagement = () => {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        {totalCount > 0 && (() => {
+          const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+          const from = (page - 1) * PAGE_SIZE + 1;
+          const to = Math.min(page * PAGE_SIZE, totalCount);
+          const getPageNumbers = () => {
+            if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+            if (page <= 4) return [1, 2, 3, 4, 5, '...', totalPages];
+            if (page >= totalPages - 3) {
+              const start = Math.max(1, totalPages - 4);
+              if (start <= 1) return Array.from({ length: totalPages }, (_, i) => i + 1);
+              return [1, '...', ...Array.from({ length: totalPages - start + 1 }, (_, i) => start + i)];
+            }
+            return [1, '...', page - 1, page, page + 1, '...', totalPages];
+          };
+          const pages = getPageNumbers();
+          return (
+            <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-t border-slate-800 bg-slate-950/50">
+              <p className="text-sm text-slate-400">
+                Showing <span className="font-medium text-slate-300">{from}</span>&ndash;<span className="font-medium text-slate-300">{to}</span> of <span className="font-medium text-slate-300">{totalCount}</span> users
+              </p>
+              <nav className="flex items-center gap-1" aria-label="Pagination">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 min-w-[2rem] border-slate-500 bg-slate-800/80 text-slate-100 hover:bg-slate-600 hover:border-slate-400 hover:text-white disabled:opacity-40 disabled:bg-slate-800/50 disabled:border-slate-600"
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                {pages.map((p, i) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-slate-500">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant="outline"
+                      size="sm"
+                      className={`h-9 min-w-[2.25rem] rounded-md ${
+                        p === page
+                          ? 'border-amber-500/60 bg-amber-500/20 text-amber-400 font-semibold'
+                          : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'
+                      }`}
+                      disabled={loading}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 min-w-[2rem] border-slate-500 bg-slate-800/80 text-slate-100 hover:bg-slate-600 hover:border-slate-400 hover:text-white disabled:opacity-40 disabled:bg-slate-800/50 disabled:border-slate-600"
+                  disabled={page >= totalPages || loading}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </nav>
+            </div>
+          );
+        })()}
       </Card>
     </div>
   );
