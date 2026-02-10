@@ -53,17 +53,17 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
               return (
                 <div
                   key={culture}
-                  className={`p-4 rounded-xl cursor-pointer transition-all text-center border text-sm font-medium flex items-center justify-center gap-3 ${
+                  className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 ${
                     isSelected
                       ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md'
                       : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72]'
                   }`}
                   onClick={() => handleCultureToggle(culture)}
                 >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
+                  <div className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
                     {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
-                  {culture}
+                  <span className="text-left">{culture}</span>
                 </div>
               );
             })}
@@ -280,10 +280,10 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
                             }`}
                             onClick={() => updateFormData('faithLifestyle', option)}
                         >
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
+                            <div className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
                                 {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                             </div>
-                            {option}
+                            <span className="text-left">{option}</span>
                         </div>
                     )
                 })}
@@ -325,16 +325,16 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
         
         <div>
           <Label className="text-[#333333] font-semibold text-base mb-4 block">What Matters Most To You? (Select all that apply):</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {coreValues.map((value) => (
-              <div key={value} className={`flex items-center space-x-3 p-3 rounded-xl transition-colors ${formData.coreValues?.includes(value) ? 'bg-[#FAF7F2] border border-[#E6DCD2]' : 'bg-white border border-transparent hover:bg-[#FAF7F2]'}`}>
+              <div key={value} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${formData.coreValues?.includes(value) ? 'bg-[#FAF7F2] border border-[#E6DCD2]' : 'bg-white border border-transparent hover:bg-[#FAF7F2]'}`}>
                 <Checkbox
                   id={value}
                   checked={formData.coreValues?.includes(value)}
                   onCheckedChange={() => handleValueToggle(value)}
-                  className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] w-5 h-5"
+                  className="shrink-0 border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] w-5 h-5"
                 />
-                <Label htmlFor={value} className="text-[#1F1F1F] text-sm font-medium cursor-pointer">
+                <Label htmlFor={value} className="text-[#1F1F1F] text-sm font-medium cursor-pointer text-left flex-1">
                   {value}
                 </Label>
               </div>

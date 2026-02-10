@@ -164,6 +164,11 @@ const OnboardingPage = () => {
     initSession();
   }, [navigate]);
 
+  // Scroll to top whenever the step changes (e.g. after Continue or Back)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   const cultures = [
     'African American / Black', 'Asian', 'East Asian', 'South Asian', 'Australian', 'Central & Southern African', 
     'European / White', 'Hispanic', 'Latin American', 'Middle Eastern', 

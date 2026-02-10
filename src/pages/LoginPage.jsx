@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,7 +137,7 @@ const LoginPage = () => {
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="password">Password</Label>
-                    <a href="#" className="text-xs text-[#C85A72] font-medium hover:underline">Forgot password?</a>
+                    <Link to="/forgot-password" className="text-xs text-[#C85A72] font-medium hover:underline">Forgot password?</Link>
                 </div>
                 <Input 
                     id="password" 
