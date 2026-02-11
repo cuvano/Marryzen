@@ -16,8 +16,10 @@ const ForgotPasswordPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        // Use production site URL in reset link so email points to live site (e.g. marryzen.com), not localhost
+        const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `${baseUrl}/reset-password`,
         });
 
         setLoading(false);
