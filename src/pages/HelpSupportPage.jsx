@@ -76,7 +76,15 @@ const HelpSupportPage = () => {
       });
 
       if (error) {
-        throw error;
+        const serverMessage = data?.error || error.message;
+        const friendlyMessage = serverMessage?.includes('create support ticket')
+          ? "We couldn't save your request right now. Please try again in a moment or email us at support@marryzen.com."
+          : (serverMessage || "Something went wrong. Please try again later or email support@marryzen.com.");
+        throw new Error(friendlyMessage);
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       const responseTime = isPremium 

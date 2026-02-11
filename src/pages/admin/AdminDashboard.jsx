@@ -90,7 +90,7 @@ const AdminDashboard = () => {
         {/* Recent Signups */}
         <Card className="bg-slate-900 border-slate-800 text-slate-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg">Recent Signups</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Recent Signups</CardTitle>
             <Button variant="link" onClick={() => navigate('/admin/users')} className="text-purple-400 text-sm">View All</Button>
           </CardHeader>
           <CardContent>
@@ -106,7 +106,7 @@ const AdminDashboard = () => {
                       user.status === 'approved' ? 'bg-green-900 text-green-300' :
                       user.status === 'pending_review' ? 'bg-yellow-900 text-yellow-300' : 'bg-red-900 text-red-300'
                     }`}>
-                      {user.status}
+                      {user.status ? (user.status.charAt(0).toUpperCase() + user.status.slice(1).replace(/_/g, ' ')) : ''}
                     </span>
                     <span className="text-xs text-slate-500 mt-1">{new Date(user.created_at).toLocaleDateString()}</span>
                   </div>
@@ -119,7 +119,7 @@ const AdminDashboard = () => {
         {/* Recent Reports */}
         <Card className="bg-slate-900 border-slate-800 text-slate-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg">Open Reports</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Open Reports</CardTitle>
             <Button variant="link" onClick={() => navigate('/admin/reports')} className="text-purple-400 text-sm">View All</Button>
           </CardHeader>
           <CardContent>
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
                       By: {report.reporter?.full_name || 'Unknown'}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-slate-700 h-7 text-xs" onClick={() => navigate('/admin/reports')}>Review</Button>
+                  <Button size="sm" variant="outline" className="border-slate-500 bg-slate-800/50 text-slate-200 hover:bg-slate-700 hover:text-white h-7 text-xs shrink-0" onClick={() => navigate('/admin/reports')}>Review</Button>
                 </div>
               )) : (
                 <div className="text-center py-8 text-slate-500">No open reports.</div>

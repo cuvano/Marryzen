@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin, Eye, Star } from 'lucide-react';
+import { getPotentialMatchesCount } from '@/lib/matchStats';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Footer from '@/components/Footer';
@@ -16,6 +17,7 @@ const MatchesPage = () => {
   const [likesReceived, setLikesReceived] = useState([]);
   const [profileViews, setProfileViews] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [potentialMatchesCount, setPotentialMatchesCount] = useState(null);
   const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views' | 'favorites'
   const navigate = useNavigate();
 
@@ -25,7 +27,8 @@ const MatchesPage = () => {
     fetchLikesReceived();
     fetchProfileViews();
     fetchFavorites();
-    
+    fetchPotentialMatchesCount();
+
     // Check URL for tab parameter
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
@@ -148,6 +151,17 @@ const MatchesPage = () => {
       setSuggestedProfiles(suggested);
     } catch (error) {
       console.error('Error fetching suggested profiles:', error);
+    }
+  };
+
+  const fetchPotentialMatchesCount = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const count = await getPotentialMatchesCount(supabase, user.id);
+      setPotentialMatchesCount(count);
+    } catch (error) {
+      console.error('Error fetching potential matches count:', error);
     }
   };
 
@@ -419,7 +433,11 @@ const MatchesPage = () => {
                   : "These are profiles who have liked you back. Start a conversation!")
               : "View profiles you've liked or passed on."}
           </p>
-          
+          {potentialMatchesCount !== null && (
+            <p className="text-sm text-[#706B67] mb-4">
+              <span className="font-medium text-[#1F1F1F]">Potential Matches:</span> {potentialMatchesCount}
+            </p>
+          )}
           {/* Tabs */}
           <div className="flex gap-2 border-b border-[#E6DCD2]">
             <button

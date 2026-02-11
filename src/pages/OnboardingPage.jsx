@@ -90,7 +90,14 @@ const OnboardingPage = () => {
         setSession(existingSession);
 
         if (existingSession?.user) {
-            // Fetch existing profile data to resume
+            // When user opens join via referral link (?ref=), show empty form for new signup (don't pre-fill with their data)
+            const isReferralLink = !!refCode;
+            if (isReferralLink) {
+                // Leave formData as initial empty state; referral code is already set above
+                return;
+            }
+
+            // Fetch existing profile data to resume or edit
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -214,7 +221,8 @@ const OnboardingPage = () => {
     if (formData.locationCountry === 'United States' && !formData.locationState) isValid = false;
     if (formData.locationCountry !== 'United States' && !formData.locationCity) isValid = false;
     if (!formData.identifyAs) isValid = false;
-    if (!formData.seriousRelationship || !formData.agreeToTerms) isValid = false;
+    if (!formData.seriousRelationship) isValid = false;
+    if (!isEditMode && !formData.agreeToTerms) isValid = false;
     if (formData.dateOfBirth) {
         const birthDate = new Date(formData.dateOfBirth);
         const today = new Date();
@@ -685,7 +693,7 @@ const OnboardingPage = () => {
   const isStep1Valid = () => {
        const baseFields = formData.name && formData.email && 
               formData.dateOfBirth && formData.locationCountry && formData.identifyAs && 
-              formData.seriousRelationship && formData.agreeToTerms;
+              formData.seriousRelationship && (isEditMode || formData.agreeToTerms);
        
        // Password fields are only required for new signups, not when editing
        if (isEditMode) {

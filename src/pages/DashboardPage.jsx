@@ -14,6 +14,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
+import { getPotentialMatchesCount } from '@/lib/matchStats';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -174,32 +175,8 @@ const DashboardPage = () => {
 
   const fetchRealStats = async (userId, profile) => {
     try {
-      // 1. Potential Matches: Count of approved profiles user hasn't interacted with
-      const { data: interactions } = await supabase
-        .from('user_interactions')
-        .select('target_user_id')
-        .eq('user_id', userId);
-      
-      const { data: blocked } = await supabase
-        .from('user_blocks')
-        .select('blocked_user_id')
-        .eq('blocker_id', userId);
-
-      const excludeIds = new Set([
-        userId,
-        ...(interactions?.map(i => i.target_user_id) || []),
-        ...(blocked?.map(b => b.blocked_user_id) || [])
-      ]);
-
-      // Get all approved profiles, then filter client-side (more reliable)
-      const { data: allApproved, error: approvedError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('status', 'approved');
-
-      if (approvedError) throw approvedError;
-
-      const potentialMatches = (allApproved || []).filter(p => !excludeIds.has(p.id)).length;
+      // 1. Potential Matches: shared count used on Dashboard and My Matches
+      const potentialMatches = await getPotentialMatchesCount(supabase, userId);
 
       // 2. Conversations: Count of conversations where user is participant
       const { count: conversations } = await supabase

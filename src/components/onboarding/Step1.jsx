@@ -304,17 +304,19 @@ const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) =>
             </Label>
           </div>
 
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              id="agreeToTerms"
-              checked={formData.agreeToTerms}
-              onCheckedChange={(checked) => updateFormData('agreeToTerms', checked)}
-              className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] mt-1"
-            />
-            <Label htmlFor="agreeToTerms" className="text-[#1F1F1F] text-sm leading-relaxed cursor-pointer font-medium">
-              I agree to the <Link to="/terms" className="text-[#E6B450] hover:underline" target="_blank">Terms of Service</Link>, <Link to="/privacy" className="text-[#E6B450] hover:underline" target="_blank">Privacy Policy</Link>, and <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link> of Marryzen.
-            </Label>
-          </div>
+          {!isEditMode && (
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="agreeToTerms"
+                checked={formData.agreeToTerms}
+                onCheckedChange={(checked) => updateFormData('agreeToTerms', checked)}
+                className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] mt-1"
+              />
+              <Label htmlFor="agreeToTerms" className="text-[#1F1F1F] text-sm leading-relaxed cursor-pointer font-medium">
+                I agree to the <Link to="/terms" className="text-[#E6B450] hover:underline" target="_blank">Terms of Service</Link>, <Link to="/privacy" className="text-[#E6B450] hover:underline" target="_blank">Privacy Policy</Link>, and <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link> of Marryzen.
+              </Label>
+            </div>
+          )}
         </div>
 
         {/* reCAPTCHA v3 runs invisibly in the background */}
