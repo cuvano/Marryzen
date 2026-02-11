@@ -14,6 +14,7 @@ import OnboardingPage from '@/pages/OnboardingPage';
 import LoginPage from '@/pages/LoginPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import AuthVerifyPage from '@/pages/AuthVerifyPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 
 // Authenticated Pages
@@ -72,6 +73,7 @@ function App() {
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                       <Route path="/reset-password" element={<ResetPasswordPage />} />
+                      <Route path="/auth/verify" element={<AuthVerifyPage />} />
                       <Route path="/join" element={<OnboardingPage />} />
                       <Route path="/onboarding" element={<OnboardingPage />} />
                       
