@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +17,13 @@ import {
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import ReportUserModal from '@/components/ReportUserModal';
+
+const Row = ({ label, value }) => (
+  <div className="flex justify-between gap-4">
+    <span className="text-sm text-[#666]">{label}</span>
+    <span className="text-sm text-[#111] text-right font-medium">{value}</span>
+  </div>
+);
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -41,6 +48,7 @@ const ProfilePage = () => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [referralInfo, setReferralInfo] = useState(null);
+  const profilePhotoInputRef = useRef(null);
 
   const isOwnProfile = !userId;
 
@@ -482,577 +490,354 @@ const ProfilePage = () => {
   const completeness = calculateCompleteness();
   const checklist = getCompletenessChecklist();
 
+  // Trait chips for hero (scannable like Hinge/Bumble)
+  const traitChips = [
+    ...(profile.religious_affiliation ? [{ label: profile.religious_affiliation, icon: Heart }] : []),
+    ...(profile.relationship_goal ? [{ label: profile.relationship_goal, icon: Target }] : []),
+    ...(profile.family_goals ? [{ label: profile.family_goals, icon: Home }] : []),
+    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' · '), icon: Languages }] : []),
+  ].slice(0, 4);
+
   return (
-    <div className="min-h-screen bg-[#FAF7F2]">
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* Back button for viewing other profiles */}
-        {!isOwnProfile && (
-          <div className="mb-4">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(-1)}
-              className="bg-white"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+    <div className="min-h-screen bg-[#F5F5F3]">
+      {/* Top bar — full width, content aligned */}
+      <div className="w-full border-b border-[#E8E6E4] bg-white/95 backdrop-blur-sm sticky top-0 z-20">
+        <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-4 flex items-center justify-between">
+          {!isOwnProfile ? (
+            <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-[#555] hover:text-[#111] text-sm font-medium transition-colors py-2 px-1 rounded-lg hover:bg-[#F0EFEC]">
+              <ArrowLeft className="w-5 h-5" />
               Back
-            </Button>
+            </button>
+          ) : (
+            <div />
+          )}
+          {isOwnProfile && (
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setIsPreviewMode(!isPreviewMode)} className="text-sm font-medium text-[#555] hover:text-[#111] py-2.5 px-4 rounded-lg hover:bg-[#F0EFEC] border border-[#E8E6E4]">
+                {isPreviewMode ? 'Exit preview' : 'Preview'}
+              </button>
+              <button type="button" onClick={() => navigate('/onboarding')} className="text-sm font-semibold text-white bg-[#1a1a1a] hover:bg-[#333] py-2.5 px-5 rounded-lg transition-colors">
+                Edit profile
+              </button>
+            </div>
+          )}
+          {!isOwnProfile && (
+            <button type="button" onClick={() => setIsReportModalOpen(true)} className="text-sm font-medium text-[#C53030] hover:text-[#9B2C2C] transition-colors py-2 px-1">
+              Report
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Full-width hero — edge to edge cover, content in wide container */}
+      <div className="w-full bg-[#E8E6E4]">
+        <div className="relative h-[280px] sm:h-[320px] lg:h-[380px] w-full overflow-hidden group">
+          {profile.cover_photo ? (
+            <img src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E0DDD9] to-[#D4D1CC]" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          {isOwnProfile && !isPreviewMode && (
+            <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
+              <span className="bg-white text-[#111] px-5 py-2.5 rounded-lg text-sm font-medium shadow-lg">
+                {profile.cover_photo ? 'Change cover' : 'Add cover photo'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleCoverPhotoSelect} />
+            </label>
+          )}
+          {isOwnProfile && !isPreviewMode && !profile.is_premium && (
+            <button type="button" onClick={() => navigate('/premium')} className="absolute top-6 right-6 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg">
+              Go Premium
+            </button>
+          )}
+        </div>
+        {/* Hero content — avatar + name in wide container */}
+        <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
+          <div className="relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row sm:items-end gap-6 pb-8">
+            <div className="relative shrink-0">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl bg-[#E8E6E4] overflow-hidden">
+                {mainPhoto ? (
+                  <img src={mainPhoto} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.remove('hidden'); }} />
+                ) : null}
+                {!mainPhoto && <User className="w-full h-full p-10 text-[#AAA]" />}
+              </div>
+              {profile.is_premium && (
+                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white p-2 rounded-full border-2 border-white shadow-lg">
+                  <Crown size={16} />
+                </div>
+              )}
+              {profile.is_verified && (
+                <div className="absolute top-0 right-0 bg-emerald-500 text-white p-2 rounded-full border-2 border-white shadow-lg">
+                  <ShieldCheck size={14} />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight drop-shadow-lg">
+                {profile.full_name}, {age}
+              </h1>
+              <p className="text-white/90 text-base sm:text-lg mt-1 flex items-center gap-2 drop-shadow">
+                <MapPin size={18} className="shrink-0" />
+                {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
+              </p>
+              {traitChips.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {traitChips.map((t, i) => (
+                    <span key={i} className="inline-block px-3 py-1.5 rounded-full bg-white/20 backdrop-blur text-white text-sm font-medium border border-white/30">
+                      {t.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        
-        {/* Header with Edit/Preview buttons */}
-        {isOwnProfile && (
-          <div className="flex justify-end gap-2 mb-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className="bg-white"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              {isPreviewMode ? 'Edit Mode' : 'Preview Profile'}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/onboarding')}
-              className="bg-white"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
-            </Button>
+        </div>
+      </div>
+
+      {/* Wide content area — two columns on large screens */}
+      <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-8 lg:py-10">
+        {/* Profile strength — full width strip when incomplete */}
+        {isOwnProfile && !isPreviewMode && completeness < 100 && (
+          <div className="mb-8 rounded-xl bg-white border border-[#E8E6E4] px-6 py-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-[15px] text-[#333]">
+                Profile strength: <strong>{completeness}%</strong> — {checklist.filter(c => !c.completed).length} items to complete
+              </p>
+              <Progress value={completeness} className="h-2 w-48 rounded-full" />
+            </div>
           </div>
         )}
 
-        {/* Profile Completeness Card - Only show if not 100% */}
-        {isOwnProfile && !isPreviewMode && completeness < 100 && (
-          <Card className="mb-6 border-[#E6B450] bg-[#FFFBEB]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#E6B450]" />
-                Profile Completeness
-              </CardTitle>
-              <CardDescription>Complete your profile to get better matches</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-[#1F1F1F]">{completeness}% Complete</span>
-                  <span className="text-xs text-[#706B67]">{checklist.filter(c => c.completed).length} / {checklist.length} items</span>
-                </div>
-                <Progress value={completeness} className="h-2" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          {/* Left column — Photos + Account status */}
+          <div className="lg:col-span-4 xl:col-span-4 space-y-6">
+            {/* Photos */}
+            <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+              <div className="px-6 py-4 border-b border-[#E8E6E4] flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#111]">Photos</h2>
+                <span className="text-sm text-[#666]">{currentPhotoCount} of {photoLimit}</span>
               </div>
-              <div className="grid md:grid-cols-2 gap-2">
-                {checklist.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm">
-                    {item.completed ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-gray-400" />
+              <div className="p-6">
+            <div className="grid grid-cols-2 gap-2">
+              {(profile.photos?.length > 0) ? (
+                profile.photos.slice(0, 6).map((p, i) => (
+                  <div key={i} className={`relative aspect-square rounded-lg overflow-hidden bg-[#E8E6E4] group ${i === 0 ? 'col-span-2' : ''}`}>
+                    <img src={p} alt="" className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.target.style.display = 'none'; }} />
+                    {isOwnProfile && !isPreviewMode && (
+                      <button type="button" onClick={() => handleRemovePhoto(i)} className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                    <span className={item.completed ? 'text-[#1F1F1F]' : 'text-[#706B67]'}>
-                      {item.label}
-                      {item.required && <span className="text-red-500 ml-1">*</span>}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 aspect-[4/3] rounded-lg border-2 border-dashed border-[#D4D2CE] flex items-center justify-center bg-[#F5F5F3]">
+                  {isOwnProfile && !isPreviewMode ? (
+                    <label className="cursor-pointer flex flex-col items-center gap-2 p-4 text-center">
+                      <Camera className="w-10 h-10 text-[#AAA]" />
+                      <span className="text-sm text-[#666]">Add main photo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                    </label>
+                  ) : (
+                    <User className="w-12 h-12 text-[#D4D2CE]" />
+                  )}
+                </div>
+              )}
+              {Array.from({ length: currentPhotoCount === 0 ? Math.max(0, photoLimit - 1) : Math.max(0, photoLimit - currentPhotoCount) }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square rounded-lg border-2 border-dashed border-[#D4D2CE] flex items-center justify-center bg-[#F5F5F3]">
+                  {isOwnProfile && !isPreviewMode && (
+                    <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center gap-1">
+                      <Upload className="w-5 h-5 text-[#AAA]" />
+                      <span className="text-[11px] text-[#666]">Add</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+                {currentPhotoCount >= photoLimit && !profile.is_premium && (
+                  <p className="mt-3 text-xs text-[#666]">Limit reached. Upgrade for more.</p>
+                )}
+                {isOwnProfile && !isPreviewMode && currentPhotoCount < photoLimit && (
+                  <>
+                    <input ref={profilePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                    <button type="button" onClick={() => profilePhotoInputRef.current?.click()} className="mt-3 w-full py-2.5 rounded-lg border border-[#E8E6E4] text-sm font-medium text-[#333] hover:bg-[#F5F5F3] transition-colors">
+                      Add photo
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+
+            {/* Account status — left column */}
+            {isOwnProfile && (
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Account status</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-[#666]">Profile</span>
+                    <span className={`text-sm font-medium ${profile.status === 'approved' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {profile.status === 'approved' ? 'Approved' : profile.status === 'pending_review' ? 'Pending' : 'Not approved'}
                     </span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Profile Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#E6DCD2] overflow-hidden mb-8">
-          <div className="h-48 bg-gradient-to-r from-[#F3E8D9] to-[#F9E7EB] relative overflow-hidden group">
-            {profile.cover_photo ? (
-              <img 
-                src={profile.cover_photo} 
-                alt="Cover" 
-                className="w-full h-full object-cover"
-              />
-            ) : null}
-            {isOwnProfile && !isPreviewMode && (
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <label className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium">
-                  <Camera className="w-4 h-4" />
-                  {profile.cover_photo ? 'Change Cover Photo' : 'Add Cover Photo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleCoverPhotoSelect}
-                  />
-                </label>
-              </div>
-            )}
-            {isOwnProfile && !isPreviewMode && !profile.is_premium && (
-              <div className="absolute top-4 right-4">
-                    <Button onClick={() => navigate('/premium')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] gap-2">
-                        <Crown size={16} /> Upgrade to Premium
-                    </Button>
-              </div>
-                 )}
-        </div>
-        <div className="px-8 pb-8">
-            <div className="relative -mt-16 mb-4 flex justify-between items-end">
-                <div className="relative">
-                     <div className="w-32 h-32 rounded-full border-4 border-white shadow-md bg-[#FAF7F2] overflow-hidden relative group">
-                  {mainPhoto ? (
-                    <img 
-                      src={mainPhoto} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover"
-                      style={{ imageRendering: 'high-quality' }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  {!mainPhoto && (
-                    <User className="w-full h-full p-6 text-[#C85A72]" />
-                  )}
-                     </div>
-                     {profile.is_premium && (
-                  <div className="absolute bottom-1 right-1 bg-[#E6B450] text-white p-1 rounded-full border-2 border-white shadow-sm">
-                             <Crown size={16} />
-                        </div>
-                     )}
-                {profile.is_verified && (
-                  <div className="absolute top-1 right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
-                    <ShieldCheck size={14} />
-                        </div>
-                     )}
-                </div>
-            </div>
-            
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                        {profile.full_name}, {age}
-                    </h1>
-                    <p className="text-[#706B67] flex items-center gap-2 mt-1">
-                  <MapPin size={16} /> {profile.location_city || 'Not set'}, {profile.location_country || 'Not set'}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {profile.is_premium && <Badge className="bg-[#E6B450] text-[#1F1F1F]">Premium Member</Badge>}
-                    {!isOwnProfile && (
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setIsReportModalOpen(true)}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                            <Flag className="w-4 h-4 mr-2" />
-                            Report
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-8">
-          {/* Left Column */}
-        <div className="space-y-6">
-            {/* Photos Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Photos</CardTitle>
-                <CardDescription>{currentPhotoCount} / {photoLimit} photos</CardDescription>
-              </CardHeader>
-                <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                        {profile.photos?.map((p, i) => (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <img 
-                        src={p} 
-                        alt={`Photo ${i + 1}`} 
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        style={{ imageRendering: 'high-quality' }}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f3f4f6" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EFailed to load%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
-                      {isOwnProfile && !isPreviewMode && (
-                        <button
-                          onClick={() => handleRemovePhoto(i)}
-                          className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg backdrop-blur-sm hover:scale-110"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {i === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent text-white text-[10px] py-1.5 px-2 text-center font-semibold">
-                          Main Photo
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {Array.from({ length: photoLimit - currentPhotoCount }).map((_, i) => (
-                    <div key={`empty-${i}`} className="aspect-square rounded-lg border-2 border-dashed border-[#E6DCD2] flex items-center justify-center bg-[#FAF7F2] hover:border-[#E6B450] transition-colors">
-                      {isOwnProfile && !isPreviewMode && (
-                        <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center gap-2">
-                          <Upload className="w-8 h-8 text-[#706B67]" />
-                          <span className="text-xs text-[#706B67]">Add Photo</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileSelect}
-                          />
-                        </label>
-                      )}
-                    </div>
-                        ))}
-                    </div>
-                    {currentPhotoCount >= photoLimit && !profile.is_premium && (
-                         <div className="bg-yellow-50 text-yellow-800 p-2 rounded text-xs flex gap-2 items-center mb-2">
-                             <AlertCircle size={14} /> Limit reached. Upgrade to add more.
-                         </div>
-                    )}
-                {isOwnProfile && !isPreviewMode && currentPhotoCount < photoLimit && (
-                  <Button variant="outline" className="w-full" onClick={() => document.querySelector('input[type="file"]')?.click()}>
-                    <Camera className="w-4 h-4 mr-2" /> Add Photo
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Referral Code Display */}
-            {isOwnProfile && referralInfo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#E6B450]" />
-                    Referral Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm text-[#706B67]">
-                      You signed up using a referral code from <strong className="text-[#1F1F1F]">{referralInfo.referrerName}</strong>
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-[#706B67]">Referral Code Used:</span>
-                      <span className="text-sm font-mono text-[#706B67]/60 bg-[#FAF7F2] px-3 py-1.5 rounded border border-[#E6DCD2] opacity-75 select-none">
-                        {referralInfo.referralCode}
-                      </span>
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      className={
-                        referralInfo.status === 'completed' 
-                          ? 'border-green-300 text-green-700' 
-                          : referralInfo.status === 'pending'
-                          ? 'border-yellow-300 text-yellow-700'
-                          : 'border-gray-300 text-gray-600'
-                      }
-                    >
-                      Status: {referralInfo.status.charAt(0).toUpperCase() + referralInfo.status.slice(1)}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Profile Approved & Identity Verification Card */}
-            {isOwnProfile && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-[#C85A72]" />
-                    Profile Approved & Identity Verification
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Profile Approved Status */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Profile Approved</span>
-                    </div>
-                    {profile.status === 'approved' ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Approved
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                        <AlertCircle className="w-3 h-3 mr-1" /> {profile.status === 'pending_review' ? 'Pending Review' : 'Not Approved'}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Identity Verified Status */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#706B67]" />
-                      <span className="text-sm text-[#1F1F1F]">Identity Verified</span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-[#666]">Identity</span>
                     {profile.identity_verification_status === 'verified' ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
-                      </Badge>
+                      <span className="text-sm font-medium text-emerald-600">Verified</span>
                     ) : profile.identity_verification_status === 'pending' ? (
-                      <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                        <AlertCircle className="w-3 h-3 mr-1" /> Pending Review
-                      </Badge>
+                      <span className="text-sm font-medium text-amber-600">Pending</span>
                     ) : profile.identity_verification_status === 'rejected' ? (
-                      <Badge variant="outline" className="border-red-300 text-red-700">
-                        <XCircle className="w-3 h-3 mr-1" /> Rejected
-                      </Badge>
+                      <span className="text-sm font-medium text-red-600">Rejected</span>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="border-gray-300 text-gray-600">
-                          Not Verified
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsSelfieDialogOpen(true)}
-                          className="text-xs"
-                        >
-                          <Camera className="w-3 h-3 mr-1" /> Verify Identity
-                        </Button>
-                      </div>
+                      <button type="button" onClick={() => setIsSelfieDialogOpen(true)} className="text-sm font-medium text-[#111] hover:underline">Verify</button>
                     )}
                   </div>
-
-                  {/* Show selfie if uploaded but pending/rejected */}
                   {(profile.identity_verification_status === 'pending' || profile.identity_verification_status === 'rejected') && profile.selfie_url && (
-                    <div className="pt-2 border-t border-[#E6DCD2]">
-                      <p className="text-xs text-[#706B67] mb-2">Your selfie submission:</p>
-                      <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-[#E6DCD2]">
-                        <img src={profile.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
+                    <div className="pt-3 border-t border-[#E8E6E4] flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#E8E6E4] shrink-0">
+                        <img src={profile.selfie_url} alt="" className="w-full h-full object-cover" />
                       </div>
-                      {profile.identity_verification_status === 'rejected' && (
-                        <p className="text-xs text-red-600 mt-2">
-                          Your verification was rejected. Please submit a new selfie.
-                        </p>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsSelfieDialogOpen(true)}
-                        className="mt-2 text-xs"
-                      >
-                        <Camera className="w-3 h-3 mr-1" /> Resubmit
-                      </Button>
+                      <div className="min-w-0">
+                        <p className="text-xs text-[#666]">{profile.identity_verification_status === 'rejected' ? 'Rejected.' : 'Under review.'}</p>
+                        <button type="button" onClick={() => setIsSelfieDialogOpen(true)} className="text-xs font-medium text-[#111] hover:underline mt-0.5">
+                          {profile.identity_verification_status === 'rejected' ? 'Resubmit' : 'View'}
+                        </button>
+                      </div>
                     </div>
                   )}
-                </CardContent>
-            </Card>
-            )}
-        </div>
-
-          {/* Right Column */}
-        <div className="md:col-span-2 space-y-6">
-            {/* About Me Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>About Me</CardTitle>
-                  {isOwnProfile && !isPreviewMode && (
-                    <Button variant="ghost" size="sm" onClick={() => setIsBioDialogOpen(true)}>
-                      <Edit className="w-4 h-4 mr-2" /> {profile.bio ? 'Edit' : 'Add'} Bio
-                    </Button>
+                  {referralInfo && (
+                    <div className="border-t border-[#E8E6E4] pt-3">
+                      <p className="text-xs text-[#666]">Referred by <strong className="text-[#111]">{referralInfo.referrerName}</strong></p>
+                      <p className="text-xs text-[#666] mt-0.5 font-mono">{referralInfo.referralCode}</p>
+                    </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
+              </section>
+            )}
+          </div>
+
+          {/* Right column — About + details (wider) */}
+          <div className="lg:col-span-8 xl:col-span-8 space-y-6">
+            <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+              <div className="px-6 py-4 border-b border-[#E8E6E4] flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#111]">About me</h2>
+                {isOwnProfile && !isPreviewMode && (
+                  <button type="button" onClick={() => setIsBioDialogOpen(true)} className="text-sm font-medium text-[#555] hover:text-[#111]">
+                    {profile.bio ? 'Edit' : 'Add'}
+                  </button>
+                )}
+              </div>
+              <div className="p-6">
                 {profile.bio ? (
-                  <p className="text-[#333333] whitespace-pre-wrap">{profile.bio}</p>
+                  <p className="text-[#333] text-[15px] leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
                 ) : (
-                  <div className="text-center py-8 text-[#706B67]">
-                    <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No bio added yet.</p>
+                  <div className="text-center py-10 text-[#666]">
+                    <p className="text-sm">No bio yet.</p>
                     {isOwnProfile && !isPreviewMode && (
-                      <Button variant="outline" className="mt-4" onClick={() => setIsBioDialogOpen(true)}>
-                        Add Your Bio
-                      </Button>
+                      <button type="button" onClick={() => setIsBioDialogOpen(true)} className="mt-3 text-sm font-medium text-[#111] hover:underline">
+                        Add bio
+                      </button>
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            {/* Faith & Lifestyle Card */}
             {(profile.religious_affiliation || profile.faith_lifestyle) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-[#C85A72]" />
-                    Faith & Lifestyle
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {profile.religious_affiliation && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Religious Affiliation: </span>
-                      {profile.religious_affiliation}
-                    </p>
-                  )}
-                  {profile.faith_lifestyle && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Faith Lifestyle: </span>
-                      {profile.faith_lifestyle}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Faith & lifestyle</h2>
+                </div>
+                <div className="p-6 space-y-3">
+                  {profile.religious_affiliation && <Row label="Religion" value={profile.religious_affiliation} />}
+                  {profile.faith_lifestyle && <Row label="Practice" value={profile.faith_lifestyle} />}
+                </div>
+              </section>
             )}
 
-            {/* Values Card */}
             {profile.core_values && profile.core_values.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#E6B450]" />
-                    Core Values
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[#1F1F1F]">
-                    <span className="text-sm font-medium text-[#706B67]">Core Values: </span>
-                    {profile.core_values.join(', ')}
-                  </p>
-                </CardContent>
-              </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Core values</h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {profile.core_values.map((v, i) => (
+                      <span key={i} className="px-3 py-1 rounded-full bg-[#F5F5F3] text-sm text-[#333]">{v}</span>
+                    ))}
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* Languages Card */}
             {profile.languages && profile.languages.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Languages className="w-5 h-5 text-[#C85A72]" />
-                    Languages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[#1F1F1F]">
-                    <span className="text-sm font-medium text-[#706B67]">Languages: </span>
-                    {profile.languages.join(', ')}
-                  </p>
-                </CardContent>
-              </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Languages</h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {profile.languages.map((lang, i) => (
+                      <span key={i} className="px-3 py-1 rounded-full bg-[#F5F5F3] text-sm text-[#333]">{lang}</span>
+                    ))}
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* Cultures Card */}
             {profile.cultures && profile.cultures.length > 0 && (
-            <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-[#E6B450]" />
-                    Cultures
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[#1F1F1F]">
-                    <span className="text-sm font-medium text-[#706B67]">Cultures: </span>
-                    {profile.cultures.join(', ')}
-                  </p>
-                </CardContent>
-              </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Cultures</h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {profile.cultures.map((c, i) => (
+                      <span key={i} className="px-3 py-1 rounded-full bg-[#F5F5F3] text-sm text-[#333]">{c}</span>
+                    ))}
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* Lifestyle Details Card */}
             {(profile.smoking || profile.drinking || profile.marital_status || profile.has_children !== undefined || profile.education || profile.occupation || profile.zodiac_sign || profile.country_of_origin) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#C85A72]" />
-                    Lifestyle & Background
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {profile.smoking && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Smoking: </span>
-                      {profile.smoking}
-                    </p>
-                  )}
-                  {profile.drinking && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Drinking: </span>
-                      {profile.drinking}
-                    </p>
-                  )}
-                  {profile.marital_status && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Marital Status: </span>
-                      {profile.marital_status}
-                    </p>
-                  )}
-                  {profile.has_children !== undefined && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Children?: </span>
-                      {profile.has_children ? 'Yes' : 'No'}
-                    </p>
-                  )}
-                  {profile.education && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Education: </span>
-                      {profile.education}
-                    </p>
-                  )}
-                  {profile.occupation && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Occupation: </span>
-                      {profile.occupation}
-                    </p>
-                  )}
-                  {profile.zodiac_sign && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Zodiac Sign: </span>
-                      {profile.zodiac_sign}
-                    </p>
-                  )}
-                  {profile.country_of_origin && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Country of Origin: </span>
-                      {profile.country_of_origin}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Lifestyle & background</h2>
+                </div>
+                <div className="p-6 space-y-3">
+                  {profile.smoking && <Row label="Smoking" value={profile.smoking} />}
+                  {profile.drinking && <Row label="Drinking" value={profile.drinking} />}
+                  {profile.marital_status && <Row label="Marital status" value={profile.marital_status} />}
+                  {profile.has_children !== undefined && <Row label="Children" value={profile.has_children ? 'Yes' : 'No'} />}
+                  {profile.education && <Row label="Education" value={profile.education} />}
+                  {profile.occupation && <Row label="Occupation" value={profile.occupation} />}
+                  {profile.zodiac_sign && <Row label="Zodiac" value={profile.zodiac_sign} />}
+                  {profile.country_of_origin && <Row label="Origin" value={profile.country_of_origin} />}
+                </div>
+              </section>
             )}
 
-            {/* Goals Card */}
             {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#C85A72]" />
-                    Goals
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {profile.relationship_goal && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Relationship Goal: </span>
-                      {profile.relationship_goal}
-                    </p>
-                  )}
-                  {profile.family_goals && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Family Goals: </span>
-                      {profile.family_goals}
-                    </p>
-                  )}
-                  {profile.willing_to_relocate && (
-                    <p className="text-[#1F1F1F]">
-                      <span className="text-sm font-medium text-[#706B67]">Willing to Relocate: </span>
-                      {profile.willing_to_relocate}
-                    </p>
-                  )}
-                </CardContent>
-            </Card>
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">Goals</h2>
+                </div>
+                <div className="p-6 space-y-3">
+                  {profile.relationship_goal && <Row label="Relationship" value={profile.relationship_goal} />}
+                  {profile.family_goals && <Row label="Family" value={profile.family_goals} />}
+                  {profile.willing_to_relocate && <Row label="Relocate" value={profile.willing_to_relocate} />}
+                </div>
+              </section>
             )}
+          </div>
         </div>
       </div>
 
-        <Footer />
-      </div>
+      <Footer />
 
       {/* Bio Edit Dialog */}
       <Dialog open={isBioDialogOpen} onOpenChange={setIsBioDialogOpen}>
