@@ -12,6 +12,8 @@ const AdminLayout = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [adminProfile, setAdminProfile] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [openReportsCount, setOpenReportsCount] = useState(0);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -74,6 +76,23 @@ const AdminLayout = () => {
     checkAdminStatus();
   }, [navigate, toast]);
 
+  // Fetch notification counts for sidebar badges (only when admin)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const fetchNotificationCounts = async () => {
+      const { count: pending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending_review');
+      const { count: openReports } = await supabase.from('user_reports').select('*', { count: 'exact', head: true }).eq('status', 'open');
+      setPendingCount(pending ?? 0);
+      setOpenReportsCount(openReports ?? 0);
+    };
+
+    fetchNotificationCounts();
+    // Optional: refetch every 60s so badges stay fresh
+    const interval = setInterval(fetchNotificationCounts, 60000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -106,19 +125,30 @@ const AdminLayout = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => `
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                ${isActive ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}
-              `}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const badgeCount = item.path === '/admin/users' ? pendingCount : item.path === '/admin/reports' ? openReportsCount : 0;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${isActive ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}
+                `}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1 truncate">{item.label}</span>
+                {badgeCount > 0 && (
+                  <span className={`
+                    shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold flex items-center justify-center
+                    ${item.path === '/admin/users' ? 'bg-amber-500/90 text-slate-900' : 'bg-red-500/90 text-white'}
+                  `}>
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-slate-800">

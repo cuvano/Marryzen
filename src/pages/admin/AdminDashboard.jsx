@@ -76,8 +76,38 @@ const AdminDashboard = () => {
     fetchStats();
   }, []);
 
+  const needsAttention = stats.pending > 0 || stats.openReports > 0;
+
   return (
     <div className="space-y-6">
+      {/* Attention needed strip */}
+      {needsAttention && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-950/30 text-amber-200 px-4 py-3 flex flex-wrap items-center gap-4">
+          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+          <span className="font-medium">Attention needed</span>
+          {stats.pending > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-amber-500/50 text-amber-200 hover:bg-amber-900/40 hover:text-amber-100"
+              onClick={() => navigate('/admin/users')}
+            >
+              {stats.pending} profile{stats.pending !== 1 ? 's' : ''} pending review
+            </Button>
+          )}
+          {stats.openReports > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-500/50 text-red-200 hover:bg-red-900/40 hover:text-red-100"
+              onClick={() => navigate('/admin/reports')}
+            >
+              {stats.openReports} open report{stats.openReports !== 1 ? 's' : ''}
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="text-blue-500" subtext={`${stats.active30d} active in last 30d`} />
