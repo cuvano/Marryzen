@@ -10,8 +10,8 @@ const PremiumUpgradeModal = ({ isOpen, onClose, feature }) => {
   const featureDetails = {
     'advanced_filters': {
       title: 'Advanced Filters',
-      description: 'Unlock advanced filtering options including distance, income, verified profiles, and more.',
-      features: ['Distance-based filtering', 'Income range filter', 'Verified profiles only', 'Recent activity filter', 'Minimum photos filter']
+      description: 'Unlock advanced filtering options including distance, verified profiles, and more.',
+      features: ['Distance-based filtering', 'Verified profiles only', 'Recent activity filter', 'Minimum photos filter']
     },
     'unlimited_messages': {
       title: 'Unlimited Messaging',
