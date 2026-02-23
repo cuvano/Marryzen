@@ -52,6 +52,7 @@ import MatchingSettings from '@/pages/admin/MatchingSettings';
 import PlatformSettings from '@/pages/admin/PlatformSettings';
 import AuditLogsPage from '@/pages/admin/AuditLogsPage';
 import ActivityDashboard from '@/pages/admin/ActivityDashboard';
+import VerificationQueue from '@/pages/admin/VerificationQueue';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,6 +115,7 @@ function App() {
                           <Route path="dashboard" element={<AdminDashboard />} />
                           <Route path="users" element={<UserManagement />} />
                           <Route path="reports" element={<SafetyPanel />} />
+                          <Route path="verification" element={<VerificationQueue />} />
                           <Route path="matching" element={<MatchingSettings />} />
                           <Route path="settings" element={<PlatformSettings />} />
                           <Route path="audit-logs" element={<AuditLogsPage />} />

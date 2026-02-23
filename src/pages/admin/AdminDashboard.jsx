@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Activity, ShieldAlert, UserPlus, AlertCircle, CheckCircle2, Ban } from 'lucide-react';
+import { Users, Activity, ShieldAlert, UserPlus, AlertCircle, CheckCircle2, Ban, BadgeCheck } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,8 @@ const AdminDashboard = () => {
     approved: 0,
     suspended: 0,
     banned: 0,
-    openReports: 0
+    openReports: 0,
+    idVerificationPending: 0
   });
   const [recentSignups, setRecentSignups] = useState([]);
   const [recentReports, setRecentReports] = useState([]);
@@ -62,13 +63,16 @@ const AdminDashboard = () => {
       // 5. Open Reports
       const { count: openReports } = await supabase.from('user_reports').select('*', { count: 'exact', head: true }).eq('status', 'open');
 
-      setStats({ totalUsers, active30d, new24h, new7d, pending, approved, suspended, banned, openReports });
+      // 6. ID Verification submitted, pending review
+      const { count: idVerificationPending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('identity_verification_status', 'pending');
 
-      // 6. Recent Signups List
+      setStats({ totalUsers, active30d, new24h, new7d, pending, approved, suspended, banned, openReports, idVerificationPending: idVerificationPending ?? 0 });
+
+      // 7. Recent Signups List
       const { data: signups } = await supabase.from('profiles').select('id, full_name, email, created_at, status').order('created_at', { ascending: false }).limit(5);
       setRecentSignups(signups || []);
 
-      // 7. Recent Reports
+      // 8. Recent Reports
       const { data: reports } = await supabase.from('user_reports').select('id, reason_category, created_at, reporter:reporter_id(full_name), reported:reported_user_id(full_name)').eq('status', 'open').order('created_at', { ascending: false }).limit(5);
       setRecentReports(reports || []);
     };
@@ -77,10 +81,11 @@ const AdminDashboard = () => {
   }, []);
 
   const needsAttention = stats.pending > 0 || stats.openReports > 0;
+  const needsIdVerificationAttention = stats.idVerificationPending > 0;
 
   return (
     <div className="space-y-6">
-      {/* Attention needed strip */}
+      {/* Attention needed strip (profiles + reports) */}
       {needsAttention && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-950/30 text-amber-200 px-4 py-3 flex flex-wrap items-center gap-4">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
@@ -108,12 +113,30 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {/* Separate Attention needed: ID Verification submissions */}
+      {needsIdVerificationAttention && (
+        <div className="rounded-lg border border-cyan-500/40 bg-cyan-950/30 text-cyan-200 px-4 py-3 flex flex-wrap items-center gap-4">
+          <ShieldAlert className="w-5 h-5 text-cyan-400 shrink-0" />
+          <span className="font-medium">ID Verification</span>
+          <span className="text-slate-400 text-sm">Submitted for verification — review and approve or reject.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cyan-500/50 text-cyan-200 hover:bg-cyan-900/40 hover:text-cyan-100"
+            onClick={() => navigate('/admin/verification')}
+          >
+            {stats.idVerificationPending} ID verification{stats.idVerificationPending !== 1 ? 's' : ''} pending
+          </Button>
+        </div>
+      )}
+
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="text-blue-500" subtext={`${stats.active30d} active in last 30d`} />
         <StatCard title="New Signups (24h)" value={stats.new24h} icon={UserPlus} color="text-green-500" subtext={`${stats.new7d} in last 7 days`} />
         <StatCard title="Pending Review" value={stats.pending} icon={AlertCircle} color="text-yellow-500" subtext="Requires approval" />
         <StatCard title="Open Reports" value={stats.openReports} icon={ShieldAlert} color="text-red-500" subtext="Safety attention needed" />
+        <StatCard title="ID Verification" value={stats.idVerificationPending} icon={BadgeCheck} color="text-cyan-500" subtext="Submitted, pending review" />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

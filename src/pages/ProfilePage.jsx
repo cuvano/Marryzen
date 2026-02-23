@@ -49,8 +49,14 @@ const ProfilePage = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [referralInfo, setReferralInfo] = useState(null);
   const profilePhotoInputRef = useRef(null);
+  const latestPhotosRef = useRef([]);
 
   const isOwnProfile = !userId;
+
+  // Keep ref in sync so crop complete always has latest photos (avoids stale closure)
+  useEffect(() => {
+    latestPhotosRef.current = profile?.photos ?? [];
+  }, [profile?.photos]);
 
   useEffect(() => {
     fetchProfile();
@@ -371,27 +377,30 @@ const ProfilePage = () => {
     }
   };
 
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
       toast({ title: "Invalid File", description: "Please select an image file", variant: "destructive" });
+      e.target.value = '';
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "File Too Large", description: "Please select an image under 10MB", variant: "destructive" });
+      e.target.value = '';
       return;
     }
 
-    // Compress and show crop modal
+    // Open crop modal (same flow as edit/onboarding page)
     const reader = new FileReader();
     reader.onload = () => {
       setTempImage(reader.result);
       setCropModalOpen(true);
     };
     reader.readAsDataURL(file);
+    e.target.value = ''; // Reset so same file can be selected again
   };
 
   const compressImage = (base64, maxWidth = 1200, quality = 0.8) => {
@@ -422,20 +431,18 @@ const ProfilePage = () => {
     if (!isOwnProfile) return;
 
     setUploadingPhoto(true);
+    setCropModalOpen(false);
+    setTempImage(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setUploadingPhoto(false);
+        return;
+      }
 
-      // Compress the image
       const compressed = await compressImage(croppedBase64);
-
-      // Convert base64 to blob
-      const response = await fetch(compressed);
-      const blob = await response.blob();
-
-      // Upload to Supabase Storage (or use base64 directly if storing in DB)
-      // For now, we'll store as base64 in the photos array
-      const currentPhotos = profile.photos || [];
+      // Use ref so we always append to latest photos (avoids stale state when dialog was open)
+      const currentPhotos = latestPhotosRef.current ?? [];
       const newPhotos = [...currentPhotos, compressed];
 
       const { error } = await supabase
@@ -446,8 +453,6 @@ const ProfilePage = () => {
       if (error) throw error;
 
       setProfile(prev => ({ ...prev, photos: newPhotos }));
-      setCropModalOpen(false);
-      setTempImage(null);
       toast({ title: "Success", description: "Photo uploaded successfully!" });
     } catch (error) {
       console.error(error);
@@ -537,7 +542,7 @@ const ProfilePage = () => {
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#E0DDD9] to-[#D4D1CC]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 from-0% via-black/20 via-40% to-transparent" />
           {isOwnProfile && !isPreviewMode && (
             <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
               <span className="bg-white text-[#111] px-5 py-2.5 rounded-lg text-sm font-medium shadow-lg">
@@ -573,18 +578,18 @@ const ProfilePage = () => {
                 </div>
               )}
             </div>
-            <div className="min-w-0">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight drop-shadow-lg">
+            <div className="min-w-0 [text-shadow:0_1px_2px_rgba(0,0,0,0.8),0_2px_8px_rgba(0,0,0,0.6)]">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                 {profile.full_name}, {age}
               </h1>
-              <p className="text-white/90 text-base sm:text-lg mt-1 flex items-center gap-2 drop-shadow">
+              <p className="text-white text-base sm:text-lg mt-1 flex items-center gap-2">
                 <MapPin size={18} className="shrink-0" />
                 {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
               </p>
               {traitChips.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-2 mt-4 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
                   {traitChips.map((t, i) => (
-                    <span key={i} className="inline-block px-3 py-1.5 rounded-full bg-white/20 backdrop-blur text-white text-sm font-medium border border-white/30">
+                    <span key={i} className="inline-block px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm text-white text-sm font-medium border border-white/30">
                       {t.label}
                     </span>
                   ))}
@@ -621,8 +626,8 @@ const ProfilePage = () => {
               <div className="p-6">
             <div className="grid grid-cols-2 gap-2">
               {(profile.photos?.length > 0) ? (
-                profile.photos.slice(0, 6).map((p, i) => (
-                  <div key={i} className={`relative aspect-square rounded-lg overflow-hidden bg-[#E8E6E4] group ${i === 0 ? 'col-span-2' : ''}`}>
+                (profile.photos.slice(0, photoLimit)).map((p, i) => (
+                  <div key={`photo-${i}`} className={`relative aspect-square rounded-lg overflow-hidden bg-[#E8E6E4] group ${i === 0 ? 'col-span-2' : ''}`}>
                     <img src={p} alt="" className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.target.style.display = 'none'; }} />
                     {isOwnProfile && !isPreviewMode && (
                       <button type="button" onClick={() => handleRemovePhoto(i)} className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all">
@@ -1433,10 +1438,13 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
   );
 };
 
-// Image Crop Dialog Component
+// Image Crop Dialog Component — matches onboarding Step2 cropper so crop result = what you see
+const CONTAINER_SIZE = 400;
+
 const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [imageDisplaySize, setImageDisplaySize] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = React.useRef(null);
@@ -1460,112 +1468,65 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   };
 
   const calculateImageDisplaySize = (img, containerSize) => {
+    if (!img || !containerSize) return { width: 0, height: 0 };
     const imgAspect = img.naturalWidth / img.naturalHeight;
     let displayedWidth, displayedHeight;
-    
     if (imgAspect > 1) {
-      // Image is wider - fit to container height
       displayedHeight = containerSize;
       displayedWidth = displayedHeight * imgAspect;
     } else {
-      // Image is taller - fit to container width
       displayedWidth = containerSize;
       displayedHeight = displayedWidth / imgAspect;
     }
-    
     return { width: displayedWidth, height: displayedHeight };
   };
 
   const cropImage = () => {
-    if (!imageSrc || !containerRef.current || !imageRef.current) return;
-    
-    const outputSize = 800; // High quality square output
+    if (!imageRef.current || !containerRef.current) return;
+    const img = imageRef.current;
+    const container = containerRef.current;
+    const containerSize = container.offsetWidth || CONTAINER_SIZE;
+    if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return;
+
+    const outputSize = 800;
     const canvas = document.createElement('canvas');
     canvas.width = outputSize;
     canvas.height = outputSize;
     const ctx = canvas.getContext('2d');
-    
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      if (img.naturalWidth === 0 || img.naturalHeight === 0) {
-        console.error('Invalid image dimensions');
-        return;
-      }
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, outputSize, outputSize);
 
-      const container = containerRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const containerSize = containerRect.width || 400;
-      
-      // Calculate displayed image dimensions (at zoom = 1, before scaling)
-      const displaySize = calculateImageDisplaySize(img, containerSize);
-      const displayedWidth = displaySize.width;
-      const displayedHeight = displaySize.height;
-      
-      // The displayed image is scaled by zoom
-      const scaledDisplayWidth = displayedWidth * zoom;
-      const scaledDisplayHeight = displayedHeight * zoom;
-      
-      // Calculate scale factor from displayed pixels to actual image pixels
-      const scaleX = img.naturalWidth / scaledDisplayWidth;
-      const scaleY = img.naturalHeight / scaledDisplayHeight;
-      
-      // Container center (where image is centered)
-      const containerCenterX = containerSize / 2;
-      const containerCenterY = containerSize / 2;
-      
-      // Image center position in container coordinates (after offset)
-      const imageCenterInContainerX = containerCenterX + offset.x;
-      const imageCenterInContainerY = containerCenterY + offset.y;
-      
-      // Crop area bounds in container coordinates
-      const cropLeft = 0;
-      const cropTop = 0;
-      const cropRight = containerSize;
-      const cropBottom = containerSize;
-      
-      // Image top-left in container coordinates
-      const imageTopLeftX = imageCenterInContainerX - scaledDisplayWidth / 2;
-      const imageTopLeftY = imageCenterInContainerY - scaledDisplayHeight / 2;
-      
-      // Crop area top-left relative to image top-left
-      const cropRelativeLeft = cropLeft - imageTopLeftX;
-      const cropRelativeTop = cropTop - imageTopLeftY;
-      
-      // Convert to actual image coordinates
-      let sourceX = cropRelativeLeft * scaleX;
-      let sourceY = cropRelativeTop * scaleY;
-      const sourceSize = containerSize * scaleX;
-      
-      // Ensure we don't go out of bounds
-      sourceX = Math.max(0, Math.min(sourceX, img.naturalWidth - sourceSize));
-      sourceY = Math.max(0, Math.min(sourceY, img.naturalHeight - sourceSize));
-      const finalSourceSize = Math.min(sourceSize, img.naturalWidth - sourceX, img.naturalHeight - sourceY);
-      
-      // Draw white background
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, outputSize, outputSize);
-      
-      // Draw cropped and resized image to canvas (square output)
-      ctx.drawImage(
-        img,
-        sourceX, sourceY, finalSourceSize, finalSourceSize,
-        0, 0, outputSize, outputSize
-      );
-      
-      // Compress and return
-      onCropComplete(canvas.toDataURL('image/jpeg', 0.85));
-    };
-    img.onerror = () => {
-      console.error('Failed to load image for cropping');
-    };
-    img.src = imageSrc;
+    // Use same logic as onboarding: displayed size is the fitted size we set on the img
+    const displaySize = calculateImageDisplaySize(img, containerSize);
+    const displayedWidth = displaySize.width;
+    const displayedHeight = displaySize.height;
+    const scaledDisplayWidth = displayedWidth * zoom;
+    const scaledDisplayHeight = displayedHeight * zoom;
+    const scaleX = img.naturalWidth / scaledDisplayWidth;
+    const scaleY = img.naturalHeight / scaledDisplayHeight;
+    const containerCenterX = containerSize / 2;
+    const containerCenterY = containerSize / 2;
+    const imageCenterInContainerX = containerCenterX + offset.x;
+    const imageCenterInContainerY = containerCenterY + offset.y;
+    const imageTopLeftX = imageCenterInContainerX - scaledDisplayWidth / 2;
+    const imageTopLeftY = imageCenterInContainerY - scaledDisplayHeight / 2;
+    const cropRelativeLeft = 0 - imageTopLeftX;
+    const cropRelativeTop = 0 - imageTopLeftY;
+    let sourceX = cropRelativeLeft * scaleX;
+    let sourceY = cropRelativeTop * scaleY;
+    const sourceSize = containerSize * scaleX;
+    sourceX = Math.max(0, Math.min(sourceX, img.naturalWidth - sourceSize));
+    sourceY = Math.max(0, Math.min(sourceY, img.naturalHeight - sourceSize));
+    const finalSourceSize = Math.min(sourceSize, img.naturalWidth - sourceX, img.naturalHeight - sourceY);
+    ctx.drawImage(img, sourceX, sourceY, finalSourceSize, finalSourceSize, 0, 0, outputSize, outputSize);
+    onCropComplete(canvas.toDataURL('image/jpeg', 0.85));
   };
 
   React.useEffect(() => {
     if (open && imageSrc) {
       setZoom(1);
       setOffset({ x: 0, y: 0 });
+      setImageDisplaySize({ width: 0, height: 0 });
     }
   }, [open, imageSrc]);
 
@@ -1578,8 +1539,8 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
         <div className="py-4">
           <div
             ref={containerRef}
-            className="relative w-full aspect-square bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300"
-            style={{ height: '400px', maxWidth: '400px', margin: '0 auto' }}
+            className="relative bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300 mx-auto"
+            style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -1590,32 +1551,25 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
                 ref={imageRef}
                 src={imageSrc}
                 alt="Crop"
-                className="absolute top-1/2 left-1/2 origin-center select-none pointer-events-none"
+                className="absolute top-1/2 left-1/2 origin-center select-none pointer-events-none max-w-none"
                 style={{
                   transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                  width: imageDisplaySize.width || 'auto',
+                  height: imageDisplaySize.height || 'auto',
                   maxWidth: 'none',
-                  width: 'auto',
-                  height: 'auto',
-                  cursor: isDragging ? 'grabbing' : 'grab',
-                  userSelect: 'none'
+                  maxHeight: 'none'
                 }}
                 draggable={false}
                 onLoad={() => {
-                  // Auto-fit image on load
-                  if (imageRef.current && containerRef.current) {
-                    const img = imageRef.current;
-                    const container = containerRef.current;
-                    const containerSize = container.offsetWidth || 400;
-                    
-                    if (img.naturalWidth === 0 || img.naturalHeight === 0) return;
-                    
-                    const displaySize = calculateImageDisplaySize(img, containerSize);
-                    
-                    // Set initial zoom to slightly larger than fit (110%)
-                    const fitZoom = Math.min(containerSize / displaySize.width, containerSize / displaySize.height);
-                    setZoom(Math.max(1, Math.min(fitZoom * 1.1, 2)));
-                    setOffset({ x: 0, y: 0 });
-                  }
+                  if (!imageRef.current || !containerRef.current) return;
+                  const img = imageRef.current;
+                  const containerSize = containerRef.current.offsetWidth || CONTAINER_SIZE;
+                  if (img.naturalWidth === 0 || img.naturalHeight === 0) return;
+                  const displaySize = calculateImageDisplaySize(img, containerSize);
+                  setImageDisplaySize({ width: displaySize.width, height: displaySize.height });
+                  const fitZoom = Math.min(containerSize / displaySize.width, containerSize / displaySize.height);
+                  setZoom(Math.max(1, Math.min(fitZoom * 1.1, 2)));
+                  setOffset({ x: 0, y: 0 });
                 }}
               />
             )}

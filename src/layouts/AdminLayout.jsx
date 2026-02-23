@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Users, ShieldAlert, Sliders, Settings, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldAlert, Sliders, Settings, LogOut, Lock, BadgeCheck } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -14,6 +14,7 @@ const AdminLayout = () => {
   const [adminProfile, setAdminProfile] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [openReportsCount, setOpenReportsCount] = useState(0);
+  const [idVerificationPendingCount, setIdVerificationPendingCount] = useState(0);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -83,8 +84,10 @@ const AdminLayout = () => {
     const fetchNotificationCounts = async () => {
       const { count: pending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending_review');
       const { count: openReports } = await supabase.from('user_reports').select('*', { count: 'exact', head: true }).eq('status', 'open');
+      const { count: idVerificationPending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('identity_verification_status', 'pending');
       setPendingCount(pending ?? 0);
       setOpenReportsCount(openReports ?? 0);
+      setIdVerificationPendingCount(idVerificationPending ?? 0);
     };
 
     fetchNotificationCounts();
@@ -105,6 +108,7 @@ const AdminLayout = () => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/reports', label: 'Reports/Safety', icon: ShieldAlert },
+    { path: '/admin/verification', label: 'ID Verification', icon: BadgeCheck },
     { path: '/admin/matching', label: 'Matching Settings', icon: Sliders },
     { path: '/admin/settings', label: 'Platform Settings', icon: Settings },
   ];
@@ -126,7 +130,8 @@ const AdminLayout = () => {
 
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const badgeCount = item.path === '/admin/users' ? pendingCount : item.path === '/admin/reports' ? openReportsCount : 0;
+            const badgeCount = item.path === '/admin/users' ? pendingCount : item.path === '/admin/reports' ? openReportsCount : item.path === '/admin/verification' ? idVerificationPendingCount : 0;
+            const badgeClass = item.path === '/admin/users' ? 'bg-amber-500/90 text-slate-900' : item.path === '/admin/reports' ? 'bg-red-500/90 text-white' : 'bg-cyan-500/90 text-slate-900';
             return (
               <NavLink
                 key={item.path}
@@ -139,10 +144,7 @@ const AdminLayout = () => {
                 <item.icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1 truncate">{item.label}</span>
                 {badgeCount > 0 && (
-                  <span className={`
-                    shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold flex items-center justify-center
-                    ${item.path === '/admin/users' ? 'bg-amber-500/90 text-slate-900' : 'bg-red-500/90 text-white'}
-                  `}>
+                  <span className={`shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold flex items-center justify-center ${badgeClass}`}>
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}

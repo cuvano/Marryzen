@@ -70,6 +70,8 @@ const DiscoveryPage = () => {
   // Carousel & Detailed View State
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState(null); // null = carousel view, profile object = detailed view
+  const initialProfilesFetchDone = useRef(false);
+  const filterRefetchReady = useRef(false); // true after initial load so filter-effect can refetch on filter change only
 
   // Filters State
   const defaultFilters = {
@@ -101,7 +103,11 @@ const DiscoveryPage = () => {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return navigate('/login');
+      if (!user) {
+        setLoading(false);
+        navigate('/login');
+        return;
+      }
 
       // Profile
       const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
@@ -139,7 +145,7 @@ const DiscoveryPage = () => {
       
       setDailyLikeCount(count || 0);
 
-      setLoading(false);
+      // Do not set loading = false here — keep loader until first profile fetch completes
     };
     init();
   }, [navigate]);
@@ -182,15 +188,23 @@ const DiscoveryPage = () => {
 
 
   // -- Fetching Profiles --
+  // Only run when we have currentUser. Never set loading=false here so we don't flash "No profiles".
+  // 1) Initial load only: run once when both currentUser and matchingConfig are ready.
   useEffect(() => {
     if (!currentUser || !matchingConfig) return;
-    
-    // Debounce fetch
-    const timeout = setTimeout(() => {
-        fetchProfiles();
-    }, 500);
+    if (initialProfilesFetchDone.current) return;
+    initialProfilesFetchDone.current = true;
+    fetchProfiles();
+    // Enable filter-driven refetch only after this effect run so we don't schedule a second fetch this render
+    queueMicrotask(() => { filterRefetchReady.current = true; });
+  }, [currentUser, matchingConfig]);
+
+  // 2) Refetch only when user changes filters (debounced). Skip first run so we never overwrite initial result.
+  useEffect(() => {
+    if (!filterRefetchReady.current) return;
+    const timeout = setTimeout(() => fetchProfiles(), 400);
     return () => clearTimeout(timeout);
-  }, [filters, currentUser, matchingConfig]);
+  }, [filters]);
 
 
   // Helper function to get education levels equal to or higher than selected level
@@ -208,13 +222,16 @@ const DiscoveryPage = () => {
 
   const fetchProfiles = async () => {
     setLoading(true);
-
     try {
-        // 1. Interactions to exclude
-        const { data: interactions } = await supabase.from('user_interactions').select('target_user_id').eq('user_id', currentUser.id);
-        const { data: blocked } = await supabase.from('user_blocks').select('blocked_user_id').eq('blocker_id', currentUser.id);
-        const { data: reports } = await supabase.from('user_reports').select('reported_user_id').eq('reporter_id', currentUser.id);
-
+        // 1. Fetch exclusion lists in parallel for faster load
+        const [interactionsRes, blockedRes, reportsRes] = await Promise.all([
+          supabase.from('user_interactions').select('target_user_id').eq('user_id', currentUser.id),
+          supabase.from('user_blocks').select('blocked_user_id').eq('blocker_id', currentUser.id),
+          supabase.from('user_reports').select('reported_user_id').eq('reporter_id', currentUser.id),
+        ]);
+        const interactions = interactionsRes.data;
+        const blocked = blockedRes.data;
+        const reports = reportsRes.data;
         const excludeIds = new Set([
             currentUser.id,
             ...(interactions?.map(i => i.target_user_id) || []),
