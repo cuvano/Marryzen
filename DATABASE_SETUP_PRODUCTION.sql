@@ -489,7 +489,7 @@ GRANT EXECUTE ON FUNCTION public.enforce_message_limit() TO authenticated;
 -- Premium users: Unlimited
 
 -- Helper Function: Count today's likes
-CREATE OR REPLACE FUNCTION public.count_today_likes(user_id UUID)
+CREATE OR REPLACE FUNCTION public.count_today_likes(p_user_id UUID)
 RETURNS INTEGER AS $$
 DECLARE
   like_count INTEGER;
@@ -501,7 +501,7 @@ BEGIN
   -- Count likes sent today by this user
   SELECT COUNT(*) INTO like_count
   FROM public.user_interactions
-  WHERE user_id = user_id
+  WHERE user_interactions.user_id = p_user_id
   AND interaction_type = 'like'
   AND created_at >= today_start;
   

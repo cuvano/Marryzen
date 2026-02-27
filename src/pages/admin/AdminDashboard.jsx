@@ -92,9 +92,8 @@ const AdminDashboard = () => {
           <span className="font-medium">Attention needed</span>
           {stats.pending > 0 && (
             <Button
-              variant="outline"
               size="sm"
-              className="border-amber-500/50 text-amber-200 hover:bg-amber-900/40 hover:text-amber-100"
+              className="bg-amber-600 text-white border-0 hover:bg-amber-500"
               onClick={() => navigate('/admin/users')}
             >
               {stats.pending} profile{stats.pending !== 1 ? 's' : ''} pending review
@@ -102,9 +101,8 @@ const AdminDashboard = () => {
           )}
           {stats.openReports > 0 && (
             <Button
-              variant="outline"
               size="sm"
-              className="border-red-500/50 text-red-200 hover:bg-red-900/40 hover:text-red-100"
+              className="bg-red-600 text-white border-0 hover:bg-red-500"
               onClick={() => navigate('/admin/reports')}
             >
               {stats.openReports} open report{stats.openReports !== 1 ? 's' : ''}
@@ -120,9 +118,8 @@ const AdminDashboard = () => {
           <span className="font-medium">ID Verification</span>
           <span className="text-slate-400 text-sm">Submitted for verification — review and approve or reject.</span>
           <Button
-            variant="outline"
             size="sm"
-            className="border-cyan-500/50 text-cyan-200 hover:bg-cyan-900/40 hover:text-cyan-100"
+            className="bg-cyan-600 text-white border-0 hover:bg-cyan-500"
             onClick={() => navigate('/admin/verification')}
           >
             {stats.idVerificationPending} ID verification{stats.idVerificationPending !== 1 ? 's' : ''} pending
