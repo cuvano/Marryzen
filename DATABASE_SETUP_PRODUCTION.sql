@@ -674,16 +674,24 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_priority_created ON support_ticke
 
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can create support tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Anyone can create support tickets (guest form)" ON support_tickets;
 DROP POLICY IF EXISTS "Users can view their own tickets" ON support_tickets;
 DROP POLICY IF EXISTS "Admins can view all tickets" ON support_tickets;
 DROP POLICY IF EXISTS "Admins can update tickets" ON support_tickets;
 
--- Policy: Users can create support tickets
+-- Policy: Authenticated users can create support tickets
 CREATE POLICY "Users can create support tickets"
 ON support_tickets
 FOR INSERT
 TO authenticated
-WITH CHECK (true);  -- Anyone authenticated can create a ticket
+WITH CHECK (true);
+
+-- Policy: Guests (anon) can create support tickets from Help & Support form
+CREATE POLICY "Anyone can create support tickets (guest form)"
+ON support_tickets
+FOR INSERT
+TO anon
+WITH CHECK (true);
 
 -- Policy: Users can view their own tickets
 CREATE POLICY "Users can view their own tickets"

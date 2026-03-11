@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick }) => {
+  const genderLabel = profile.identify_as === 'Man' || profile.identify_as === 'Male' ? 'Male' : profile.identify_as === 'Woman' || profile.identify_as === 'Female' ? 'Female' : profile.identify_as || null;
+
   return (
     <motion.div 
         layout
@@ -81,8 +83,11 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
             <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
                 <div className="mb-2">
                     <h3 className="text-2xl font-bold leading-tight">{profile.full_name}, {profile.age}</h3>
-                    <div className="flex items-center gap-1.5 text-sm text-gray-200 mt-1 font-medium">
-                        <MapPin className="w-3.5 h-3.5" /> {profile.location_city || 'Unknown City'}
+                    <div className="flex items-center gap-1.5 text-sm text-gray-200 mt-1 font-medium flex-wrap">
+                        {genderLabel && (
+                          <span className="text-xs bg-white/25 px-2 py-0.5 rounded font-medium">{genderLabel}</span>
+                        )}
+                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {profile.location_city || 'Unknown City'}</span>
                         {profile.distance !== undefined && <span>• {Math.round(profile.distance)} km away</span>}
                     </div>
                 </div>

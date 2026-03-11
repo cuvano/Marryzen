@@ -95,9 +95,9 @@ const MatchesPage = () => {
 
     setMatches(formatted);
 
-      // If no matches, fetch suggested profiles as fallback
+      // If no matches, fetch suggested profiles as fallback (same gender pool as Discovery)
       if (formatted.length === 0 && profile?.status === 'approved') {
-        await fetchSuggestedProfiles(user.id);
+        await fetchSuggestedProfiles(user.id, profile.looking_for_gender);
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
@@ -106,9 +106,8 @@ const MatchesPage = () => {
     }
   };
 
-  const fetchSuggestedProfiles = async (userId) => {
+  const fetchSuggestedProfiles = async (userId, lookingForGender) => {
     try {
-      // Get interactions to exclude
       const { data: interactions } = await supabase
         .from('user_interactions')
         .select('target_user_id')
@@ -125,16 +124,21 @@ const MatchesPage = () => {
         ...(blocked?.map(b => b.blocked_user_id) || [])
       ]);
 
-      // Fetch approved profiles that user hasn't interacted with
-      const { data: profiles, error } = await supabase
+      const preferredGender = lookingForGender?.trim();
+      const genderValues = !preferredGender ? [] : preferredGender === 'Man' ? ['Man', 'Male'] : preferredGender === 'Woman' ? ['Woman', 'Female'] : [preferredGender];
+
+      let query = supabase
         .from('profiles')
         .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium, identify_as')
         .eq('status', 'approved')
-        .limit(6);
+        .limit(24);
+      if (genderValues.length > 0) {
+        query = query.in('identify_as', genderValues);
+      }
+      const { data: profiles, error } = await query;
 
       if (error) throw error;
 
-      // Filter and format suggested profiles
       const suggested = (profiles || [])
         .filter(p => !excludeIds.has(p.id))
         .slice(0, 6)
@@ -426,16 +430,16 @@ const MatchesPage = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
-          <p className="text-[#706B67] mb-4">
-            {activeTab === 'matches' 
-              ? (matches.length > 0 
+          <p className="text-[#706B67] mb-2">
+            {activeTab === 'matches'
+              ? (matches.length > 0
                   ? "Mutual likes turn into conversations. Be respectful and sincere."
-                  : "These are profiles who have liked you back. Start a conversation!")
+                  : "Profiles who liked you back appear here. Like people on Discovery to get matches!")
               : "View profiles you've liked or passed on."}
           </p>
           {potentialMatchesCount !== null && (
             <p className="text-sm text-[#706B67] mb-4">
-              <span className="font-medium text-[#1F1F1F]">Potential Matches:</span> {potentialMatchesCount}
+              <span className="font-medium text-[#1F1F1F]">Potential matches:</span> {potentialMatchesCount} — people you haven&apos;t liked or passed yet. Find them on <button type="button" onClick={() => navigate('/discovery')} className="text-[#E6B450] font-medium hover:underline">Filter Profiles</button>.
             </p>
           )}
           {/* Tabs */}
@@ -934,9 +938,19 @@ const MatchesPage = () => {
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
               <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No matches yet</h3>
-              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
-                Matches appear here when someone likes you back. Keep exploring profiles to find someone special!
+              <p className="text-[#706B67] mb-2 max-w-md mx-auto">
+                <strong>Matches</strong> are people who liked you back. When you like someone and they like you, they show up here.
               </p>
+              {potentialMatchesCount != null && potentialMatchesCount > 0 && (
+                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                  You have <strong>{potentialMatchesCount} potential matches</strong> to explore — go to Filter Profiles to see and like them.
+                </p>
+              )}
+              {(!potentialMatchesCount || potentialMatchesCount === 0) && (
+                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                  Keep exploring profiles on Discovery to find someone special!
+                </p>
+              )}
               
               {/* Action Suggestions */}
               <div className="space-y-3 max-w-md mx-auto mb-8">

@@ -241,6 +241,13 @@ const DiscoveryPage = () => {
 
         let query = supabase.from('profiles').select('*').eq('status', 'approved');
 
+        // Match by preferred gender: only show profiles whose gender matches what the current user is looking for (avoids "matching men to men")
+        const preferredGender = currentUser.looking_for_gender?.trim();
+        const preferredGenders = !preferredGender ? [] : preferredGender === 'Man' ? ['Man', 'Male'] : preferredGender === 'Woman' ? ['Woman', 'Female'] : [preferredGender];
+        if (preferredGender) {
+          query = query.in('identify_as', preferredGenders);
+        }
+
         // Apply Server-Side Filters
         if (filters.city) query = query.ilike('location_city', `%${filters.city}%`);
         if (filters.faith) query = query.eq('religious_affiliation', filters.faith);
@@ -267,6 +274,12 @@ const DiscoveryPage = () => {
         let processed = candidates
             .filter(p => !excludeIds.has(p.id))
             .filter(p => {
+                // Gender: only show profiles that match who the current user is looking for
+                if (preferredGenders.length > 0) {
+                  const profileGender = (p.identify_as || '').trim();
+                  if (!profileGender || !preferredGenders.includes(profileGender)) return false;
+                }
+
                 // Age
                 const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear();
                 if (age < filters.ageRange[0] || age > filters.ageRange[1]) return false;
@@ -686,6 +699,11 @@ const DiscoveryPage = () => {
 
               {/* Quick Info Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
+                {(profile.identify_as === 'Man' || profile.identify_as === 'Male' || profile.identify_as === 'Woman' || profile.identify_as === 'Female') && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                    {profile.identify_as === 'Man' || profile.identify_as === 'Male' ? 'Male' : 'Female'}
+                  </Badge>
+                )}
                 {profile.religious_affiliation && (
                   <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                     {profile.religious_affiliation}

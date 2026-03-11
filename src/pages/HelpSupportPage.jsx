@@ -60,11 +60,13 @@ const HelpSupportPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Get current user if logged in
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || null;
 
-      // Call the Supabase Edge Function to send support email
+      let success = false;
+      let insertError = null;
+
+      // 1) Try Edge Function first (sends email and creates ticket)
       const { data, error } = await supabase.functions.invoke('send-support-email', {
         body: {
           name: formData.name,
@@ -75,22 +77,38 @@ const HelpSupportPage = () => {
         }
       });
 
-      if (error) {
-        const serverMessage = data?.error || error.message;
-        const friendlyMessage = serverMessage?.includes('create support ticket')
+      if (!error && !data?.error) {
+        success = true;
+      } else {
+        // 2) Fallback: save ticket directly so the message always sends successfully
+        const { error: err } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: userId,
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            subject: formData.subject.trim(),
+            message: formData.message.trim(),
+            status: 'open',
+            is_priority: !!isPremium
+          });
+        insertError = err;
+        if (!insertError) success = true;
+      }
+
+      if (!success) {
+        const serverMessage = data?.error || error?.message;
+        const combined = serverMessage || insertError?.message || "Something went wrong.";
+        const friendlyMessage = combined.includes('create support ticket') || combined.includes('log in') || combined.includes('row-level security')
           ? "We couldn't save your request right now. Please try again in a moment or email us at support@marryzen.com."
-          : (serverMessage || "Something went wrong. Please try again later or email support@marryzen.com.");
+          : combined;
         throw new Error(friendlyMessage);
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      const responseTime = isPremium 
+      const responseTime = isPremium
         ? "We've received your message and will get back to you within 4-12 hours (Priority Support)."
         : "We've received your message and will get back to you within 24-48 hours.";
-      
+
       toast({
         title: "Message Sent",
         description: responseTime,
