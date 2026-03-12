@@ -128,7 +128,7 @@ const VerifyEmailPage = () => {
                 </div>
                 <CardTitle>Verify your Email</CardTitle>
                 <CardDescription>
-                    {status === 'verified' ? "Your email has been successfully verified." : `We need to verify ${email} to secure your account.`}
+                    {status === 'verified' ? "Your email has been successfully verified." : `Confirm your email to be approved. We need to verify ${email} so your profile can be reviewed and approved.`}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -140,7 +140,7 @@ const VerifyEmailPage = () => {
                     <>
                         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm text-yellow-800 flex gap-2">
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                            <p>You won't be able to send messages or upgrade until verified.</p>
+                            <p>Confirm your email to be approved. Until then, you won&apos;t be able to send messages or upgrade.</p>
                         </div>
                         <Button 
                             className="w-full bg-[#1F1F1F] text-white" 

@@ -72,6 +72,11 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
+    // Clear stored admin role and user profile so a new account in same browser doesn't inherit them
+    try {
+      localStorage.removeItem('adminRole');
+      localStorage.removeItem('userProfile');
+    } catch (_) {}
 
     if (error) {
       toast({

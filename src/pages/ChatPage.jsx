@@ -268,7 +268,7 @@ const ChatPage = () => {
       if (!messageText.trim() || !currentUser || !activeConversation) return;
       
       if (!currentUser.email_verified) {
-          toast({ title: "Email Verification Required", description: "Please verify your email to send messages.", variant: "destructive" });
+          toast({ title: "Email Verification Required", description: "Confirm your email to be approved and to send messages.", variant: "destructive" });
           return;
       }
 
@@ -489,7 +489,7 @@ const ChatPage = () => {
                 <div className="p-4 bg-white border-t border-[#E6DCD2]">
                     {!currentUser?.email_verified ? (
                          <div className="bg-yellow-50 p-3 rounded text-center text-sm text-yellow-800">
-                             Verify your email to start chatting. <span className="underline font-bold cursor-pointer" onClick={() => navigate('/verify-email')}>Verify Now</span>
+                             Confirm your email to be approved and start chatting. <span className="underline font-bold cursor-pointer" onClick={() => navigate('/verify-email')}>Verify Now</span>
                          </div>
                     ) : !currentUser?.is_premium && dailyMessageCount >= 10 ? (
                          <div className="bg-yellow-50 p-3 rounded text-center text-sm text-yellow-800">

@@ -41,12 +41,12 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
     <>
       <div className="space-y-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Cultural Background & Heritage</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Select your Background</h2>
           <p className="text-[#706B67] text-lg">Match with someone who truly shares your values and lifestyle.</p>
         </div>
         
         <div>
-          <Label className="text-[#333333] font-semibold text-base mb-4 block">Select your culture:</Label>
+          <Label className="text-[#333333] font-semibold text-base mb-4 block">Select your background:</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cultures.map((culture) => {
               const isSelected = formData.cultures?.[0] === culture;

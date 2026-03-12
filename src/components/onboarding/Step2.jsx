@@ -11,30 +11,44 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
 const MAX_FREE_PHOTOS = 4;
 const MAX_PREMIUM_PHOTOS = 12;
 
+// Helper to get client position from mouse or touch event
+const getClientPos = (e) => {
+  if (e.touches?.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches?.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+};
+
 // Custom Lightweight Cropper Component
 const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef(null);
   const imageRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
 
-  const handleMouseDown = (e) => {
+  const handleDragStart = (e) => {
+    if (e.touches?.length) e.preventDefault();
+    const pos = getClientPos(e);
+    dragStartRef.current = { x: pos.x - offset.x, y: pos.y - offset.y };
+    isDraggingRef.current = true;
     setIsDragging(true);
-    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
   };
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
+  const handleDragMove = (e) => {
+    if (!isDraggingRef.current) return;
+    if (e.cancelable) e.preventDefault();
+    const pos = getClientPos(e);
     setOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+      x: pos.x - dragStartRef.current.x,
+      y: pos.y - dragStartRef.current.y
     });
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = () => {
+    isDraggingRef.current = false;
     setIsDragging(false);
   };
 
@@ -143,11 +157,15 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     <div className="space-y-6">
       <div className="flex justify-center">
         <div 
-            className="w-[300px] h-[300px] bg-black overflow-hidden relative rounded-xl border-2 border-[#E6B450] cursor-move shadow-inner"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="w-[300px] h-[300px] bg-black overflow-hidden relative rounded-xl border-2 border-[#E6B450] cursor-move shadow-inner touch-none"
+            onMouseDown={handleDragStart}
+            onMouseMove={handleDragMove}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
+            onTouchStart={handleDragStart}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+            onTouchCancel={handleDragEnd}
             ref={containerRef}
         >
             <img 

@@ -208,6 +208,20 @@ const SafetyPanel = () => {
                      <Badge variant="outline" className={`${report.status === 'open' ? 'text-green-400 border-green-800' : 'text-slate-500'}`}>{report.status}</Badge>
                  </CardHeader>
                  <CardContent>
+                     <div className="grid gap-3 mb-4 sm:grid-cols-2 text-sm">
+                        <div className="bg-slate-800/60 p-3 rounded border border-slate-700">
+                          <div className="font-semibold text-slate-400 mb-1">Reported by (reporter)</div>
+                          <div className="text-white font-medium">{report.reporter?.full_name ?? 'Unknown'}</div>
+                          {report.reporter?.email && <div className="text-slate-400 text-xs mt-0.5">{report.reporter.email}</div>}
+                          {report.reporter?.id && <div className="text-slate-500 text-xs mt-0.5">ID: {report.reporter.id}</div>}
+                        </div>
+                        <div className="bg-slate-800/60 p-3 rounded border border-slate-700">
+                          <div className="font-semibold text-slate-400 mb-1">Reported user</div>
+                          <div className="text-white font-medium">{report.reported?.full_name ?? 'Unknown'}</div>
+                          {report.reported?.email && <div className="text-slate-400 text-xs mt-0.5">{report.reported.email}</div>}
+                          {report.reported?.id && <div className="text-slate-500 text-xs mt-0.5">ID: {report.reported.id}</div>}
+                        </div>
+                     </div>
                      <div className="bg-slate-950 p-4 rounded border border-slate-800 mb-4 italic text-slate-300">
                          "{report.reason_details || report.reason_category}"
                      </div>

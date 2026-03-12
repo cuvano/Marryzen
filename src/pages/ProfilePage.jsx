@@ -36,6 +36,7 @@ const ProfilePage = () => {
   const [editBio, setEditBio] = useState('');
   const [isBioDialogOpen, setIsBioDialogOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhotoIndex, setDeletingPhotoIndex] = useState(null);
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [coverCropModalOpen, setCoverCropModalOpen] = useState(false);
   const [tempImage, setTempImage] = useState(null);
@@ -431,8 +432,6 @@ const ProfilePage = () => {
     if (!isOwnProfile) return;
 
     setUploadingPhoto(true);
-    setCropModalOpen(false);
-    setTempImage(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -453,6 +452,8 @@ const ProfilePage = () => {
       if (error) throw error;
 
       setProfile(prev => ({ ...prev, photos: newPhotos }));
+      setCropModalOpen(false);
+      setTempImage(null);
       toast({ title: "Success", description: "Photo uploaded successfully!" });
     } catch (error) {
       console.error(error);
@@ -465,9 +466,13 @@ const ProfilePage = () => {
   const handleRemovePhoto = async (index) => {
     if (!isOwnProfile) return;
 
+    setDeletingPhotoIndex(index);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setDeletingPhotoIndex(null);
+        return;
+      }
 
       const newPhotos = profile.photos.filter((_, i) => i !== index);
       const { error } = await supabase
@@ -482,6 +487,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error(error);
       toast({ title: "Error", description: "Failed to remove photo", variant: "destructive" });
+    } finally {
+      setDeletingPhotoIndex(null);
     }
   };
 
@@ -629,7 +636,13 @@ const ProfilePage = () => {
                 (profile.photos.slice(0, photoLimit)).map((p, i) => (
                   <div key={`photo-${i}`} className={`relative aspect-square rounded-lg overflow-hidden bg-[#E8E6E4] group ${i === 0 ? 'col-span-2' : ''}`}>
                     <img src={p} alt="" className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} onError={(e) => { e.target.style.display = 'none'; }} />
-                    {isOwnProfile && !isPreviewMode && (
+                    {deletingPhotoIndex === i && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        <span className="text-xs font-medium text-white">Removing...</span>
+                      </div>
+                    )}
+                    {isOwnProfile && !isPreviewMode && deletingPhotoIndex === null && (
                       <button type="button" onClick={() => handleRemovePhoto(i)} className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -883,9 +896,12 @@ const ProfilePage = () => {
         imageSrc={tempImage}
         onCropComplete={handleCropComplete}
         onCancel={() => {
-          setCropModalOpen(false);
-          setTempImage(null);
+          if (!uploadingPhoto) {
+            setCropModalOpen(false);
+            setTempImage(null);
+          }
         }}
+        uploading={uploadingPhoto}
       />
 
       {/* Cover Photo Crop Dialog */}
@@ -1441,7 +1457,7 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
 // Image Crop Dialog Component — matches onboarding Step2 cropper so crop result = what you see
 const CONTAINER_SIZE = 400;
 
-const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
+const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading = false }) => {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [imageDisplaySize, setImageDisplaySize] = useState({ width: 0, height: 0 });
@@ -1482,7 +1498,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   };
 
   const cropImage = () => {
-    if (!imageRef.current || !containerRef.current) return;
+    if (!imageRef.current || !containerRef.current || uploading) return;
     const img = imageRef.current;
     const container = containerRef.current;
     const containerSize = container.offsetWidth || CONTAINER_SIZE;
@@ -1531,7 +1547,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
   }, [open, imageSrc]);
 
   return (
-    <Dialog open={open} onOpenChange={onCancel}>
+    <Dialog open={open} onOpenChange={uploading ? undefined : onCancel}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Crop & Adjust Photo</DialogTitle>
@@ -1589,6 +1605,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
                     setZoom(1);
                     setOffset({ x: 0, y: 0 });
                   }}
+                  disabled={uploading}
                 >
                   Reset
                 </Button>
@@ -1601,6 +1618,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
                 value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
                 className="w-full"
+                disabled={uploading}
               />
             </div>
             <p className="text-xs text-[#706B67] text-center">
@@ -1609,10 +1627,19 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel }) => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={cropImage} className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]">
-            <Crop className="w-4 h-4 mr-2" />
-            Crop & Save
+          <Button variant="outline" onClick={onCancel} disabled={uploading}>Cancel</Button>
+          <Button onClick={cropImage} disabled={uploading} className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]">
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Crop className="w-4 h-4 mr-2" />
+                Crop & Save
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

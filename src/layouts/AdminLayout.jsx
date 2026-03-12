@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Users, ShieldAlert, Sliders, Settings, LogOut, Lock, BadgeCheck } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: authUser } = useAuth();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ const AdminLayout = () => {
     };
 
     checkAdminStatus();
-  }, [navigate, toast]);
+  }, [authUser?.id, navigate, toast]);
 
   // Fetch notification counts for sidebar badges (only when admin)
   useEffect(() => {

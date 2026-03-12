@@ -194,7 +194,7 @@ const AccountSettingsPage = () => {
             </div>
             {!emailVerified && (
               <p className="text-sm text-[#706B67] mt-3">
-                Please check your email inbox to verify your email address.
+                Confirm your email to be approved. Please check your inbox and click the verification link.
               </p>
             )}
           </CardContent>

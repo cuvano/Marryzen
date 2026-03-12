@@ -11,6 +11,7 @@ import {
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
@@ -18,6 +19,7 @@ import { getPotentialMatchesCount } from '@/lib/matchStats';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const { openPremiumModal } = useContext(PremiumModalContext);
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState(null);
@@ -35,6 +37,13 @@ const DashboardPage = () => {
   const [referralInfo, setReferralInfo] = useState(null);
 
   useEffect(() => {
+    if (!authUser?.id) {
+      setUserProfile(null);
+      setSuggestedProfiles([]);
+      setStats({ potentialMatches: 0, conversations: 0, introductionsSent: 0, profileInterest: 0 });
+      setLoading(false);
+      return;
+    }
     // Check if status banner was dismissed or if it was already shown once
     const dismissed = localStorage.getItem('status_banner_dismissed');
     const statusShown = localStorage.getItem('status_banner_shown');
@@ -47,7 +56,7 @@ const DashboardPage = () => {
       setLoading(true);
       try {
       const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        if (!user || user.id !== authUser.id) {
           setLoading(false);
           return;
         }
@@ -155,7 +164,7 @@ const DashboardPage = () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [navigate, toast]);
+  }, [authUser?.id, navigate, toast]);
 
   // Auto-dismiss status banner after showing once (5 seconds)
   useEffect(() => {
@@ -346,7 +355,7 @@ const DashboardPage = () => {
       steps.push({
         id: 'verify_email',
         title: 'Verify Your Email',
-        description: 'Verify your email address to unlock messaging',
+        description: 'Confirm your email to be approved and unlock messaging',
         icon: Mail,
         action: () => navigate('/verify-email'),
         priority: 'high'

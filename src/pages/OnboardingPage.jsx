@@ -177,8 +177,8 @@ const OnboardingPage = () => {
   }, [currentStep]);
 
   const cultures = [
-    'African American / Black', 'Asian', 'East Asian', 'South Asian', 'Australian', 'Central & Southern African', 
-    'European / White', 'Hispanic', 'Latin American', 'Middle Eastern', 
+    'African American / Black', 'Asian', 'East Asian', 'South Asian', 'Australian', 'Central & Southern African',
+    'Eastern European / Slavic', 'European / White', 'Hispanic', 'Latin American', 'Middle Eastern',
     'Native American', 'North African', 'Pacific Islander', 'Mixed Heritage', 'Other'
   ];
   
@@ -368,7 +368,7 @@ const OnboardingPage = () => {
                       // Email confirmation is required - save form data and redirect
                       toast({ 
                           title: "Check Your Email", 
-                          description: "We've sent you a confirmation email. Please click the link to verify your account, then return here to continue.",
+                          description: "We've sent you a confirmation email. Confirm your email to be approved — then click the link and return here to continue.",
                           duration: 8000
                       });
                       

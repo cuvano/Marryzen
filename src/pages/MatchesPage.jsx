@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { MessageSquare, User, Heart, Search, Settings, ArrowRight, X, MapPin, Eye, Star } from 'lucide-react';
 import { getPotentialMatchesCount } from '@/lib/matchStats';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import Footer from '@/components/Footer';
 import { Crown } from 'lucide-react';
 
 const MatchesPage = () => {
+  const { user: authUser } = useAuth();
   const [matches, setMatches] = useState([]);
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
@@ -21,7 +23,20 @@ const MatchesPage = () => {
   const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views' | 'favorites'
   const navigate = useNavigate();
 
+  // Re-fetch when auth user changes so a new account in same browser doesn't see previous user's data
   useEffect(() => {
+    if (!authUser?.id) {
+      setMatches([]);
+      setPastInteractions([]);
+      setLikesReceived([]);
+      setProfileViews([]);
+      setFavorites([]);
+      setUserProfile(null);
+      setSuggestedProfiles([]);
+      setPotentialMatchesCount(null);
+      setLoading(false);
+      return;
+    }
     fetchData();
     fetchPastInteractions();
     fetchLikesReceived();
@@ -41,7 +56,7 @@ const MatchesPage = () => {
     } else if (tab === 'favorites') {
       setActiveTab('favorites');
     }
-  }, []);
+  }, [authUser?.id]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -439,7 +454,7 @@ const MatchesPage = () => {
           </p>
           {potentialMatchesCount !== null && (
             <p className="text-sm text-[#706B67] mb-4">
-              <span className="font-medium text-[#1F1F1F]">Potential matches:</span> {potentialMatchesCount} — people you haven&apos;t liked or passed yet. Find them on <button type="button" onClick={() => navigate('/discovery')} className="text-[#E6B450] font-medium hover:underline">Filter Profiles</button>.
+              <span className="font-medium text-[#1F1F1F]">Potential matches:</span> {potentialMatchesCount} — people you haven&apos;t liked or passed yet. Find them on <button type="button" onClick={() => navigate('/discovery')} className="text-[#E6B450] font-medium hover:underline">Profiles</button>.
             </p>
           )}
           {/* Tabs */}
@@ -943,7 +958,7 @@ const MatchesPage = () => {
               </p>
               {potentialMatchesCount != null && potentialMatchesCount > 0 && (
                 <p className="text-[#706B67] mb-8 max-w-md mx-auto">
-                  You have <strong>{potentialMatchesCount} potential matches</strong> to explore — go to Filter Profiles to see and like them.
+                  You have <strong>{potentialMatchesCount} potential matches</strong> to explore — go to Profiles to see and like them.
                 </p>
               )}
               {(!potentialMatchesCount || potentialMatchesCount === 0) && (

@@ -48,21 +48,36 @@ const Header = () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         setUser(authUser);
-        // Fetch profile for avatar, name, and role
+        // Fetch profile for avatar, name, and role (always from DB for current user)
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, photos, role')
           .eq('id', authUser.id)
           .maybeSingle();
         setUserProfile(profile);
-        // Check if user is admin
         const userRole = profile?.role?.toLowerCase();
         setIsAdmin(userRole === 'admin' || userRole === 'super_admin');
+      } else {
+        setUser(null);
+        setUserProfile(null);
+        setIsAdmin(false);
       }
     };
     initUser();
     fetchNotifications();
-    
+
+    // Re-fetch user/profile when auth changes (e.g. sign out then new sign up in same browser)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setUser(null);
+        setUserProfile(null);
+        setIsAdmin(false);
+      } else {
+        initUser();
+        fetchNotifications();
+      }
+    });
+
     // Subscribe to realtime notifications
     const channel = supabase
       .channel('header_notifications')
@@ -71,7 +86,10 @@ const Header = () => {
       })
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      subscription?.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const firstName = userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'User';
@@ -139,7 +157,9 @@ const Header = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // Clear all user-specific and admin-related data so a new account in same browser doesn't inherit anything
     localStorage.removeItem('userProfile');
+    localStorage.removeItem('adminRole');
     navigate('/');
   };
 
@@ -171,7 +191,7 @@ const Header = () => {
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
               <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
-              <NavItem label="Filter Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
+              <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               
               {/* Notifications */}
