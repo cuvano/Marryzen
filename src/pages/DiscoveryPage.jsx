@@ -35,6 +35,7 @@ const DiscoveryPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [matchingConfig, setMatchingConfig] = useState(null);
   
@@ -47,7 +48,9 @@ const DiscoveryPage = () => {
   
   // Usage tracking
   const [dailyLikeCount, setDailyLikeCount] = useState(0);
+  const [dailyPassCount, setDailyPassCount] = useState(0);
   const LIKE_LIMIT_FREE = 10;
+  const PASS_LIMIT_FREE = 50;
   
   // Throttling state
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -136,14 +139,12 @@ const DiscoveryPage = () => {
       // Fetch daily like count
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count } = await supabase
-        .from('user_interactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('interaction_type', 'like')
-        .gte('created_at', today.toISOString());
-      
-      setDailyLikeCount(count || 0);
+      const [likeRes, passRes] = await Promise.all([
+        supabase.from('user_interactions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('interaction_type', 'like').gte('created_at', today.toISOString()),
+        supabase.from('user_interactions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('interaction_type', 'pass').gte('created_at', today.toISOString()),
+      ]);
+      setDailyLikeCount(likeRes.count || 0);
+      setDailyPassCount(passRes.count || 0);
 
       // Do not set loading = false here — keep loader until first profile fetch completes
     };
@@ -154,20 +155,18 @@ const DiscoveryPage = () => {
   useEffect(() => {
     if (!currentUser) return;
     
-    const fetchDailyLikeCount = async () => {
+    const fetchDailyCounts = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count } = await supabase
-        .from('user_interactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', currentUser.id)
-        .eq('interaction_type', 'like')
-        .gte('created_at', today.toISOString());
-      
-      setDailyLikeCount(count || 0);
+      const [likeRes, passRes] = await Promise.all([
+        supabase.from('user_interactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).eq('interaction_type', 'like').gte('created_at', today.toISOString()),
+        supabase.from('user_interactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).eq('interaction_type', 'pass').gte('created_at', today.toISOString()),
+      ]);
+      setDailyLikeCount(likeRes.count || 0);
+      setDailyPassCount(passRes.count || 0);
     };
     
-    fetchDailyLikeCount();
+    fetchDailyCounts();
   }, [currentUser]);
 
   // Persist Filters
@@ -222,6 +221,7 @@ const DiscoveryPage = () => {
 
   const fetchProfiles = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
         // 1. Fetch exclusion lists in parallel for faster load
         const [interactionsRes, blockedRes, reportsRes] = await Promise.all([
@@ -341,8 +341,10 @@ const DiscoveryPage = () => {
             .sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 
         setProfiles(processed);
+        setLoadError(false);
     } catch (err) {
         console.error("Fetch error", err);
+        setLoadError(true);
         toast({ title: "Error loading profiles", variant: "destructive" });
     } finally {
         setLoading(false);
@@ -396,6 +398,19 @@ const DiscoveryPage = () => {
       }
     }
 
+    // Check daily pass limit (free users only; premium unlimited)
+    if (type === 'pass') {
+      if (!currentUser?.is_premium && dailyPassCount >= PASS_LIMIT_FREE) {
+        toast({
+          title: "Daily pass limit reached",
+          description: `You've reached the daily limit of ${PASS_LIMIT_FREE} passes. Try again tomorrow or upgrade to Premium for unlimited passes.`,
+          variant: "destructive",
+        });
+        openPremiumModal && openPremiumModal();
+        return;
+      }
+    }
+
     setLastActionTime(now);
 
     // Optimistic Update
@@ -427,10 +442,14 @@ const DiscoveryPage = () => {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
         setUndoTimer(10); // 10 seconds to undo
         
-        // Update like count if it's a like
         if (type === 'like') {
           setDailyLikeCount(prev => prev + 1);
           setRapidLikeCount(prev => prev + 1); // Track rapid likes
+        }
+        if (type === 'pass') {
+          setDailyPassCount(prev => prev + 1);
+        }
+        if (type === 'like') {
           
             // Check Match
           const { data: mutual, error: mutualError } = await supabase.from('user_interactions').select('*').eq('user_id', target.id).eq('target_user_id', currentUser.id).eq('interaction_type', 'like').maybeSingle();
@@ -1004,32 +1023,35 @@ const DiscoveryPage = () => {
                 <div className="mb-6 flex flex-col gap-4">
                     {/* Usage Counter (Free Users Only) */}
                     {!currentUser?.is_premium && (
-                      <div className="bg-[#FFFBEB] border border-[#E6B450]/30 rounded-lg p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Heart className="w-4 h-4 text-[#E6B450]" />
-                          <span className="text-sm text-[#1F1F1F]">
-                            {currentUser?.is_premium ? (
-                              <>Likes today: <span className="font-bold">Unlimited</span></>
-                            ) : (
-                              <>
-                                Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
-                                {dailyLikeCount >= LIKE_LIMIT_FREE - 3 && dailyLikeCount < LIKE_LIMIT_FREE && (
-                                  <span className="text-yellow-600 ml-2">• Limit soon</span>
-                                )}
-                              </>
+                      <div className="bg-[#FFFBEB] border border-[#E6B450]/30 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Heart className="w-4 h-4 text-[#E6B450]" />
+                            <span className="text-sm text-[#1F1F1F]">
+                              Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
+                              {dailyLikeCount >= LIKE_LIMIT_FREE - 3 && dailyLikeCount < LIKE_LIMIT_FREE && (
+                                <span className="text-yellow-600 ml-2">• Limit soon</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-[#1F1F1F]">
+                            <span className="opacity-70">Passes today:</span>
+                            <span className="font-bold">{dailyPassCount}/{PASS_LIMIT_FREE}</span>
+                            {dailyPassCount >= PASS_LIMIT_FREE - 10 && dailyPassCount < PASS_LIMIT_FREE && (
+                              <span className="text-yellow-600">• Limit soon</span>
                             )}
-                          </span>
+                          </div>
                         </div>
-                        {!currentUser?.is_premium && dailyLikeCount >= LIKE_LIMIT_FREE && (
+                        {(dailyLikeCount >= LIKE_LIMIT_FREE || dailyPassCount >= PASS_LIMIT_FREE) && (
                           <Button 
                             size="sm" 
                             onClick={() => openPremiumModal && openPremiumModal()}
-                            className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
+                            className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold shrink-0"
                           >
                             <Crown className="w-3 h-3 mr-1" /> Upgrade
                           </Button>
                         )}
-                         </div>
+                      </div>
                     )}
 
                     {/* Actions */}
@@ -1129,6 +1151,17 @@ const DiscoveryPage = () => {
                     <div className="flex flex-col items-center justify-center py-24 gap-4">
                         <Loader2 className="w-10 h-10 animate-spin text-[#E6B450]" />
                         <p className="text-[#706B67]">Finding compatible matches...</p>
+                    </div>
+                ) : loadError && profiles.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 gap-6 bg-white rounded-2xl border border-[#E6DCD2] p-8">
+                        <p className="text-[#706B67] text-center max-w-sm">Something went wrong loading profiles. This can happen briefly — try again.</p>
+                        <Button
+                            onClick={() => fetchProfiles()}
+                            className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
+                        >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Try again
+                        </Button>
                     </div>
                 ) : profiles.length === 0 ? (
                     <EmptyState 

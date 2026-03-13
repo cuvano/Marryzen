@@ -34,6 +34,9 @@ ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS cover_photo TEXT;
 
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS referral_code TEXT;
+
 -- Add missing columns to messages table (read receipts)
 ALTER TABLE messages
 ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
@@ -41,6 +44,13 @@ ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
 -- Add missing columns to user_reports table
 ALTER TABLE user_reports
 ADD COLUMN IF NOT EXISTS reason_details TEXT;
+
+-- Ensure rewards table has columns for referral rewards
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS referral_id UUID REFERENCES referrals(id);
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS reward_type TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS value TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
 
 -- Note: Other columns should already exist from your initial schema:
 -- id, email, full_name, date_of_birth, location_city, location_country,
@@ -243,8 +253,12 @@ FOR SELECT
 TO authenticated
 USING (referrer_id = auth.uid());
 
--- Policy: System can create referrals (handled by Edge Functions or triggers)
--- Note: Referrals are typically created by the system when a referred user signs up
+-- Policy: Referred user can create a referral row (when signing up with a referral link)
+CREATE POLICY "Referred user can create referral"
+ON referrals
+FOR INSERT
+TO authenticated
+WITH CHECK (referred_user_id = auth.uid());
 
 -- ============================================
 -- REWARDS TABLE POLICIES
@@ -972,9 +986,12 @@ AFTER INSERT ON messages
 FOR EACH ROW
 EXECUTE FUNCTION notify_new_message();
 
--- Function: Create notification when profile status changes
+-- Function: Create notification when profile status changes + complete referrals and grant rewards when approved
 CREATE OR REPLACE FUNCTION notify_profile_status_change()
 RETURNS TRIGGER AS $$
+DECLARE
+  r RECORD;
+  reward_expires_at TIMESTAMPTZ;
 BEGIN
   IF OLD.status = NEW.status THEN
     RETURN NEW;
@@ -989,6 +1006,19 @@ BEGIN
       'Great news! Your profile has been approved. You can now start matching and messaging.',
       jsonb_build_object('profile_id', NEW.id)
     );
+    -- Complete referrals for this user and grant rewards (referrer + referred both get 7 days premium)
+    reward_expires_at := NOW() + INTERVAL '7 days';
+    FOR r IN (
+      SELECT id, referrer_id FROM referrals
+      WHERE referred_user_id = NEW.id AND status = 'pending'
+    )
+    LOOP
+      UPDATE referrals SET status = 'completed' WHERE id = r.id;
+      INSERT INTO rewards (user_id, referral_id, status, expires_at, reward_type, value)
+      VALUES (r.referrer_id, r.id, 'earned', reward_expires_at, 'premium_time', '7 days');
+      INSERT INTO rewards (user_id, referral_id, status, expires_at, reward_type, value)
+      VALUES (NEW.id, r.id, 'earned', reward_expires_at, 'premium_time', '7 days');
+    END LOOP;
   ELSIF NEW.status = 'rejected' THEN
     INSERT INTO notifications (user_id, type, title, body, metadata)
     VALUES (

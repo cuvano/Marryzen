@@ -25,11 +25,18 @@ const ReferralPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData, error: profileError } = await supabase.from('profiles').select('referral_code, full_name').eq('id', user.id).maybeSingle();
+      let { data: profileData, error: profileError } = await supabase.from('profiles').select('referral_code, full_name').eq('id', user.id).maybeSingle();
       if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'NOT_FOUND') {
         console.error('Profile fetch error:', profileError);
       }
       if (profileData) {
+        if (!profileData.referral_code || profileData.referral_code.trim() === '') {
+          const code = Array.from(crypto.getRandomValues(new Uint8Array(9)))
+            .map((b) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36])
+            .join('');
+          const { error: updateErr } = await supabase.from('profiles').update({ referral_code: code }).eq('id', user.id);
+          if (!updateErr) profileData = { ...profileData, referral_code: code };
+        }
         setProfile(profileData);
       }
 
