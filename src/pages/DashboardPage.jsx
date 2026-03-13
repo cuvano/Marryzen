@@ -530,7 +530,8 @@ const DashboardPage = () => {
           <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm">
             <Heart className="w-8 h-8 text-[#C85A72] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.potentialMatches}</div>
-            <div className="text-[#706B67] text-sm font-medium">Potential Matches</div>
+            <div className="text-[#706B67] text-sm font-medium">Profiles for you</div>
+            <div className="text-[#9CA3AF] text-xs mt-0.5">Compatible profiles to discover</div>
           </div>
           <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm">
             <MessageCircle className="w-8 h-8 text-[#3B82F6] mx-auto mb-2" />
