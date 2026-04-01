@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/lib/customSupabaseClient';
 import { recordProfileView } from '@/lib/profileViews';
 import { isProfileActiveLocalToday } from '@/lib/profileActivity';
+import { isIdVerifiedPublic } from '@/lib/identityVerification';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
@@ -220,9 +221,7 @@ const DiscoveryPage = () => {
   }, [selectedProfile?.id, currentUser?.id]);
 
   // Helper function to get education levels equal to or higher than selected level
-  /** Identity verification (Didit/admin): matches "Verified Profiles Only" filter */
-  const isIdentityVerifiedProfile = (p) =>
-    p?.is_verified === true || p?.identity_verification_status === 'verified';
+  const isIdentityVerifiedProfile = isIdVerifiedPublic;
 
   const getEducationLevels = (selectedLevel) => {
     const educationHierarchy = {
@@ -259,7 +258,7 @@ const DiscoveryPage = () => {
         let query = supabase.from('profiles').select('*').eq('status', 'approved');
 
         if (filters.verifiedOnly) {
-          query = query.or('is_verified.eq.true,identity_verification_status.eq.verified');
+          query = query.eq('is_verified', true);
         }
 
         // Match by preferred gender: only show profiles whose gender matches what the current user is looking for (avoids "matching men to men")
@@ -726,23 +725,26 @@ const DiscoveryPage = () => {
               alt={profile.full_name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            {/* Bottom + light top scrim only — photo stays clear in the middle (standard dating-app pattern) */}
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[52%] bg-gradient-to-t from-black via-black/65 via-22% to-transparent" />
+            <div className="pointer-events-none absolute left-0 right-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
             
-            {/* Profile Info Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">{profile.full_name}, {profile.age}</h2>
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 pt-14 text-white">
+              <div className="flex items-end justify-between gap-3 mb-4">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-3xl font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_2px_14px_rgba(0,0,0,.9)]">
+                    {profile.full_name}, {profile.age}
+                  </h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,1)]">
+                    <MapPin className="w-4 h-4 shrink-0 opacity-95" />
                     <span>{profile.location_city || 'Unknown City'}</span>
-                    {profile.distance !== undefined && <span>• {Math.round(profile.distance)} km away</span>}
+                    {profile.distance !== undefined && <span className="text-white/90">• {Math.round(profile.distance)} km away</span>}
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`rounded-full h-10 w-10 backdrop-blur-md ${isFavorite ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-black/40'}`}
+                  className={`shrink-0 rounded-full h-10 w-10 backdrop-blur-md ${isFavorite ? 'bg-red-500 text-white' : 'bg-black/30 text-white hover:bg-black/50 ring-1 ring-white/20'}`}
                   onClick={() => onFavorite(profile)}
                 >
                   <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
@@ -751,7 +753,7 @@ const DiscoveryPage = () => {
 
               {/* Match Badge */}
               {profile.matchLabel && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && (
-                <Badge className="bg-green-500 text-white border-0 font-bold mb-4">
+                <Badge className="bg-green-600 text-white border-0 font-bold mb-4 shadow-lg shadow-black/40 ring-1 ring-white/20">
                   {Math.round(profile.compatibilityScore)}% Match - {profile.matchLabel}
                 </Badge>
               )}

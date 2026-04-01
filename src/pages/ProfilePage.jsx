@@ -538,7 +538,8 @@ const ProfilePage = () => {
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#E0DDD9] to-[#D4D1CC]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 from-0% via-black/20 via-40% to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-black/90 via-black/45 via-30% to-transparent" />
+          <div className="pointer-events-none absolute left-0 right-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
           {isOwnProfile && !isPreviewMode && (
             <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
               <span className="bg-white text-[#111] px-5 py-2.5 rounded-lg text-sm font-medium shadow-lg">
@@ -574,12 +575,12 @@ const ProfilePage = () => {
                 </div>
               )}
             </div>
-            <div className="min-w-0 [text-shadow:0_1px_2px_rgba(0,0,0,0.8),0_2px_8px_rgba(0,0,0,0.6)]">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            <div className="min-w-0 max-w-full sm:max-w-2xl px-1">
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,.88)]">
                 {profile.full_name}, {age}
               </h1>
-              <p className="text-white text-base sm:text-lg mt-1 flex items-center gap-2">
-                <MapPin size={18} className="shrink-0" />
+              <p className="mt-1 flex items-center gap-2 text-base text-white sm:text-lg [text-shadow:0_1px_3px_rgba(0,0,0,1)]">
+                <MapPin size={18} className="shrink-0 opacity-95" />
                 {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
               </p>
               {traitChips.length > 0 && (

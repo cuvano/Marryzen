@@ -1,11 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Crown, MapPin, X, Heart, Shield } from 'lucide-react';
+import { Crown, MapPin, X, Heart } from 'lucide-react';
 import VerificationBadge from '@/components/VerificationBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-const isIdVerified = (p) => p?.is_verified === true || p?.identity_verification_status === 'verified';
+import { isIdVerifiedPublic } from '@/lib/identityVerification';
 
 const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick }) => {
   const genderLabel = profile.identify_as === 'Man' || profile.identify_as === 'Male' ? 'Male' : profile.identify_as === 'Woman' || profile.identify_as === 'Female' ? 'Female' : profile.identify_as || null;
@@ -53,7 +52,9 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
                 alt={profile.full_name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            {/* Bottom-only scrim (Tinder-style): keeps face / upper photo clear */}
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[46%] bg-gradient-to-t from-black via-black/70 via-25% to-transparent" />
+            <div className="pointer-events-none absolute left-0 right-0 top-0 h-20 bg-gradient-to-b from-black/35 to-transparent" />
             
             {/* Top Badges */}
             <div className="absolute top-3 left-3 flex gap-2">
@@ -70,7 +71,7 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
             </div>
 
             <div className="absolute top-3 right-3 flex flex-col gap-2">
-                 {isIdVerified(profile) && (
+                 {isIdVerifiedPublic(profile) && (
                    <VerificationBadge level={2} size="md" />
                  )}
                  <Button 
@@ -83,20 +84,27 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
                  </Button>
             </div>
 
-            {/* Content */}
-            <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                <div className="mb-2">
-                    <h3 className="text-2xl font-bold leading-tight">{profile.full_name}, {profile.age}</h3>
-                    <div className="flex items-center gap-1.5 text-sm text-gray-200 mt-1 font-medium flex-wrap">
+            {/* Content — typography on bottom gradient only; no mid-photo panel */}
+            <div className="absolute bottom-0 left-0 right-0 p-5 pt-12 text-white">
+                <div className="mb-3">
+                    <h3 className="text-2xl sm:text-[1.65rem] font-bold leading-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_2px_12px_rgba(0,0,0,.85),0_0_1px_rgba(0,0,0,1)]">
+                      {profile.full_name}, {profile.age}
+                    </h3>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,1),0_0_12px_rgba(0,0,0,.6)]">
                         {genderLabel && (
-                          <span className="text-xs bg-white/25 px-2 py-0.5 rounded font-medium">{genderLabel}</span>
+                          <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white ring-1 ring-white/25">{genderLabel}</span>
                         )}
-                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {profile.location_city || 'Unknown City'}</span>
-                        {profile.distance !== undefined && <span>• {Math.round(profile.distance)} km away</span>}
+                        <span className="flex items-center gap-1 text-white">
+                          <MapPin className="w-3.5 h-3.5 shrink-0 opacity-95" />
+                          {profile.location_city || 'Unknown City'}
+                        </span>
+                        {profile.distance !== undefined && (
+                          <span className="text-white/90">• {Math.round(profile.distance)} km</span>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-1.5 mb-3">
                      {profile.religious_affiliation && (
                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded text-white border border-white/10">{profile.religious_affiliation}</span>
                      )}

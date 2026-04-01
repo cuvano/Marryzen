@@ -274,7 +274,18 @@ const UserManagement = () => {
                                           <Label>Verified</Label>
                                           <Switch 
                                             checked={selectedUser.is_verified} 
-                                            onCheckedChange={(c) => updateUser(selectedUser.id, { is_verified: c })} 
+                                            onCheckedChange={(c) => {
+                                              if (c) {
+                                                updateUser(selectedUser.id, { is_verified: true });
+                                              } else {
+                                                updateUser(selectedUser.id, {
+                                                  is_verified: false,
+                                                  ...(selectedUser.identity_verification_status === 'verified'
+                                                    ? { identity_verification_status: null }
+                                                    : {}),
+                                                });
+                                              }
+                                            }} 
                                           />
                                       </div>
                                       <div className="flex items-center justify-between pt-4">
@@ -317,11 +328,12 @@ const UserManagement = () => {
                                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
                                            value={selectedUser.identity_verification_status || ''}
                                            onChange={(e) => {
-                                             const newStatus = e.target.value || null;
-                                             updateUser(selectedUser.id, { identity_verification_status: newStatus });
-                                             if (newStatus === 'verified') {
-                                               updateUser(selectedUser.id, { is_verified: true });
-                                             }
+                                             const raw = e.target.value;
+                                             const newStatus = raw === '' ? null : raw;
+                                             updateUser(selectedUser.id, {
+                                               identity_verification_status: newStatus,
+                                               is_verified: newStatus === 'verified',
+                                             });
                                            }}
                                          >
                                            <option value="">Not Submitted</option>
@@ -346,7 +358,7 @@ const UserManagement = () => {
                                            variant="outline"
                                            size="sm"
                                            onClick={() => {
-                                             updateUser(selectedUser.id, { identity_verification_status: 'rejected' });
+                                             updateUser(selectedUser.id, { identity_verification_status: 'rejected', is_verified: false });
                                              toast({ title: "Rejected", description: "Identity verification rejected." });
                                            }}
                                            className="flex-1 border-red-600 text-red-400 hover:bg-red-950"
