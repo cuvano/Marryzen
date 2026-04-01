@@ -73,7 +73,8 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
       zodiacSign: '',
       countries: [],
       recentActive: false,
-      verifiedOnly: false
+      verifiedOnly: false,
+      distance: null,
     };
     setFilters(defaultFilters);
     if (onClear) {
@@ -201,29 +202,61 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
              <AccordionContent className="space-y-4 pt-2">
                 <PremiumLock label="Activity" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
-                        <Label>Recently Active (Last 30 Days)</Label>
+                        <Label>Active today (your device’s date)</Label>
                         <Switch checked={filters.recentActive || false} onCheckedChange={(v) => handleChange('recentActive', v)} />
                     </div>
                 </PremiumLock>
                 
                 <PremiumLock label="Verification" feature="advanced_filters">
                     <div className="flex items-center justify-between space-x-2">
-                        <Label>Verified Profiles Only</Label>
+                        <Label className="leading-snug">ID-verified only</Label>
                         <Switch checked={filters.verifiedOnly || false} onCheckedChange={(v) => handleChange('verifiedOnly', v)} />
                     </div>
                 </PremiumLock>
 
                 <PremiumLock label="Distance" feature="advanced_filters">
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <Label>Distance (km)</Label>
-                      <span className="text-xs font-medium text-[#706B67]">{filters.distance || 50} km</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="leading-snug">Limit by distance</Label>
+                      <Switch
+                        checked={
+                          filters.distance != null && Number.isFinite(filters.distance)
+                        }
+                        onCheckedChange={(on) => {
+                          if (on) {
+                            const next =
+                              filters.distance != null && Number.isFinite(filters.distance)
+                                ? filters.distance
+                                : 50;
+                            handleChange('distance', next);
+                          } else {
+                            handleChange('distance', null);
+                          }
+                        }}
+                      />
                     </div>
-                    <Slider 
-                      value={[filters.distance || 50]} 
-                      min={5} max={500} step={5} 
-                      onValueChange={(v) => handleChange('distance', v[0])} 
-                    />
+                    {filters.distance != null && Number.isFinite(filters.distance) ? (
+                      <div className="space-y-2 relative z-10">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-[#706B67]">Max radius</span>
+                          <span className="text-xs font-medium text-[#706B67]">
+                            {filters.distance} km
+                          </span>
+                        </div>
+                        <Slider
+                          value={[filters.distance]}
+                          min={5}
+                          max={500}
+                          step={5}
+                          onValueChange={(v) => handleChange('distance', v[0])}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#706B67] leading-relaxed">
+                        Any — no distance limit. Turn on to filter by how far away matches can be (requires
+                        location on your profile and theirs).
+                      </p>
+                    )}
                   </div>
                 </PremiumLock>
 

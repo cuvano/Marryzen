@@ -9,6 +9,8 @@ import {
   Trash2, Check, Shield, X, ArrowRight, Settings, Crown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
+import { recordProfileView } from '@/lib/profileViews';
+import { isProfileActiveLocalToday } from '@/lib/profileActivity';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
@@ -50,7 +52,7 @@ const DiscoveryPage = () => {
   const [dailyLikeCount, setDailyLikeCount] = useState(0);
   const [dailyPassCount, setDailyPassCount] = useState(0);
   const LIKE_LIMIT_FREE = 10;
-  const PASS_LIMIT_FREE = 50;
+  const PASS_LIMIT_FREE = 10;
   
   // Throttling state
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -79,7 +81,7 @@ const DiscoveryPage = () => {
   // Filters State
   const defaultFilters = {
     ageRange: [18, 65],
-    distance: 50, // km
+    distance: null, // null = no limit ("Any"); number = max km (premium + coords required)
     city: '',
     faith: '',
     faithLifestyle: '',
@@ -99,7 +101,12 @@ const DiscoveryPage = () => {
   
   const [filters, setFilters] = useState(() => {
     const saved = localStorage.getItem('discovery_filters');
-    return saved ? JSON.parse(saved) : defaultFilters;
+    if (!saved) return { ...defaultFilters };
+    try {
+      return { ...defaultFilters, ...JSON.parse(saved) };
+    } catch {
+      return { ...defaultFilters };
+    }
   });
 
   // Load Initial Data
@@ -205,8 +212,18 @@ const DiscoveryPage = () => {
     return () => clearTimeout(timeout);
   }, [filters]);
 
+  // Same as opening /profile/:id — "Who viewed you" only had rows from that route; Discovery uses inline detail.
+  useEffect(() => {
+    if (!selectedProfile?.id || !currentUser?.id) return;
+    if (selectedProfile.id === currentUser.id) return;
+    recordProfileView(supabase, currentUser.id, selectedProfile.id);
+  }, [selectedProfile?.id, currentUser?.id]);
 
   // Helper function to get education levels equal to or higher than selected level
+  /** Identity verification (Didit/admin): matches "Verified Profiles Only" filter */
+  const isIdentityVerifiedProfile = (p) =>
+    p?.is_verified === true || p?.identity_verification_status === 'verified';
+
   const getEducationLevels = (selectedLevel) => {
     const educationHierarchy = {
       'High School': ['High School', 'Some College', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Professional Degree'],
@@ -240,6 +257,10 @@ const DiscoveryPage = () => {
         ]);
 
         let query = supabase.from('profiles').select('*').eq('status', 'approved');
+
+        if (filters.verifiedOnly) {
+          query = query.or('is_verified.eq.true,identity_verification_status.eq.verified');
+        }
 
         // Match by preferred gender: only show profiles whose gender matches what the current user is looking for (avoids "matching men to men")
         const preferredGender = currentUser.looking_for_gender?.trim();
@@ -295,13 +316,14 @@ const DiscoveryPage = () => {
                 }
                 if (filters.zodiacSign && p.zodiac_sign !== filters.zodiacSign) return false;
                 
+                // Verified-only (any user can enable via quick filter; premium sidebar toggle also sets this)
+                if (filters.verifiedOnly && !isIdentityVerifiedProfile(p)) return false;
+
+                // “Active today” = same local calendar day as viewer’s device; missing/stale last_active_at excluded
+                if (filters.recentActive && !isProfileActiveLocalToday(p.last_active_at)) return false;
+
                 // Premium Checks
                 if (currentUser.is_premium) {
-                    if (filters.verifiedOnly && !p.is_verified) return false;
-                    if (filters.recentActive && p.last_active_at) {
-                         const daysSinceActive = (new Date() - new Date(p.last_active_at)) / (1000 * 60 * 60 * 24);
-                         if (daysSinceActive > 30) return false;
-                    }
                     if (filters.languages && filters.languages.length > 0) {
                         const profileLangs = p.languages || [];
                         if (!filters.languages.some(lang => profileLangs.includes(lang))) return false;
@@ -322,8 +344,16 @@ const DiscoveryPage = () => {
                      const dist = R * c;
                      p.distance = dist;
                      
-                     // Only apply distance filter if we have data and it's set
-                     if (currentUser.is_premium && dist > filters.distance) return false;
+                     const maxKm = filters.distance;
+                     if (
+                       currentUser.is_premium &&
+                       maxKm != null &&
+                       Number.isFinite(maxKm) &&
+                       maxKm > 0 &&
+                       dist > maxKm
+                     ) {
+                       return false;
+                     }
                 }
 
                 return true;
@@ -458,7 +488,12 @@ const DiscoveryPage = () => {
           }
             if (mutual) {
                 toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
-                await supabase.from('conversations').insert({ user1_id: currentUser.id < target.id ? currentUser.id : target.id, user2_id: currentUser.id > target.id ? currentUser.id : target.id });
+                const user1_id = currentUser.id < target.id ? currentUser.id : target.id;
+                const user2_id = currentUser.id > target.id ? currentUser.id : target.id;
+                const { error: convoErr } = await supabase
+                  .from('conversations')
+                  .insert({ user1_id, user2_id });
+                if (convoErr) console.error('Match conversation insert failed:', convoErr);
             }
         }
     } else {
@@ -550,7 +585,7 @@ const DiscoveryPage = () => {
       // Store all filters in the filters JSONB column to match existing schema
       const filtersData = {
           ageRange: filters.ageRange,
-          distance: filters.distance || 50,
+          distance: filters.distance == null ? null : filters.distance,
           city: filters.city || '',
           faith: filters.faith || '',
           faithLifestyle: filters.faithLifestyle || '',
@@ -627,7 +662,12 @@ const DiscoveryPage = () => {
       const loadedFilters = {
           ...defaultFilters,
           ageRange: Array.isArray(filtersData.ageRange) ? filtersData.ageRange : [18, 65],
-          distance: filtersData.distance || 50,
+          distance: (() => {
+            const d = filtersData.distance;
+            if (d === undefined || d === null) return null;
+            const n = Number(d);
+            return Number.isFinite(n) ? n : null;
+          })(),
           city: filtersData.city || '',
           faith: filtersData.faith || '',
           faithLifestyle: filtersData.faithLifestyle || '',
@@ -851,7 +891,8 @@ const DiscoveryPage = () => {
   const EmptyState = ({ filters, defaultFilters, isPremium, userProfile, onClearFilters, onExpandAge, onIncreaseDistance, onRemovePremiumFilters, onCompleteProfile }) => {
     const hasActiveFilters = filters.city || filters.faith || filters.smoking || filters.drinking || filters.maritalStatus || filters.hasChildren || 
                             filters.ageRange[0] !== defaultFilters.ageRange[0] || filters.ageRange[1] !== defaultFilters.ageRange[1] ||
-                            filters.distance !== defaultFilters.distance || (isPremium && (filters.recentActive || filters.verifiedOnly || filters.minPhotos > 0 || filters.income));
+                            filters.distance !== defaultFilters.distance || filters.verifiedOnly || filters.recentActive ||
+                            (isPremium && (filters.minPhotos > 0 || filters.income));
 
     const suggestions = [];
 
@@ -868,23 +909,48 @@ const DiscoveryPage = () => {
     }
 
     // Distance suggestion
-    if (filters.distance < 100 && isPremium) {
+    if (
+      isPremium &&
+      filters.distance != null &&
+      Number.isFinite(filters.distance) &&
+      filters.distance < 100
+    ) {
       suggestions.push({
         icon: MapPin,
         title: 'Increase Distance',
-        description: `Currently ${filters.distance}km. Increase to see more matches nearby.`,
+        description: `Currently ${filters.distance} km. Increase to see more matches nearby.`,
         action: onIncreaseDistance,
         color: 'text-green-600',
         bg: 'bg-green-50'
       });
     }
 
-    // Premium filters suggestion
-    if (isPremium && (filters.recentActive || filters.verifiedOnly || filters.minPhotos > 0 || filters.income)) {
+    if (filters.recentActive) {
+      suggestions.push({
+        icon: Clock,
+        title: 'Turn off “Active today”',
+        description: 'Only people who used Marryzen today (your device’s date) qualify. Turn this off to see more members.',
+        action: onRemovePremiumFilters,
+        color: 'text-green-700',
+        bg: 'bg-green-50'
+      });
+    }
+
+    if (isPremium && (filters.minPhotos > 0 || filters.income)) {
       suggestions.push({
         icon: X,
         title: 'Remove Premium-Only Filters',
         description: 'These filters are limiting your results. Remove them to see more profiles.',
+        action: onRemovePremiumFilters,
+        color: 'text-orange-600',
+        bg: 'bg-orange-50'
+      });
+    }
+    if (filters.verifiedOnly) {
+      suggestions.push({
+        icon: X,
+        title: 'Show all profiles',
+        description: 'Turn off ID-verified only to include members who have not completed identity verification yet.',
         action: onRemovePremiumFilters,
         color: 'text-orange-600',
         bg: 'bg-orange-50'
@@ -1037,7 +1103,7 @@ const DiscoveryPage = () => {
                           <div className="flex items-center gap-2 text-sm text-[#1F1F1F]">
                             <span className="opacity-70">Passes today:</span>
                             <span className="font-bold">{dailyPassCount}/{PASS_LIMIT_FREE}</span>
-                            {dailyPassCount >= PASS_LIMIT_FREE - 10 && dailyPassCount < PASS_LIMIT_FREE && (
+                            {dailyPassCount >= PASS_LIMIT_FREE - 3 && dailyPassCount < PASS_LIMIT_FREE && (
                               <span className="text-yellow-600">• Limit soon</span>
                             )}
                           </div>
@@ -1080,7 +1146,7 @@ const DiscoveryPage = () => {
                                 <Clock className="w-3 h-3 mr-1" /> Recently Active
                             </Button>
                             <Button variant="ghost" size="sm" className="whitespace-nowrap bg-white border border-[#E6DCD2] hover:bg-[#FAF7F2]" onClick={() => setFilters({...defaultFilters, verifiedOnly: true})}>
-                                <Shield className="w-3 h-3 mr-1" /> Verified
+                                <Shield className="w-3 h-3 mr-1" /> ID verified
                             </Button>
 
                             {/* Saved Prefs Dropdown - Premium Only */}
@@ -1123,7 +1189,7 @@ const DiscoveryPage = () => {
                         {filters.faith && <Badge variant="secondary" className="bg-white border gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
                         {filters.city && <Badge variant="secondary" className="bg-white border gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
                         {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
-                        {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">Verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
+                        {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">ID verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
                         {/* Undo Button - Premium Only */}
                         {lastAction && currentUser?.is_premium && (
                             <Button 
@@ -1180,7 +1246,11 @@ const DiscoveryPage = () => {
                             fetchProfiles();
                         }}
                         onIncreaseDistance={() => {
-                            const newDistance = Math.min(500, filters.distance + 50);
+                            const current =
+                              filters.distance != null && Number.isFinite(filters.distance)
+                                ? filters.distance
+                                : 50;
+                            const newDistance = Math.min(500, current + 50);
                             const newFilters = { ...filters, distance: newDistance };
                             setFilters(newFilters);
                             fetchProfiles();

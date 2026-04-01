@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
+import { recordProfileView } from '@/lib/profileViews';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
   CheckCircle, XCircle, Eye, Camera, Upload, Trash2, Crop, Loader2,
-  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft, Flag
+  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft, Flag, BadgeCheck, ExternalLink
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import ReportUserModal from '@/components/ReportUserModal';
@@ -27,6 +28,7 @@ const Row = ({ label, value }) => (
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userId } = useParams();
   const { toast } = useToast();
   const [profile, setProfile] = useState(null);
@@ -76,6 +78,15 @@ const ProfilePage = () => {
       window.removeEventListener('focus', handleFocus);
     };
   }, [userId, isOwnProfile]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('verification') === 'done') {
+      toast({ title: 'Verification submitted', description: "We're checking your details. You'll be notified when the result is ready." });
+      fetchProfile();
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate]);
 
   const fetchAuthInfo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -141,12 +152,8 @@ const ProfilePage = () => {
         setProfile(data);
         setEditBio(data.bio || '');
         
-        // Track profile view (if viewing someone else's profile)
         if (userId && session && session.user.id !== userId) {
-          console.log('Tracking profile view:', { viewedProfileId: userId, viewerId: session.user.id });
-          trackProfileView(userId, session.user.id);
-        } else {
-          console.log('Skipping profile view tracking:', { userId, hasSession: !!session, currentUserId: session?.user?.id });
+          recordProfileView(supabase, session.user.id, userId);
         }
       }
     } catch (error) {
@@ -154,41 +161,6 @@ const ProfilePage = () => {
       toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const trackProfileView = async (viewedProfileId, viewerId) => {
-    try {
-      // Don't track if viewing own profile
-      if (viewedProfileId === viewerId) {
-        return;
-      }
-
-      // Track profile view (only if viewing someone else's profile)
-      // Note: viewed_at has a DEFAULT, so we don't need to set it manually
-      const { data, error } = await supabase
-        .from('profile_views')
-        .insert({
-          viewer_id: viewerId,
-          viewed_profile_id: viewedProfileId
-        })
-        .select()
-        .maybeSingle();
-      
-      if (error) {
-        // If it's a duplicate key error, that's fine - view already tracked
-        if (error.code === '23505') {
-          console.log('Profile view already tracked (duplicate)');
-        } else {
-          console.error('Profile view tracking error:', error);
-        }
-        // Don't show error to user - view tracking is not critical
-      } else {
-        console.log('Profile view tracked successfully:', data);
-      }
-    } catch (error) {
-      // Silently fail - view tracking is not critical
-      console.error('Profile view tracking exception:', error);
     }
   };
 
@@ -238,52 +210,69 @@ const ProfilePage = () => {
     ];
   };
 
+  const [verificationStarting, setVerificationStarting] = useState(false);
+
+  const startVerification = async () => {
+    if (!isOwnProfile) return;
+    setVerificationStarting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-verification-session');
+      if (error) {
+        let msg = data?.error || error?.message || 'Verification service error.';
+        let details = data?.details ?? '';
+        if (error?.context && typeof error.context?.json === 'function') {
+          try {
+            const body = await error.context.json();
+            if (body?.error) msg = body.error;
+            if (body?.details) details = body.details;
+          } catch (_) {}
+        }
+        toast({
+          title: 'Verification unavailable',
+          description: details ? `${msg} ${details}` : msg,
+          variant: 'destructive',
+        });
+        return;
+      }
+      const url = data?.url;
+      if (url) {
+        setIsSelfieDialogOpen(false);
+        window.location.href = url;
+        return;
+      }
+      toast({
+        title: 'Verification unavailable',
+        description: data?.error || 'No verification URL returned.',
+        variant: 'destructive',
+      });
+    } catch (err) {
+      console.error('Verification start error', err);
+      toast({
+        title: 'Verification unavailable',
+        description: err?.message || 'Could not start verification. Please try again or contact support.',
+        variant: 'destructive',
+      });
+    } finally {
+      setVerificationStarting(false);
+    }
+  };
+
   const handleUploadSelfie = async () => {
     if (!selfieImage || !isOwnProfile) return;
-
     setUploadingSelfie(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setUploadingSelfie(false);
-        return;
-      }
-
-      // Compress the selfie image
+      if (!user) { setUploadingSelfie(false); return; }
       const compressed = await compressImage(selfieImage, 800, 0.85);
-
-      // Update profile with selfie and set status to pending
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          selfie_url: compressed,
-          identity_verification_status: 'pending'
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Selfie upload error:', error);
-        throw error;
-      }
-
-      setProfile(prev => ({ 
-        ...prev, 
-        selfie_url: compressed,
-        identity_verification_status: 'pending'
-      }));
+      const { error } = await supabase.from('profiles').update({ selfie_url: compressed, identity_verification_status: 'pending' }).eq('id', user.id);
+      if (error) throw error;
+      setProfile(prev => ({ ...prev, selfie_url: compressed, identity_verification_status: 'pending' }));
       setIsSelfieDialogOpen(false);
       setSelfieImage(null);
-      toast({ 
-        title: "Selfie Submitted", 
-        description: "Your selfie has been submitted for admin review. You'll be notified once it's verified." 
-      });
+      toast({ title: "Selfie Submitted", description: "Your selfie has been submitted for admin review. You'll be notified once it's verified." });
     } catch (error) {
       console.error('Selfie upload error:', error);
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to upload selfie. Please try again.", 
-        variant: "destructive" 
-      });
+      toast({ title: "Error", description: error.message || "Failed to upload selfie. Please try again.", variant: "destructive" });
     } finally {
       setUploadingSelfie(false);
     }
@@ -528,7 +517,7 @@ const ProfilePage = () => {
               <button type="button" onClick={() => setIsPreviewMode(!isPreviewMode)} className="text-sm font-medium text-[#555] hover:text-[#111] py-2.5 px-4 rounded-lg hover:bg-[#F0EFEC] border border-[#E8E6E4]">
                 {isPreviewMode ? 'Exit preview' : 'Preview'}
               </button>
-              <button type="button" onClick={() => navigate('/onboarding')} className="text-sm font-semibold text-white bg-[#1a1a1a] hover:bg-[#333] py-2.5 px-5 rounded-lg transition-colors">
+              <button type="button" onClick={() => navigate('/onboarding?edit=1')} className="text-sm font-semibold text-white bg-[#1a1a1a] hover:bg-[#333] py-2.5 px-5 rounded-lg transition-colors">
                 Edit profile
               </button>
             </div>
@@ -916,290 +905,41 @@ const ProfilePage = () => {
         uploading={uploadingPhoto}
       />
 
-      {/* Selfie Verification Dialog */}
-      <Dialog 
-        open={isSelfieDialogOpen} 
-        onOpenChange={(open) => {
-          // Prevent closing if camera is active or if we have a selfie image that hasn't been submitted
-          if (!open && (isCameraActive || (selfieImage && !uploadingSelfie))) {
-            return;
-          }
-          setIsSelfieDialogOpen(open);
-        }}
-      >
+      {/* Identity Verification Dialog (Didit) */}
+      <Dialog open={isSelfieDialogOpen} onOpenChange={setIsSelfieDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Identity Verification</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <BadgeCheck className="w-5 h-5 text-[#E6B450]" />
+              Identity Verification
+            </DialogTitle>
             <CardDescription>
-              Take a selfie to verify your identity. An admin will review it to ensure you match your profile photos.
+              Verify your identity with our secure partner Didit. You'll need an ID document and a short selfie. The process takes about 2 minutes.
             </CardDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            {!selfieImage ? (
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-[#E6DCD2] rounded-lg p-8 text-center">
-                  <Camera className="w-12 h-12 mx-auto text-[#706B67] mb-4" />
-                  <p className="text-sm text-[#706B67] mb-4">
-                    Please take a clear selfie showing your face
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          setIsCameraActive(true);
-                          // Request camera access
-                          const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: 'user' } // Front-facing camera
-                          });
-                          
-                          // Create video element to show camera preview
-                          const video = document.createElement('video');
-                          video.srcObject = stream;
-                          video.autoplay = true;
-                          video.playsInline = true;
-                          video.muted = true; // Required for autoplay in some browsers
-                          
-                          // Create a modal/dialog to show camera preview
-                          const cameraModal = document.createElement('div');
-                          cameraModal.style.cssText = `
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: rgba(0, 0, 0, 0.9);
-                            z-index: 10000;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 20px;
-                          `;
-                          
-                          const videoContainer = document.createElement('div');
-                          videoContainer.style.cssText = `
-                            position: relative;
-                            max-width: 90vw;
-                            max-height: 70vh;
-                            border-radius: 12px;
-                            overflow: hidden;
-                            background: #000;
-                          `;
-                          
-                          video.style.cssText = `
-                            width: 100%;
-                            height: auto;
-                            display: block;
-                            max-width: 640px;
-                          `;
-                          
-                          videoContainer.appendChild(video);
-                          
-                          const buttonContainer = document.createElement('div');
-                          buttonContainer.style.cssText = `
-                            display: flex;
-                            gap: 12px;
-                            z-index: 10001;
-                          `;
-                          
-                          const captureButton = document.createElement('button');
-                          captureButton.textContent = 'Capture';
-                          captureButton.style.cssText = `
-                            padding: 12px 24px;
-                            background: #E6B450;
-                            color: #1F1F1F;
-                            border: none;
-                            border-radius: 8px;
-                            font-weight: 600;
-                            cursor: pointer;
-                            font-size: 16px;
-                            pointer-events: auto;
-                            opacity: 0.5;
-                          `;
-                          captureButton.disabled = true;
-                          
-                          const cancelButton = document.createElement('button');
-                          cancelButton.textContent = 'Cancel';
-                          cancelButton.style.cssText = `
-                            padding: 12px 24px;
-                            background: #fff;
-                            color: #1F1F1F;
-                            border: none;
-                            border-radius: 8px;
-                            font-weight: 600;
-                            cursor: pointer;
-                            font-size: 16px;
-                            pointer-events: auto;
-                          `;
-                          
-                          buttonContainer.appendChild(captureButton);
-                          buttonContainer.appendChild(cancelButton);
-                          
-                          cameraModal.appendChild(videoContainer);
-                          cameraModal.appendChild(buttonContainer);
-                          document.body.appendChild(cameraModal);
-                          
-                          // Wait for video to be ready
-                          video.addEventListener('loadedmetadata', () => {
-                            video.play().then(() => {
-                              captureButton.disabled = false;
-                              captureButton.style.opacity = '1';
-                            }).catch(err => {
-                              console.error('Error playing video:', err);
-                            });
-                          });
-                          
-                          // Cleanup function
-                          const cleanup = () => {
-                            try {
-                              stream.getTracks().forEach(track => track.stop());
-                              if (cameraModal && cameraModal.parentNode) {
-                                document.body.removeChild(cameraModal);
-                              }
-                              setIsCameraActive(false);
-                            } catch (err) {
-                              console.error('Error during cleanup:', err);
-                              setIsCameraActive(false);
-                            }
-                          };
-                          
-                          // Capture photo
-                          const handleCapture = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            try {
-                              if (!video || video.readyState < 2) {
-                                toast({
-                                  title: "Camera Not Ready",
-                                  description: "Please wait for the camera to load.",
-                                  variant: "destructive"
-                                });
-                                return;
-                              }
-                              
-                              if (video.videoWidth === 0 || video.videoHeight === 0) {
-                                toast({
-                                  title: "Invalid Video",
-                                  description: "Camera stream is not ready. Please try again.",
-                                  variant: "destructive"
-                                });
-                                return;
-                              }
-                              
-                              const canvas = document.createElement('canvas');
-                              canvas.width = video.videoWidth;
-                              canvas.height = video.videoHeight;
-                              const ctx = canvas.getContext('2d');
-                              ctx.drawImage(video, 0, 0);
-                              
-                              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                              setSelfieImage(dataUrl);
-                              cleanup();
-                            } catch (err) {
-                              console.error('Error capturing photo:', err);
-                              toast({
-                                title: "Capture Failed",
-                                description: "Failed to capture photo. Please try again.",
-                                variant: "destructive"
-                              });
-                            }
-                          };
-                          
-                          // Cancel
-                          const handleCancel = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            cleanup();
-                          };
-                          
-                          captureButton.addEventListener('click', handleCapture);
-                          cancelButton.addEventListener('click', handleCancel);
-                          
-                          // Also handle cleanup on modal click (outside buttons)
-                          cameraModal.addEventListener('click', (e) => {
-                            if (e.target === cameraModal) {
-                              cleanup();
-                            }
-                          });
-                          
-                        } catch (error) {
-                          console.error('Error accessing camera:', error);
-                          setIsCameraActive(false);
-                          toast({ 
-                            title: "Camera Access Denied", 
-                            description: "Please allow camera access or use 'Upload Photo' instead.", 
-                            variant: "destructive" 
-                          });
-                        }
-                      }}
-                    >
-                      <Camera className="w-4 h-4 mr-2" /> Take Selfie
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              setSelfieImage(event.target.result);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        };
-                        input.click();
-                      }}
-                    >
-                      <Upload className="w-4 h-4 mr-2" /> Upload Photo
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative w-full aspect-square max-w-xs mx-auto rounded-lg overflow-hidden border-2 border-[#E6DCD2]">
-                  <img src={selfieImage} alt="Selfie" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex gap-2 justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelfieImage(null)}
-                    disabled={uploadingSelfie}
-                  >
-                    Retake
-                  </Button>
-                  <Button
-                    onClick={handleUploadSelfie}
-                    disabled={uploadingSelfie}
-                    className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
-                  >
-                    {uploadingSelfie ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Submit for Review
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
+            <div className="rounded-lg bg-[#FAF7F2] border border-[#E6DCD2] p-4 text-sm text-[#706B67]">
+              <p className="font-medium text-[#1F1F1F] mb-1">What happens next:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>You'll be redirected to Didit's secure page</li>
+                <li>Take a photo of your ID and a quick selfie</li>
+                <li>We'll update your verification status automatically</li>
+              </ul>
+            </div>
+            <Button
+              onClick={startVerification}
+              disabled={verificationStarting}
+              className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-semibold"
+            >
+              {verificationStarting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting...</>
+              ) : (
+                <><ExternalLink className="w-4 h-4 mr-2" /> Start verification</>
+              )}
+            </Button>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsSelfieDialogOpen(false);
-              setSelfieImage(null);
-            }} disabled={uploadingSelfie}>
+            <Button variant="outline" onClick={() => setIsSelfieDialogOpen(false)} disabled={verificationStarting}>
               Cancel
             </Button>
           </DialogFooter>

@@ -5,6 +5,8 @@ import VerificationBadge from '@/components/VerificationBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+const isIdVerified = (p) => p?.is_verified === true || p?.identity_verification_status === 'verified';
+
 const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick }) => {
   const genderLabel = profile.identify_as === 'Man' || profile.identify_as === 'Male' ? 'Male' : profile.identify_as === 'Woman' || profile.identify_as === 'Female' ? 'Female' : profile.identify_as || null;
 
@@ -68,7 +70,9 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
             </div>
 
             <div className="absolute top-3 right-3 flex flex-col gap-2">
-                 <VerificationBadge level={profile.is_verified ? 2 : 1} size="md" />
+                 {isIdVerified(profile) && (
+                   <VerificationBadge level={2} size="md" />
+                 )}
                  <Button 
                     variant="ghost" 
                     size="icon" 

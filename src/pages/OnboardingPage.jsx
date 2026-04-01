@@ -17,8 +17,16 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  
+  const refFromUrl = searchParams.get('ref');
+  const rawEditParam = searchParams.get('edit');
+  const wantsProfileEdit =
+    rawEditParam === '1' || rawEditParam?.toLowerCase() === 'true';
+
   const [currentStep, setCurrentStep] = useState(1);
+  const [isEditMode, setIsEditMode] = useState(false);
+  /** Logged-in user already has a profiles row — never show "create password" on step 1 (use Account settings). */
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
+  const [sessionProfileReady, setSessionProfileReady] = useState(false);
   const [step1Errors, setStep1Errors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState(null);
@@ -72,7 +80,7 @@ const OnboardingPage = () => {
   // Initialize and check for existing session/profile
   useEffect(() => {
     // Check for referral code in URL
-    const refCode = searchParams.get('ref');
+    const refCode = refFromUrl;
     if (refCode) {
       setReferralCode(refCode);
       // Store in localStorage to persist across page refreshes
@@ -89,35 +97,57 @@ const OnboardingPage = () => {
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         setSession(existingSession);
 
-        if (existingSession?.user) {
-            // When user opens join via referral link (?ref=), show empty form for new signup (don't pre-fill with their data)
-            const isReferralLink = !!refCode;
-            if (isReferralLink) {
-                // Leave formData as initial empty state; referral code is already set above
-                return;
-            }
+        if (!existingSession?.user) {
+            setHasExistingProfile(false);
+            setSessionProfileReady(true);
+            return;
+        }
 
-            // Fetch existing profile data to resume or edit
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', existingSession.user.id)
-                .maybeSingle(); // Use maybeSingle() to handle case where profile doesn't exist yet
-            
-            if (profile) {
-                // Check if this is edit mode (profile exists and onboarding is complete)
-                const isEditModeProfile = profile.onboarding_step === 5;
+        // When user opens join via referral link (?ref=), show empty form for new signup (don't pre-fill with their data)
+        const isReferralLink = !!refCode;
+        if (isReferralLink) {
+            setHasExistingProfile(false);
+            setSessionProfileReady(true);
+            return;
+        }
+
+        // Fetch existing profile data to resume or edit
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', existingSession.user.id)
+            .maybeSingle();
+
+        if (profile) {
+            setHasExistingProfile(true);
+                const stepNum =
+                    profile.onboarding_step == null || profile.onboarding_step === ''
+                        ? null
+                        : Number(profile.onboarding_step);
+                const step =
+                    stepNum != null && !Number.isNaN(stepNum) ? stepNum : null;
+                // Edit flow: finished onboarding, explicit ?edit=1, or live member with inconsistent step (e.g. step 2–4 but already approved)
+                const isLiveMemberBadStep =
+                    !isReferralLink &&
+                    step != null &&
+                    step > 1 &&
+                    step < totalSteps &&
+                    (profile.status === 'approved' || profile.status === 'pending_review');
+                const isEditModeProfile =
+                    step === totalSteps ||
+                    (wantsProfileEdit && !isReferralLink) ||
+                    isLiveMemberBadStep;
                 if (isEditModeProfile) {
                     setIsEditMode(true);
-                    // Pre-check terms in edit mode
-                    setFormData(prev => ({ ...prev, agreeToTermsV2: true, confirmMarriageIntent: true }));
-                    // Always start at step 1 when editing
                     setCurrentStep(1);
                 }
-                
+
                 // Map DB fields back to formData
                 setFormData(prev => ({
                     ...prev,
+                    agreeToTerms: isEditModeProfile ? true : prev.agreeToTerms,
+                    agreeToTermsV2: isEditModeProfile ? true : prev.agreeToTermsV2,
+                    confirmMarriageIntent: isEditModeProfile ? true : prev.confirmMarriageIntent,
                     name: profile.full_name || '',
                     email: profile.email || prev.email,
                     dateOfBirth: profile.date_of_birth || '',
@@ -157,19 +187,22 @@ const OnboardingPage = () => {
 
                 // Resume at correct step (only for incomplete profiles, not edit mode)
                 if (!isEditModeProfile) {
-                    if (profile.onboarding_step && profile.onboarding_step > 1 && profile.onboarding_step <= totalSteps) {
-                        setCurrentStep(profile.onboarding_step);
-                    } else if (profile.onboarding_step === totalSteps) {
-                         navigate('/dashboard');
+                    if (step === totalSteps) {
+                        navigate('/dashboard');
+                    } else if (step != null && step > 1 && step < totalSteps) {
+                        setCurrentStep(step);
                     } else {
-                        setCurrentStep(2); // Default to 2 if step 1 data exists but step not saved
+                        // Step null, 1, or unknown — stay on step 1 (do not skip to photos)
+                        setCurrentStep(1);
                     }
                 }
-            }
+        } else {
+            setHasExistingProfile(false);
         }
+        setSessionProfileReady(true);
     };
     initSession();
-  }, [navigate]);
+  }, [navigate, refFromUrl, rawEditParam]);
 
   // Scroll to top whenever the step changes (e.g. after Continue or Back)
   useEffect(() => {
@@ -202,6 +235,13 @@ const OnboardingPage = () => {
     return a.localeCompare(b);
   });
 
+  /** Create-password fields only for true sign-up (no session yet, or session but no profile row). */
+  const showPasswordFieldsOnStep1 =
+    !session?.user || (sessionProfileReady && !hasExistingProfile);
+  const showPasswordSettingsLink = Boolean(
+    session?.user && sessionProfileReady && hasExistingProfile
+  );
+
   // --- Validation Logic ---
   const validateStep1 = () => {
     const errors = {};
@@ -210,8 +250,7 @@ const OnboardingPage = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email)) { errors.email = "Please enter a valid email address."; isValid = false; }
     
-    // Password validation only required for new signups, not when editing
-    if (!isEditMode) {
+    if (showPasswordFieldsOnStep1) {
       const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
       if (!formData.password || !passwordRegex.test(formData.password)) { errors.password = "Password must be at least 8 characters, with at least 1 letter and 1 number."; isValid = false; }
       if (formData.password !== formData.confirmPassword) { errors.confirmPassword = "Passwords do not match."; isValid = false; }
@@ -679,6 +718,8 @@ const OnboardingPage = () => {
           updateFormData={updateFormData} 
           errors={step1Errors}
           isEditMode={isEditMode}
+          showPasswordFields={showPasswordFieldsOnStep1}
+          showPasswordSettingsLink={showPasswordSettingsLink}
         />
       );
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
@@ -691,24 +732,54 @@ const OnboardingPage = () => {
 
   // Validations for button states (Visual Only)
   const isStep1Valid = () => {
-       const baseFields = formData.name && formData.email && 
-              formData.dateOfBirth && formData.locationCountry && formData.identifyAs && 
-              formData.seriousRelationship && (isEditMode || formData.agreeToTerms);
-       
-       // Password fields are only required for new signups, not when editing
-       if (isEditMode) {
-         return baseFields;
-       }
-       
-       return baseFields && formData.password && formData.confirmPassword;
+    const locationOk =
+      !!formData.locationCountry &&
+      (formData.locationCountry !== 'United States' || !!formData.locationState) &&
+      (formData.locationCountry === 'United States' || !!formData.locationCity?.trim());
+    const baseFields =
+      formData.name?.trim() &&
+      formData.email &&
+      formData.dateOfBirth &&
+      locationOk &&
+      formData.identifyAs &&
+      formData.seriousRelationship &&
+      (isEditMode || formData.agreeToTerms);
+
+    if (showPasswordFieldsOnStep1) {
+      return !!(baseFields && formData.password && formData.confirmPassword);
+    }
+    return !!baseFields;
   };
   const isStep2Complete = formData.photos && formData.photos.length > 0;
   const isStep3Complete = formData.cultures?.length > 0 && formData.coreValues?.length > 0 && formData.faithLifestyle;
   const isStep4Complete = formData.bio?.length >= 50 && formData.willingToRelocate && formData.familyGoals;
-  // Check if this is an edit (profile already exists and onboarding is complete)
-  const [isEditMode, setIsEditMode] = useState(false);
 
   const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && (isEditMode || formData.agreeToTermsV2);
+
+  const step1ContinueHint = () => {
+    if (currentStep !== 1 || isStep1Valid()) return null;
+    const parts = [];
+    if (!formData.name?.trim()) parts.push('enter your full name');
+    if (!formData.email?.trim()) parts.push('enter your email');
+    if (!formData.dateOfBirth) parts.push('add your date of birth');
+    if (!formData.locationCountry) parts.push('select your country of residence');
+    if (formData.locationCountry === 'United States' && !formData.locationState) parts.push('select your state');
+    if (formData.locationCountry && formData.locationCountry !== 'United States' && !formData.locationCity?.trim()) {
+      parts.push('enter your city');
+    }
+    if (!formData.identifyAs) parts.push('choose how you identify');
+    if (!formData.seriousRelationship) parts.push('confirm you are seeking marriage');
+    if (!isEditMode) {
+      if (!formData.agreeToTerms) parts.push('accept the terms');
+    }
+    if (showPasswordFieldsOnStep1 && (!formData.password || !formData.confirmPassword)) {
+      parts.push('set a password');
+    }
+    if (parts.length === 0) return null;
+    return `To continue: ${parts.slice(0, 4).join('; ')}${parts.length > 4 ? '…' : '.'}`;
+  };
+
+  const step1HintText = step1ContinueHint();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF7F2]">
@@ -756,6 +827,11 @@ const OnboardingPage = () => {
                         You're about to join Marryzen, a serious community built for real marriage.
                     </p>
                 )}
+                {step1HintText && (
+                  <p className="text-xs text-[#8B7355] mb-3 font-medium max-w-sm text-right leading-relaxed">
+                    {step1HintText}
+                  </p>
+                )}
                 <Button
                   onClick={handleNext}
                   className="bg-[#E6B450] hover:bg-[#D0A23D] text-white rounded-full px-10 py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -768,7 +844,13 @@ const OnboardingPage = () => {
                     (currentStep === totalSteps && !isStep5Complete)
                   }
                 >
-                  {isLoading ? 'Processing...' : (currentStep === totalSteps ? (isEditMode ? 'Save Changes' : 'Activate Profile') : 'Continue')}
+                  {isLoading
+                    ? 'Processing...'
+                    : currentStep === totalSteps
+                      ? (isEditMode ? 'Save Changes' : 'Activate Profile')
+                      : isEditMode
+                        ? 'Save & continue'
+                        : 'Continue'}
                 </Button>
             </div>
           </div>

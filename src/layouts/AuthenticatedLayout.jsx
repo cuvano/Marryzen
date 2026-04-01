@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { supabase } from '@/lib/customSupabaseClient';
+import { touchLastActiveIfDue } from '@/lib/profileActivity';
 
 const AuthenticatedLayout = () => {
   const navigate = useNavigate();
@@ -42,6 +43,24 @@ const AuthenticatedLayout = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Keep profiles.last_active_at fresh for “Active today” on Discovery (throttled per tab).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) touchLastActiveIfDue(supabase);
+    };
+    run();
+    const interval = setInterval(run, 6 * 60 * 1000);
+    const onFocus = () => touchLastActiveIfDue(supabase);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAuthenticated]);
 
   if (loading) {
     return (

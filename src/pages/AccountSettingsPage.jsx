@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Lock, Mail, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, CreditCard } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 const AccountSettingsPage = () => {
@@ -197,6 +197,25 @@ const AccountSettingsPage = () => {
                 Confirm your email to be approved. Please check your inbox and click the verification link.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 border-[#E6DCD2]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#1F1F1F]">
+              <CreditCard className="w-5 h-5 text-[#E6B450]" />
+              Billing & subscription
+            </CardTitle>
+            <CardDescription>Manage Premium, payment methods, invoices, and cancellation in Stripe</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              type="button"
+              onClick={() => navigate('/billing')}
+              className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-semibold"
+            >
+              Open billing page
+            </Button>
           </CardContent>
         </Card>
 

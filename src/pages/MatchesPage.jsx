@@ -61,10 +61,9 @@ const MatchesPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      // Fetch user profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -75,8 +74,7 @@ const MatchesPage = () => {
         setUserProfile(profile);
       }
 
-      // Fetch matches (conversations)
-    const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('conversations')
         .select(`
             id,
@@ -87,37 +85,110 @@ const MatchesPage = () => {
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
-    if (error) console.error(error);
-    
-      const formatted = (data || []).map(convo => {
-        const otherUser = convo.user1.id === user.id ? convo.user2 : convo.user1;
-        const age = otherUser.date_of_birth 
-          ? Math.floor((new Date() - new Date(otherUser.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
-          : null;
-        
-        return {
+      if (error) console.error(error);
+
+      const formatted = (data || [])
+        .map((convo) => {
+          const u1 = convo.user1;
+          const u2 = convo.user2;
+          if (!u1?.id || !u2?.id) return null;
+          const otherUser = u1.id === user.id ? u2 : u1;
+          const age = otherUser.date_of_birth
+            ? Math.floor((new Date() - new Date(otherUser.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+            : null;
+
+          return {
             conversationId: convo.id,
-          id: otherUser.id,
-          full_name: otherUser.full_name,
-          photos: otherUser.photos || [],
-          location_city: otherUser.location_city,
-          location_country: otherUser.location_country,
+            id: otherUser.id,
+            full_name: otherUser.full_name,
+            photos: otherUser.photos || [],
+            location_city: otherUser.location_city,
+            location_country: otherUser.location_country,
+            age,
+            is_premium: otherUser.is_premium,
+            last_message_at: convo.last_message_at,
+          };
+        })
+        .filter(Boolean);
+
+      const byOtherId = new Map(formatted.map((m) => [m.id, m]));
+
+      const [{ data: myLikes }, { data: likesToMe }] = await Promise.all([
+        supabase.from('user_interactions').select('target_user_id').eq('user_id', user.id).eq('interaction_type', 'like'),
+        supabase.from('user_interactions').select('user_id').eq('target_user_id', user.id).eq('interaction_type', 'like'),
+      ]);
+
+      const myLikeSet = new Set((myLikes || []).map((r) => r.target_user_id));
+      const mutualIds = [...new Set((likesToMe || []).map((r) => r.user_id))].filter((oid) => myLikeSet.has(oid));
+
+      for (const otherId of mutualIds) {
+        if (byOtherId.has(otherId)) continue;
+
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium')
+          .eq('id', otherId)
+          .maybeSingle();
+
+        if (!p) continue;
+
+        const user1_id = user.id < otherId ? user.id : otherId;
+        const user2_id = user.id < otherId ? otherId : user.id;
+
+        let { data: existingConvo } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('user1_id', user1_id)
+          .eq('user2_id', user2_id)
+          .maybeSingle();
+
+        let conversationId = existingConvo?.id;
+        if (!conversationId) {
+          const ins = await supabase
+            .from('conversations')
+            .insert({ user1_id, user2_id })
+            .select('id')
+            .maybeSingle();
+          if (!ins.error && ins.data?.id) conversationId = ins.data.id;
+          else if (ins.error) console.error('Backfill conversation:', ins.error);
+        }
+
+        const age = p.date_of_birth
+          ? Math.floor((new Date() - new Date(p.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+          : null;
+
+        const row = {
+          conversationId: conversationId || null,
+          id: p.id,
+          full_name: p.full_name,
+          photos: p.photos || [],
+          location_city: p.location_city,
+          location_country: p.location_country,
           age,
-          is_premium: otherUser.is_premium,
-          last_message_at: convo.last_message_at
+          is_premium: p.is_premium,
+          last_message_at: null,
         };
+        formatted.push(row);
+        byOtherId.set(otherId, row);
+      }
+
+      formatted.sort((a, b) => {
+        const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+        const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+        return tb - ta;
       });
 
-    setMatches(formatted);
+      setMatches(formatted);
 
-      // If no matches, fetch suggested profiles as fallback (same gender pool as Discovery)
       if (formatted.length === 0 && profile?.status === 'approved') {
         await fetchSuggestedProfiles(user.id, profile.looking_for_gender);
+      } else {
+        setSuggestedProfiles([]);
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
     } finally {
-    setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -248,22 +319,9 @@ const MatchesPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Requires RLS policy allowing select where target_user_id = auth.uid()
       const { data: likes, error } = await supabase
         .from('user_interactions')
-        .select(`
-          id,
-          created_at,
-          from_user:user_id(
-            id,
-            full_name,
-            photos,
-            location_city,
-            location_country,
-            date_of_birth,
-            is_premium
-          )
-        `)
+        .select('id, created_at, user_id')
         .eq('target_user_id', user.id)
         .eq('interaction_type', 'like')
         .order('created_at', { ascending: false })
@@ -274,8 +332,21 @@ const MatchesPage = () => {
         return;
       }
 
-      const formatted = (likes || []).map(like => {
-        const profile = like.from_user;
+      const likerIds = [...new Set((likes || []).map((l) => l.user_id).filter(Boolean))];
+      const profilesById = {};
+      if (likerIds.length > 0) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium')
+          .in('id', likerIds);
+        if (pErr) console.error('Error loading liker profiles:', pErr);
+        (profs || []).forEach((p) => {
+          profilesById[p.id] = p;
+        });
+      }
+
+      const formatted = (likes || []).map((like) => {
+        const profile = profilesById[like.user_id];
         const age = profile?.date_of_birth
           ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
           : null;
@@ -284,14 +355,14 @@ const MatchesPage = () => {
           id: like.id,
           createdAt: like.created_at,
           profile: {
-            id: profile?.id,
-            full_name: profile?.full_name,
+            id: profile?.id ?? like.user_id,
+            full_name: profile?.full_name || 'Member',
             photos: profile?.photos || [],
             location_city: profile?.location_city,
             location_country: profile?.location_country,
             age,
-            is_premium: profile?.is_premium
-          }
+            is_premium: profile?.is_premium,
+          },
         };
       });
 
@@ -306,22 +377,9 @@ const MatchesPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch profile views (who viewed this user's profile)
       const { data: views, error } = await supabase
         .from('profile_views')
-        .select(`
-          id,
-          viewed_at,
-          viewer:viewer_id(
-            id,
-            full_name,
-            photos,
-            location_city,
-            location_country,
-            date_of_birth,
-            is_premium
-          )
-        `)
+        .select('id, viewed_at, viewer_id')
         .eq('viewed_profile_id', user.id)
         .order('viewed_at', { ascending: false })
         .limit(50);
@@ -331,8 +389,21 @@ const MatchesPage = () => {
         return;
       }
 
-      const formatted = (views || []).map(view => {
-        const profile = view.viewer;
+      const viewerIds = [...new Set((views || []).map((v) => v.viewer_id).filter(Boolean))];
+      const profilesById = {};
+      if (viewerIds.length > 0) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium')
+          .in('id', viewerIds);
+        if (pErr) console.error('Error loading viewer profiles:', pErr);
+        (profs || []).forEach((p) => {
+          profilesById[p.id] = p;
+        });
+      }
+
+      const formatted = (views || []).map((view) => {
+        const profile = profilesById[view.viewer_id];
         const age = profile?.date_of_birth
           ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
           : null;
@@ -341,14 +412,14 @@ const MatchesPage = () => {
           id: view.id,
           viewedAt: view.viewed_at,
           profile: {
-            id: profile?.id,
-            full_name: profile?.full_name,
+            id: profile?.id ?? view.viewer_id,
+            full_name: profile?.full_name || 'Member',
             photos: profile?.photos || [],
             location_city: profile?.location_city,
             location_country: profile?.location_country,
             age,
-            is_premium: profile?.is_premium
-          }
+            is_premium: profile?.is_premium,
+          },
         };
       });
 
@@ -363,22 +434,9 @@ const MatchesPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch favorited profiles
       const { data: favs, error } = await supabase
         .from('favorites')
-        .select(`
-          id,
-          created_at,
-          favorited_user:favorited_user_id(
-            id,
-            full_name,
-            photos,
-            location_city,
-            location_country,
-            date_of_birth,
-            is_premium
-          )
-        `)
+        .select('id, created_at, favorited_user_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -388,8 +446,21 @@ const MatchesPage = () => {
         return;
       }
 
-      const formatted = (favs || []).map(fav => {
-        const profile = fav.favorited_user;
+      const favUserIds = [...new Set((favs || []).map((f) => f.favorited_user_id).filter(Boolean))];
+      const profilesById = {};
+      if (favUserIds.length > 0) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium')
+          .in('id', favUserIds);
+        if (pErr) console.error('Error loading favorite profiles:', pErr);
+        (profs || []).forEach((p) => {
+          profilesById[p.id] = p;
+        });
+      }
+
+      const formatted = (favs || []).map((fav) => {
+        const profile = profilesById[fav.favorited_user_id];
         const age = profile?.date_of_birth
           ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
           : null;
@@ -398,14 +469,14 @@ const MatchesPage = () => {
           id: fav.id,
           createdAt: fav.created_at,
           profile: {
-            id: profile?.id,
-            full_name: profile?.full_name,
+            id: profile?.id ?? fav.favorited_user_id,
+            full_name: profile?.full_name || 'Member',
             photos: profile?.photos || [],
             location_city: profile?.location_city,
             location_country: profile?.location_country,
             age,
-            is_premium: profile?.is_premium
-          }
+            is_premium: profile?.is_premium,
+          },
         };
       });
 
@@ -900,7 +971,7 @@ const MatchesPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {matches.map(match => (
               <div 
-                key={match.conversationId} 
+                key={match.id} 
                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#E6DCD2] flex flex-col hover:shadow-md transition-shadow"
               >
                         <div className="aspect-square bg-slate-100 relative">
@@ -939,7 +1010,22 @@ const MatchesPage = () => {
                             
                             <Button 
                     className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                                onClick={() => navigate(`/chat/${match.conversationId}`)}
+                                onClick={async () => {
+                                  let cid = match.conversationId;
+                                  if (!cid) {
+                                    const { data: { user: u } } = await supabase.auth.getUser();
+                                    if (!u) return;
+                                    const user1_id = u.id < match.id ? u.id : match.id;
+                                    const user2_id = u.id < match.id ? match.id : u.id;
+                                    const ins = await supabase
+                                      .from('conversations')
+                                      .insert({ user1_id, user2_id })
+                                      .select('id')
+                                      .maybeSingle();
+                                    if (!ins.error && ins.data?.id) cid = ins.data.id;
+                                  }
+                                  if (cid) navigate(`/chat/${cid}`);
+                                }}
                             >
                                 <MessageSquare className="w-4 h-4 mr-2" /> Message
                             </Button>

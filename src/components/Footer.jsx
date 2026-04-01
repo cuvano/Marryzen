@@ -30,7 +30,8 @@ const Footer = ({ isProfileFooter = false }) => {
             <Link to="/privacy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Privacy Policy</Link>
             <Link to="/community-guidelines" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Community Guidelines</Link>
             <Link to="/safety" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Safety</Link>
-            <Link to="/billing" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing Terms</Link>
+            <Link to="/billing" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing & subscription</Link>
+            <Link to="/billing-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing Terms</Link>
             <Link to="/cookie-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Cookie Policy</Link>
             <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
         </div>

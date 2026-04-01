@@ -41,7 +41,14 @@ const US_STATES = [
   "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
 ];
 
-const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) => {
+const Step1 = ({
+  formData,
+  updateFormData,
+  errors = {},
+  isEditMode = false,
+  showPasswordFields = true,
+  showPasswordSettingsLink = false,
+}) => {
   const navigate = useNavigate();
   const [ageError, setAgeError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -114,8 +121,8 @@ const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) =>
           )}
         </div>
         
-        {/* Password Fields - Only show for new signups, optional for edit mode */}
-        {!isEditMode && (
+        {/* Create password: only for brand-new sign-up (see Account settings to change an existing password) */}
+        {showPasswordFields && (
           <>
             <div className="space-y-2">
                 <Label htmlFor="password" className={`text-[#333333] font-bold text-base`}>Password</Label>
@@ -166,6 +173,16 @@ const Step1 = ({ formData, updateFormData, errors = {}, isEditMode = false }) =>
                  {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
             </div>
           </>
+        )}
+
+        {showPasswordSettingsLink && (
+          <p className="text-[#706B67] text-xs font-medium -mt-1">
+            To change your password, go to{' '}
+            <Link to="/account-settings" className="text-[#C85A72] font-semibold hover:underline">
+              Account settings
+            </Link>
+            .
+          </p>
         )}
 
         <div className="space-y-2">
