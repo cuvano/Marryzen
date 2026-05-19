@@ -706,6 +706,10 @@ const DiscoveryPage = () => {
 
   // Detailed Profile View Component
   const DetailedProfileView = ({ profile, isFavorite, onLike, onPass, onFavorite, onClose, onNext, onPrevious, hasNext, hasPrevious }) => {
+    const [photoIdx, setPhotoIdx] = useState(0);
+    const photos = profile.photos || [];
+    const heroPhoto = photos[photoIdx] || photos[0];
+    useEffect(() => { setPhotoIdx(0); }, [profile?.id]);
     return (
       <div className="bg-white rounded-2xl border border-[#E6DCD2] shadow-lg overflow-hidden">
         <Helmet><title>Discover profiles — Marryzen</title></Helmet>
@@ -723,7 +727,7 @@ const DiscoveryPage = () => {
           {/* Main Image */}
           <div className="relative h-96 overflow-hidden">
             <img 
-              src={profile.photos?.[0] || 'https://via.placeholder.com/800x600'} 
+              src={heroPhoto || 'https://via.placeholder.com/800x600'} 
               alt={profile.full_name}
               className="w-full h-full object-cover object-top"
             />
@@ -801,12 +805,12 @@ const DiscoveryPage = () => {
               <div>
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-3">Photos</h3>
                 <div className="grid grid-cols-3 gap-3">
-                  {profile.photos.slice(1, 4).map((photo, idx) => (
+                  {photos.slice(0, 6).map((photo, idx) => (
                     <img 
                       key={idx}
                       src={photo || 'https://via.placeholder.com/200x200'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}
-                      className="w-full aspect-square object-cover object-top rounded-lg"
+                      onClick={() => setPhotoIdx(idx)} className={`w-full aspect-square object-cover object-top rounded-lg cursor-pointer transition-all ${idx === photoIdx ? 'ring-4 ring-[#E6B450]' : 'opacity-80 hover:opacity-100'}`}
                     />
                   ))}
                 </div>
