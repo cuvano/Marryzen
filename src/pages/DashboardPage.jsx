@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import { getPotentialMatchesCount } from '@/lib/matchStats';
 
+import { Helmet } from 'react-helmet';
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
@@ -458,6 +459,7 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-4 bg-[#FAF7F2] flex items-center justify-center">
+        <Helmet><title>Dashboard — Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[#706B67] font-medium">Loading dashboard...</p>

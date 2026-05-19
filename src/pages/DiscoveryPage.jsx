@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { Helmet } from 'react-helmet';
 const DiscoveryPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -707,6 +708,7 @@ const DiscoveryPage = () => {
   const DetailedProfileView = ({ profile, isFavorite, onLike, onPass, onFavorite, onClose, onNext, onPrevious, hasNext, hasPrevious }) => {
     return (
       <div className="bg-white rounded-2xl border border-[#E6DCD2] shadow-lg overflow-hidden">
+        <Helmet><title>Discover profiles — Marryzen</title></Helmet>
         <div className="relative">
           {/* Close Button */}
           <Button
@@ -720,7 +722,7 @@ const DiscoveryPage = () => {
 
           {/* Main Image */}
           <div className="relative h-96 overflow-hidden">
-            <img loading="lazy" decoding="async" 
+            <img 
               src={profile.photos?.[0] || 'https://via.placeholder.com/800x600'} 
               alt={profile.full_name}
               className="w-full h-full object-cover object-top"
@@ -800,7 +802,7 @@ const DiscoveryPage = () => {
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-3">Photos</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {profile.photos.slice(1, 4).map((photo, idx) => (
-                    <img loading="lazy" decoding="async" 
+                    <img 
                       key={idx}
                       src={photo || 'https://via.placeholder.com/200x200'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}

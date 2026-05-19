@@ -13,6 +13,7 @@ import Step3 from '@/components/onboarding/Step3';
 import Step4 from '@/components/onboarding/Step4';
 import Step5 from '@/components/onboarding/Step5';
 
+import { Helmet } from 'react-helmet';
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -721,6 +722,7 @@ const OnboardingPage = () => {
           showPasswordFields={showPasswordFieldsOnStep1}
           showPasswordSettingsLink={showPasswordSettingsLink}
         />
+          <Helmet><title>Create your profile — Marryzen</title></Helmet>
       );
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
       case 3: return <Step3 formData={formData} updateFormData={updateFormData} cultures={cultures} coreValues={coreValues} />;
