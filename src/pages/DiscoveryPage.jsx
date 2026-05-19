@@ -752,7 +752,7 @@ const DiscoveryPage = () => {
               </div>
 
               {/* Match Badge */}
-              {profile.matchLabel && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && (
+              {profile.matchLabel && typeof profile.compatibilityScore === 'number' && !isNaN(profile.compatibilityScore) && profile.compatibilityScore > 0 && (
                 <Badge className="bg-green-600 text-white border-0 font-bold mb-4 shadow-lg shadow-black/40 ring-1 ring-white/20">
                   {Math.round(profile.compatibilityScore)}% Match - {profile.matchLabel}
                 </Badge>
@@ -1185,33 +1185,35 @@ const DiscoveryPage = () => {
                          </div>
                     </div>
 
-                    {/* Filter Summary Tags */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
-                        {filters.faith && <Badge variant="secondary" className="bg-white border gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
-                        {filters.city && <Badge variant="secondary" className="bg-white border gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
-                        {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
-                        {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">ID verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
-                        {/* Undo Button - Premium Only */}
-                        {lastAction && currentUser?.is_premium && (
-                            <Button 
-                                size="sm" 
-                                onClick={handleUndo} 
-                                className="ml-auto bg-[#1F1F1F] text-white animate-in fade-in slide-in-from-top-2"
-                            >
-                                <Undo2 className="w-4 h-4 mr-1" /> Undo ({undoTimer}s)
-                            </Button>
-                        )}
-                        {lastAction && !currentUser?.is_premium && (
-                            <Button 
-                                size="sm" 
-                                onClick={() => openPremiumModal && openPremiumModal()} 
-                                className="ml-auto bg-[#E6B450] text-[#1F1F1F] animate-in fade-in slide-in-from-top-2"
-                            >
-                                <Crown className="w-4 h-4 mr-1" /> Premium: Undo ({undoTimer}s)
-                            </Button>
-                        )}
-                    </div>
+                    {/* Filter Summary Tags — only render when any filter is active */}
+                    {(filters.faith || filters.city || filters.recentActive || filters.verifiedOnly) && (
+                      <div className="flex flex-wrap gap-2 items-center">
+                          <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
+                          {filters.faith && <Badge variant="secondary" className="bg-white border gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
+                          {filters.city && <Badge variant="secondary" className="bg-white border gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
+                          {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
+                          {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">ID verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
+                          {/* Undo Button - Premium Only */}
+                          {lastAction && currentUser?.is_premium && (
+                              <Button 
+                                  size="sm" 
+                                  onClick={handleUndo} 
+                                  className="ml-auto bg-[#1F1F1F] text-white animate-in fade-in slide-in-from-top-2"
+                              >
+                                  <Undo2 className="w-4 h-4 mr-1" /> Undo ({undoTimer}s)
+                              </Button>
+                          )}
+                          {lastAction && !currentUser?.is_premium && (
+                              <Button 
+                                  size="sm" 
+                                  onClick={() => openPremiumModal && openPremiumModal()} 
+                                  className="ml-auto bg-[#E6B450] text-[#1F1F1F] animate-in fade-in slide-in-from-top-2"
+                              >
+                                  <Crown className="w-4 h-4 mr-1" /> Premium: Undo ({undoTimer}s)
+                              </Button>
+                          )}
+                      </div>
+                    )}
                 </div>
 
                 {/* Grid */}
