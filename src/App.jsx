@@ -42,6 +42,7 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
+import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
 import AdminLayout from '@/layouts/AdminLayout';
@@ -60,8 +61,8 @@ function App() {
   return (
     <>
       <Helmet>
-        <title>Marryzen - Find Your Marriage Partner</title>
-        <meta name="description" content="A marriage-focused platform for people seeking serious, long-term relationships based on shared cultural heritage and family values." />
+        <title>Marryzen — A platform for serious marriage</title>
+        <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only — no casual dating." />
       </Helmet>
       <AuthProvider>
         <PremiumModalContext.Provider value={{ openPremiumModal: () => setIsModalOpen(true) }}>
@@ -121,7 +122,9 @@ function App() {
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
                       </Route>
-                  </Routes>
+                    {/* 404 catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
                   <Toaster />
                   <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
               </div>
