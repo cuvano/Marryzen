@@ -603,7 +603,7 @@ const MatchesPage = () => {
                 >
                   <div className="aspect-square bg-slate-100 relative overflow-hidden">
                     {item.profile.photos?.[0] ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
                         className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-lg scale-110' : ''}`}
@@ -688,7 +688,7 @@ const MatchesPage = () => {
                   >
                     <div className="aspect-square bg-slate-100 relative">
                       {item.profile.photos?.[0] ? (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={item.profile.photos[0]}
                           alt={item.profile.full_name}
                           className="w-full h-full object-cover"
@@ -775,7 +775,7 @@ const MatchesPage = () => {
                 >
                   <div className="aspect-square bg-slate-100 relative">
                     {item.profile.photos?.[0] ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
                         className="w-full h-full object-cover"
@@ -865,7 +865,7 @@ const MatchesPage = () => {
                   >
                     <div className="aspect-square bg-slate-100 relative">
                       {interaction.profile.photos?.[0] ? (
-                        <img 
+                        <img loading="lazy" decoding="async" 
                           src={interaction.profile.photos[0]} 
                           alt={interaction.profile.full_name} 
                           className="w-full h-full object-cover" 
@@ -976,7 +976,7 @@ const MatchesPage = () => {
               >
                         <div className="aspect-square bg-slate-100 relative">
                             {match.photos?.[0] ? (
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={match.photos[0]} 
                       alt={match.full_name} 
                       className="w-full h-full object-cover" 
@@ -1105,7 +1105,7 @@ const MatchesPage = () => {
                     >
                       <div className="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 relative mb-2">
                         {profile.photos?.[0] ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={profile.photos[0]}
                             alt={profile.full_name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"

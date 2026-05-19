@@ -720,7 +720,7 @@ const DiscoveryPage = () => {
 
           {/* Main Image */}
           <div className="relative h-96 overflow-hidden">
-            <img 
+            <img loading="lazy" decoding="async" 
               src={profile.photos?.[0] || 'https://via.placeholder.com/800x600'} 
               alt={profile.full_name}
               className="w-full h-full object-cover object-top"
@@ -800,7 +800,7 @@ const DiscoveryPage = () => {
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-3">Photos</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {profile.photos.slice(1, 4).map((photo, idx) => (
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       key={idx}
                       src={photo || 'https://via.placeholder.com/200x200'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}

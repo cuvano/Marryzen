@@ -104,7 +104,7 @@ const VerificationQueue = () => {
                   <div className="relative aspect-video bg-slate-800 rounded-lg overflow-hidden border border-slate-700 group">
                     {profile.selfie_url ? (
                       <>
-                        <img src={profile.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={profile.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <ZoomIn className="text-white w-8 h-8" />
                         </div>
@@ -119,7 +119,7 @@ const VerificationQueue = () => {
                   <div className="grid grid-cols-2 gap-2">
                     {(profile.photos || []).slice(0, 4).map((photo, idx) => (
                       <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-700">
-                        <img src={photo} alt={`Profile ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={photo} alt={`Profile ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                     {(!profile.photos || profile.photos.length === 0) && (

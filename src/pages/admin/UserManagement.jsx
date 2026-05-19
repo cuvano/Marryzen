@@ -308,7 +308,7 @@ const UserManagement = () => {
                                          <div className="flex-1">
                                            <Label className="text-slate-500 text-xs mb-2 block">Selfie Submission</Label>
                                            <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-slate-700">
-                                             <img src={selectedUser.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
+                                             <img loading="lazy" decoding="async" src={selectedUser.selfie_url} alt="Selfie" className="w-full h-full object-cover" />
                                            </div>
                                          </div>
                                          <div className="flex-1">
@@ -316,7 +316,7 @@ const UserManagement = () => {
                                            <div className="grid grid-cols-2 gap-2">
                                              {selectedUser.photos?.slice(0, 4).map((photo, idx) => (
                                                <div key={idx} className="relative w-full aspect-square rounded overflow-hidden border border-slate-700">
-                                                 <img src={photo} alt={`Profile ${idx + 1}`} className="w-full h-full object-cover" />
+                                                 <img loading="lazy" decoding="async" src={photo} alt={`Profile ${idx + 1}`} className="w-full h-full object-cover" />
                                                </div>
                                              ))}
                                            </div>
@@ -399,7 +399,7 @@ const UserManagement = () => {
                                    <div className="grid grid-cols-2 gap-4">
                                       {selectedUser.photos && selectedUser.photos.map((photo, idx) => (
                                         <div key={idx} className="relative group aspect-square bg-black rounded overflow-hidden">
-                                           <img src={photo} alt="User" className="w-full h-full object-cover" />
+                                           <img loading="lazy" decoding="async" src={photo} alt="User" className="w-full h-full object-cover" />
                                            <Button 
                                             variant="destructive" 
                                             size="sm" 
