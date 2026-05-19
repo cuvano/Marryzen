@@ -9,6 +9,7 @@ import { ArrowLeft, Crown, Check, X, ShieldCheck, Lock, Star, ShieldAlert, Loade
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
 
+import { Helmet } from 'react-helmet';
 const PremiumPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -298,6 +299,7 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8 pb-20 bg-[#FAF7F2]">
+      <Helmet><title>Premium — Marryzen</title></Helmet>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
             <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] mb-4 pl-0">

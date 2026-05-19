@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ArrowLeft } from 'lucide-react';
 
+import { Helmet } from 'react-helmet';
 const NotFoundPage = () => {
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center p-6">
+      <Helmet><title>404 Not Found — Marryzen</title></Helmet>
       <div className="text-center max-w-md">
         <div className="w-20 h-20 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-6">
           <Heart className="w-10 h-10 text-[#C85A72]" />

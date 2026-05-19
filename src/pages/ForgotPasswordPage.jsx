@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 
+import { Helmet } from 'react-helmet';
 const ForgotPasswordPage = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
@@ -33,6 +34,7 @@ const ForgotPasswordPage = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
+          <Helmet><title>Forgot password — Marryzen</title></Helmet>
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle>Reset Password</CardTitle>

@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+import { Helmet } from 'react-helmet';
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -390,6 +391,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-[#FAF7F2] overflow-hidden">
+      <Helmet><title>Messages — Marryzen</title></Helmet>
       <div className={`w-full md:w-80 bg-white border-r border-[#E6DCD2] flex flex-col ${activeConversation ? 'hidden md:flex' : 'flex'}`}>
          <div className="p-4 border-b border-[#E6DCD2]">
             <h2 className="font-bold text-xl text-[#1F1F1F]">Messages</h2>
@@ -398,7 +400,7 @@ const ChatPage = () => {
              {conversations.map(convo => (
                 <div key={convo.id} onClick={() => navigate(`/chat/${convo.id}`)} className={`p-4 border-b cursor-pointer hover:bg-[#FAF7F2] flex gap-3 ${activeConversation?.id === convo.id ? 'bg-[#FAF7F2]' : ''}`}>
                     <div className="relative">
-                        <img loading="lazy" decoding="async" src={convo.partner.photos?.[0] || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-full object-cover" />
+                        <img src={convo.partner.photos?.[0] || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-full object-cover" />
                         {convo.partner.is_premium_active && (
                           <Crown className="absolute -top-1 -right-1 w-4 h-4 text-[#E6B450] fill-[#E6B450] bg-white rounded-full" />
                         )}

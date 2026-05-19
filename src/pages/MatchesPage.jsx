@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import Footer from '@/components/Footer';
 import { Crown } from 'lucide-react';
 
+import { Helmet } from 'react-helmet';
 const MatchesPage = () => {
   const { user: authUser } = useAuth();
   const [matches, setMatches] = useState([]);
@@ -513,6 +514,7 @@ const MatchesPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-8">
+      <Helmet><title>Your matches — Marryzen</title></Helmet>
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
@@ -603,7 +605,7 @@ const MatchesPage = () => {
                 >
                   <div className="aspect-square bg-slate-100 relative overflow-hidden">
                     {item.profile.photos?.[0] ? (
-                      <img loading="lazy" decoding="async"
+                      <img
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
                         className={`w-full h-full object-cover ${!userProfile?.is_premium ? 'blur-lg scale-110' : ''}`}
@@ -688,7 +690,7 @@ const MatchesPage = () => {
                   >
                     <div className="aspect-square bg-slate-100 relative">
                       {item.profile.photos?.[0] ? (
-                        <img loading="lazy" decoding="async"
+                        <img
                           src={item.profile.photos[0]}
                           alt={item.profile.full_name}
                           className="w-full h-full object-cover"
@@ -775,7 +777,7 @@ const MatchesPage = () => {
                 >
                   <div className="aspect-square bg-slate-100 relative">
                     {item.profile.photos?.[0] ? (
-                      <img loading="lazy" decoding="async"
+                      <img
                         src={item.profile.photos[0]}
                         alt={item.profile.full_name}
                         className="w-full h-full object-cover"
@@ -865,7 +867,7 @@ const MatchesPage = () => {
                   >
                     <div className="aspect-square bg-slate-100 relative">
                       {interaction.profile.photos?.[0] ? (
-                        <img loading="lazy" decoding="async" 
+                        <img 
                           src={interaction.profile.photos[0]} 
                           alt={interaction.profile.full_name} 
                           className="w-full h-full object-cover" 
@@ -976,7 +978,7 @@ const MatchesPage = () => {
               >
                         <div className="aspect-square bg-slate-100 relative">
                             {match.photos?.[0] ? (
-                    <img loading="lazy" decoding="async" 
+                    <img 
                       src={match.photos[0]} 
                       alt={match.full_name} 
                       className="w-full h-full object-cover" 
@@ -1105,7 +1107,7 @@ const MatchesPage = () => {
                     >
                       <div className="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 relative mb-2">
                         {profile.photos?.[0] ? (
-                          <img loading="lazy" decoding="async"
+                          <img
                             src={profile.photos[0]}
                             alt={profile.full_name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
