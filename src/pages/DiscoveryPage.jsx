@@ -1187,7 +1187,6 @@ const DiscoveryPage = () => {
 
                     {/* Filter Summary Tags — only render when any filter is active */}
                     {(filters.faith || filters.city || filters.recentActive || filters.verifiedOnly) && (
-                      {/* Filter Summary Tags */}
                       <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
                           {filters.faith && <Badge variant="secondary" className="bg-white border gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
