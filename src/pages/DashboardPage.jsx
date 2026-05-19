@@ -183,39 +183,76 @@ const DashboardPage = () => {
   }, [userProfile?.status, statusBannerDismissed]);
 
   const fetchRealStats = async (userId, profile) => {
-    try {
-      // 1. Potential Matches: shared count used on Dashboard and My Matches
-      const potentialMatches = await getPotentialMatchesCount(supabase, userId);
+    const queries = [
+      ['potentialMatches', async () => {
+        const n = await getPotentialMatchesCount(supabase, userId);
+        return typeof n === 'number' ? n : 0;
+      }],
+      ['conversations', async () => {
+        const { count, error } = await supabase
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+        if (error) throw error;
+        return count ?? 0;
+      }],
+      ['introductionsSent', async () => {
+        const { count, error } = await supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('interaction_type', 'like');
+        if (error) throw error;
+        return count ?? 0;
+      }],
+      ['profileInterest', async () => {
+        const { count, error } = await supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('target_user_id', userId)
+          .eq('interaction_type', 'like');
+        if (error) throw error;
+        return count ?? 0;
+      }],
+    ];
 
-      // 2. Conversations: Count of conversations where user is participant
-      const { count: conversations } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+    // Fire all four count queries in parallel.
+    const firstPass = await Promise.allSettled(queries.map(([, fn]) => fn()));
 
-      // 3. Introductions Sent: Count of 'like' interactions (these are introductions)
-      const { count: introductionsSent } = await supabase
-        .from('user_interactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('interaction_type', 'like');
+    // Retry once after 1.5s for any that failed (handles transient Supabase 503s).
+    const needsRetry = firstPass
+      .map((r, i) => (r.status === 'rejected' ? i : -1))
+      .filter(i => i >= 0);
 
-      // 4. Profile Interest: Count of users who liked this profile (likes where this user is the target)
-      const { count: profileInterest } = await supabase
-        .from('user_interactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('target_user_id', userId)
-        .eq('interaction_type', 'like');
-
-      setStats({
-        potentialMatches,
-        conversations: conversations || 0,
-        introductionsSent: introductionsSent || 0,
-        profileInterest: profileInterest || 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+    let retryResults = [];
+    if (needsRetry.length) {
+      await new Promise(r => setTimeout(r, 1500));
+      retryResults = await Promise.allSettled(needsRetry.map(i => queries[i][1]()));
     }
+
+    // Merge: prefer first-pass success, else retry success, else keep prior value.
+    setStats(prev => {
+      const next = { ...prev };
+      queries.forEach(([label], i) => {
+        const r = firstPass[i];
+        if (r.status === 'fulfilled') {
+          next[label] = r.value;
+          return;
+        }
+        const retryIdx = needsRetry.indexOf(i);
+        if (retryIdx >= 0) {
+          const rr = retryResults[retryIdx];
+          if (rr && rr.status === 'fulfilled') {
+            next[label] = rr.value;
+            return;
+          }
+          console.warn(`[stats] "${label}" failed twice:`, rr?.reason || r.reason);
+        } else {
+          console.warn(`[stats] "${label}" failed:`, r.reason);
+        }
+      });
+      return next;
+    });
   };
 
   const fetchSuggestedProfiles = async (userId, userProfile) => {
