@@ -689,7 +689,7 @@ const DashboardPage = () => {
                     <div className="aspect-[3/4] relative bg-slate-100">
                       {profile.photos?.[0] ? (
                         <img
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover object-top"
                           alt={profile.name}
                           src={profile.photos[0]}
                         />
