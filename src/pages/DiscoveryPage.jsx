@@ -723,7 +723,7 @@ const DiscoveryPage = () => {
             <img 
               src={profile.photos?.[0] || 'https://via.placeholder.com/800x600'} 
               alt={profile.full_name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
             />
             {/* Bottom + light top scrim only — photo stays clear in the middle (standard dating-app pattern) */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[52%] bg-gradient-to-t from-black via-black/65 via-22% to-transparent" />
@@ -804,7 +804,7 @@ const DiscoveryPage = () => {
                       key={idx}
                       src={photo || 'https://via.placeholder.com/200x200'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}
-                      className="w-full h-32 object-cover rounded-lg"
+                      className="w-full h-32 object-cover object-top rounded-lg"
                     />
                   ))}
                 </div>
