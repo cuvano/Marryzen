@@ -168,7 +168,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             onTouchCancel={handleDragEnd}
             ref={containerRef}
         >
-            <img 
+            <img loading="lazy" decoding="async" 
                 ref={imageRef}
                 src={imageSrc} 
                 alt="Crop preview" 
@@ -287,7 +287,7 @@ const PhotoUploadBox = ({ index, photo, onUpload, onRemove, isMain, isLocked }) 
       >
         {photo ? (
           <>
-            <img 
+            <img loading="lazy" decoding="async" 
                 src={typeof photo === 'string' ? photo : URL.createObjectURL(photo)} 
                 alt={`User upload ${index}`} 
                 className="w-full h-full object-cover object-center rounded-2xl" 

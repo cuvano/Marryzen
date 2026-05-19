@@ -116,7 +116,7 @@ const LandingPage = () => {
             transition={{ duration: 1, delay: 0.3 }}
             className="relative max-w-5xl mx-auto rounded-[14px] overflow-hidden shadow-lg border border-[#E6DCD2]"
           >
-             <img 
+             <img loading="lazy" decoding="async" 
                 className="w-full h-[400px] md:h-[600px] object-cover object-center" 
                 alt="Happy couple celebrating their engagement" 
                 src="https://horizons-cdn.hostinger.com/beeb441a-bd06-4d39-a2b1-757677af16cf/1cf7408d2dd92dd14b7f2e3a17f6e6c6.jpg" 
@@ -200,7 +200,7 @@ const LandingPage = () => {
                     </Button>
                 </div>
                 <div className="relative">
-                     <img className="relative rounded-[14px] shadow-xl w-full border-4 border-white" alt="Collage of happy couples who met on Marryzen" src="https://images.unsplash.com/photo-1516110554988-3fcddc17b640" />
+                     <img loading="lazy" decoding="async" className="relative rounded-[14px] shadow-xl w-full border-4 border-white" alt="Collage of happy couples who met on Marryzen" src="https://images.unsplash.com/photo-1516110554988-3fcddc17b640" />
                 </div>
             </div>
         </div>

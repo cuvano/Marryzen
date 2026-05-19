@@ -534,7 +534,7 @@ const ProfilePage = () => {
       <div className="w-full bg-[#E8E6E4]">
         <div className="relative h-[280px] sm:h-[320px] lg:h-[380px] w-full overflow-hidden group">
           {profile.cover_photo ? (
-            <img src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#E0DDD9] to-[#D4D1CC]" />
           )}
@@ -560,7 +560,7 @@ const ProfilePage = () => {
             <div className="relative shrink-0">
               <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl bg-[#E8E6E4] overflow-hidden">
                 {mainPhoto ? (
-                  <img src={mainPhoto} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.remove('hidden'); }} />
+                  <img loading="lazy" decoding="async" src={mainPhoto} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.remove('hidden'); }} />
                 ) : null}
                 {!mainPhoto && <User className="w-full h-full p-10 text-[#AAA]" />}
               </div>
@@ -706,7 +706,7 @@ const ProfilePage = () => {
                   {(profile.identity_verification_status === 'pending' || profile.identity_verification_status === 'rejected') && profile.selfie_url && (
                     <div className="pt-3 border-t border-[#E8E6E4] flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#E8E6E4] shrink-0">
-                        <img src={profile.selfie_url} alt="" className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={profile.selfie_url} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-[#666]">{profile.identity_verification_status === 'rejected' ? 'Rejected.' : 'Under review.'}</p>
@@ -1116,7 +1116,7 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
             onMouseLeave={handleMouseUp}
           >
             {imageSrc && (
-              <img
+              <img loading="lazy" decoding="async"
                 ref={imageRef}
                 src={imageSrc}
                 alt="Crop Cover"
@@ -1304,7 +1304,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
             onMouseLeave={handleMouseUp}
           >
             {imageSrc && (
-              <img
+              <img loading="lazy" decoding="async"
                 ref={imageRef}
                 src={imageSrc}
                 alt="Crop"
