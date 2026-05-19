@@ -78,14 +78,6 @@ const DashboardPage = () => {
         if (profile) {
            setUserProfile(profile);
           
-          // Debug: Log profile status
-          console.log('Dashboard - Initial Profile Load:', {
-            status: profile.status,
-            statusType: typeof profile.status,
-            statusLower: profile.status?.toLowerCase()?.trim(),
-            isApproved: profile.status?.toLowerCase()?.trim() === 'approved',
-            fullProfile: profile
-          });
           
           // Fetch real stats from database
           await fetchRealStats(user.id, profile);
@@ -96,7 +88,6 @@ const DashboardPage = () => {
             await fetchSuggestedProfiles(user.id, profile);
           }
         } else {
-          console.log('Dashboard - No profile found');
         }
       } catch (error) {
         // Ignore 404 NOT_FOUND errors
@@ -136,12 +127,6 @@ const DashboardPage = () => {
         if (profile) {
           setUserProfile(prev => prev ? { ...prev, status: profile.status, onboarding_step: profile.onboarding_step } : profile);
           
-          // Debug logging
-          console.log('Dashboard - Profile Status Refresh:', {
-            status: profile.status,
-            statusLower: profile.status?.toLowerCase()?.trim(),
-            isApproved: profile.status?.toLowerCase()?.trim() === 'approved'
-          });
         }
       } catch (error) {
         console.error('Error refreshing profile status:', error);
