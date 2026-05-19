@@ -136,32 +136,41 @@ const DashboardPage = () => {
         
         if (profile) {
           setUserProfile(prev => prev ? { ...prev, status: profile.status, onboarding_step: profile.onboarding_step } : profile);
-          
-          // Debug logging
-          console.log('Dashboard - Profile Status Refresh:', {
-            status: profile.status,
-            statusLower: profile.status?.toLowerCase()?.trim(),
-            isApproved: profile.status?.toLowerCase()?.trim() === 'approved'
-          });
         }
       } catch (error) {
         console.error('Error refreshing profile status:', error);
       }
     };
     
-    const interval = setInterval(refreshProfileStatus, 10000); // Check every 10 seconds
+    // Realtime: push-update profile status when this user's row changes (replaces the 10s poll).
+    const channel = supabase
+      .channel('dashboard-profile-' + authUser.id)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'id=eq.' + authUser.id
+      }, (payload) => {
+        if (payload?.new) {
+          setUserProfile(prev => prev
+            ? { ...prev, status: payload.new.status, onboarding_step: payload.new.onboarding_step }
+            : payload.new);
+        }
+      })
+      .subscribe();
+
+    // Safety net: refresh on focus / visibility change in case a Realtime event was missed across a reconnect.
     const handleFocus = () => refreshProfileStatus();
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         refreshProfileStatus();
       }
     };
-    
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
-      clearInterval(interval);
+      supabase.removeChannel(channel);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
