@@ -42,6 +42,7 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
+import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
 import AdminLayout from '@/layouts/AdminLayout';
@@ -121,7 +122,9 @@ function App() {
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
                       </Route>
-                  </Routes>
+                    {/* 404 catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
                   <Toaster />
                   <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
               </div>
