@@ -804,7 +804,7 @@ const DiscoveryPage = () => {
                       key={idx}
                       src={photo || 'https://via.placeholder.com/200x200'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}
-                      className="w-full h-32 object-cover object-top rounded-lg"
+                      className="w-full aspect-square object-cover object-top rounded-lg"
                     />
                   ))}
                 </div>
