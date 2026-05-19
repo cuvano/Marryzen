@@ -61,8 +61,8 @@ function App() {
   return (
     <>
       <Helmet>
-        <title>Marryzen - Find Your Marriage Partner</title>
-        <meta name="description" content="A marriage-focused platform for people seeking serious, long-term relationships based on shared cultural heritage and family values." />
+        <title>Marryzen — A platform for serious marriage</title>
+        <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only — no casual dating." />
       </Helmet>
       <AuthProvider>
         <PremiumModalContext.Provider value={{ openPremiumModal: () => setIsModalOpen(true) }}>
