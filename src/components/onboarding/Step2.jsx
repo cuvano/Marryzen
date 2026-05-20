@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/customSupabaseClient';
+import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
 
 const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
@@ -399,16 +400,13 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleCropComplete = (croppedBase64) => {
+  const handleCropComplete = async (croppedBase64) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const finalValue = user?.id
+        ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
+        : croppedBase64;
       const newPhotos = [...currentPhotos];
-      // If we are replacing or adding at a specific index
-      // If it's a new photo at the end of the array (or a sparse slot fill)
-      newPhotos[pendingIndex] = croppedBase64;
-      
-      // Filter out empty slots if any to keep array clean, but we used indexed assignment above
-      // Let's just update photos. We need to make sure we don't have holes if that matters.
-      // But indexed assignment is fine as long as we map correctly.
-      
+      newPhotos[pendingIndex] = finalValue;
       updateFormData('photos', newPhotos);
       setCropModalOpen(false);
       setTempImage(null);

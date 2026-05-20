@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
+import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
 import { recordProfileView } from '@/lib/profileViews';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
@@ -341,10 +342,11 @@ const ProfilePage = () => {
 
       // Compress the cropped cover photo
       const compressed = await compressImage(croppedBase64, 1920, 0.85);
+      const coverFinal = await uploadPhotoToStorage(compressed, user.id, 'cover');
       
       const { error } = await supabase
         .from('profiles')
-        .update({ cover_photo: compressed })
+        .update({ cover_photo: coverFinal })
         .eq('id', user.id);
 
       if (error) {
@@ -352,7 +354,7 @@ const ProfilePage = () => {
         throw error;
       }
 
-      setProfile(prev => ({ ...prev, cover_photo: compressed }));
+      setProfile(prev => ({ ...prev, cover_photo: coverFinal }));
       setCoverCropModalOpen(false);
       setTempCoverImage(null);
       toast({ title: "Success", description: "Cover photo uploaded successfully!" });
@@ -430,9 +432,10 @@ const ProfilePage = () => {
       }
 
       const compressed = await compressImage(croppedBase64);
+      const uploadedUrl = await uploadPhotoToStorage(compressed, user.id, 'photo');
       // Use ref so we always append to latest photos (avoids stale state when dialog was open)
       const currentPhotos = latestPhotosRef.current ?? [];
-      const newPhotos = [...currentPhotos, compressed];
+      const newPhotos = [...currentPhotos, uploadedUrl];
 
       const { error } = await supabase
         .from('profiles')
