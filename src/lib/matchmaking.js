@@ -142,22 +142,17 @@ const calculateProfileCompleteness = (profile) => {
 };
 
 /**
- * V1 Matching Algorithm
- * Calculates comprehensive compatibility score between current user and a candidate profile
- * 
- * Scoring inputs:
- * 1. Age distance score (0-15 points)
- * 2. Location distance score (0-15 points)
- * 3. Intent/goal match score (0-20 points)
- * 4. Faith/religious match score (0-15 points)
- * 5. Values overlap score (0-15 points)
- * 6. Lifestyle compatibility score (0-15 points)
- * 7. Profile completeness bonus (0-5 points)
- * 
- * Total: 0-100 points
+ * V1 Matching Algorithm — weight-aware normalization
+ *
+ * Each dimension contributes both its earned points AND its weight to a denominator,
+ * but ONLY if both profiles had the data needed to score it. The final score is
+ * `earned / attempted * 100`, so a profile with partial data gets a real percentage
+ * instead of being penalized down to 0%.
+ *
+ * Lifestyle and Completeness always score (lifestyle defaults to neutral when no
+ * lifestyle fields are set on either side; completeness always has a value).
  */
 export const calculateScore = (currentUser, candidate, config = null) => {
-  // Default weights if config not provided
   const weights = config?.weights || {
     age: 15,
     distance: 15,
@@ -169,192 +164,136 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   };
 
   let score = 0;
-  let breakdown = {};
+  let attempted = 0; // sum of weights for dimensions that had data on both sides
+  const breakdown = {};
 
-  // 1. AGE DISTANCE SCORE (0-15 points)
+  // 1. AGE
   const userAge = calculateAge(currentUser.date_of_birth);
   const candidateAge = calculateAge(candidate.date_of_birth);
-  
   if (userAge && candidateAge) {
+    attempted += weights.age;
     const ageDiff = Math.abs(userAge - candidateAge);
-    if (ageDiff === 0) {
-      score += weights.age;
-      breakdown['Age'] = weights.age;
-    } else if (ageDiff <= 2) {
-      score += weights.age * 0.9;
-      breakdown['Age'] = Math.round(weights.age * 0.9);
-    } else if (ageDiff <= 5) {
-      score += weights.age * 0.7;
-      breakdown['Age'] = Math.round(weights.age * 0.7);
-    } else if (ageDiff <= 10) {
-      score += weights.age * 0.5;
-      breakdown['Age'] = Math.round(weights.age * 0.5);
-    } else if (ageDiff <= 15) {
-      score += weights.age * 0.3;
-      breakdown['Age'] = Math.round(weights.age * 0.3);
-    }
-    // > 15 years difference gets 0 points
+    let pts = 0;
+    if (ageDiff === 0) pts = weights.age;
+    else if (ageDiff <= 2) pts = weights.age * 0.9;
+    else if (ageDiff <= 5) pts = weights.age * 0.7;
+    else if (ageDiff <= 10) pts = weights.age * 0.5;
+    else if (ageDiff <= 15) pts = weights.age * 0.3;
+    score += pts;
+    breakdown['Age'] = Math.round(pts);
   }
 
-  // 2. LOCATION DISTANCE SCORE (0-15 points)
+  // 2. DISTANCE
   if (currentUser.latitude && currentUser.longitude && candidate.latitude && candidate.longitude) {
-    const distance = calculateDistance(
-      currentUser.latitude, currentUser.longitude,
-      candidate.latitude, candidate.longitude
-    );
-    
-    if (distance <= 10) {
-      score += weights.distance;
-      breakdown['Distance'] = weights.distance;
-    } else if (distance <= 25) {
-      score += weights.distance * 0.8;
-      breakdown['Distance'] = Math.round(weights.distance * 0.8);
-    } else if (distance <= 50) {
-      score += weights.distance * 0.6;
-      breakdown['Distance'] = Math.round(weights.distance * 0.6);
-    } else if (distance <= 100) {
-      score += weights.distance * 0.4;
-      breakdown['Distance'] = Math.round(weights.distance * 0.4);
-    } else if (distance <= 250) {
-      score += weights.distance * 0.2;
-      breakdown['Distance'] = Math.round(weights.distance * 0.2);
-    }
-    // > 250km gets 0 points
-  } else if (currentUser.location_city === candidate.location_city) {
-    // Fallback to city match
+    attempted += weights.distance;
+    const distance = calculateDistance(currentUser.latitude, currentUser.longitude, candidate.latitude, candidate.longitude);
+    let pts = 0;
+    if (distance <= 10) pts = weights.distance;
+    else if (distance <= 25) pts = weights.distance * 0.8;
+    else if (distance <= 50) pts = weights.distance * 0.6;
+    else if (distance <= 100) pts = weights.distance * 0.4;
+    else if (distance <= 250) pts = weights.distance * 0.2;
+    score += pts;
+    breakdown['Distance'] = Math.round(pts);
+  } else if (currentUser.location_city && candidate.location_city && currentUser.location_city === candidate.location_city) {
+    attempted += weights.distance;
     score += weights.distance * 0.8;
     breakdown['Distance'] = Math.round(weights.distance * 0.8);
-  } else if (currentUser.location_country === candidate.location_country) {
+  } else if (currentUser.location_country && candidate.location_country && currentUser.location_country === candidate.location_country) {
+    attempted += weights.distance;
     score += weights.distance * 0.4;
     breakdown['Distance'] = Math.round(weights.distance * 0.4);
   }
 
-  // 3. INTENT/GOAL MATCH SCORE (0-20 points) - CRITICAL
+  // 3. INTENT / GOAL
   if (currentUser.relationship_goal && candidate.relationship_goal) {
+    attempted += weights.intent;
     if (currentUser.relationship_goal === candidate.relationship_goal) {
       score += weights.intent;
       breakdown['Intent'] = weights.intent;
     } else {
-      // Partial credit for compatible goals
       const seriousGoals = ['Marriage', 'Long-term', 'Serious'];
-      const bothSerious = 
-        seriousGoals.includes(currentUser.relationship_goal) && 
-        seriousGoals.includes(candidate.relationship_goal);
-      
+      const bothSerious = seriousGoals.includes(currentUser.relationship_goal) && seriousGoals.includes(candidate.relationship_goal);
       if (bothSerious) {
         score += weights.intent * 0.7;
         breakdown['Intent'] = Math.round(weights.intent * 0.7);
-      } else {
-        // Family goals compatibility
-        if (currentUser.family_goals === candidate.family_goals) {
-          score += weights.intent * 0.3;
-          breakdown['Intent'] = Math.round(weights.intent * 0.3);
-        }
+      } else if (currentUser.family_goals === candidate.family_goals && currentUser.family_goals) {
+        score += weights.intent * 0.3;
+        breakdown['Intent'] = Math.round(weights.intent * 0.3);
       }
     }
   }
 
-  // 4. FAITH/RELIGIOUS MATCH SCORE (0-15 points)
+  // 4. FAITH
   if (currentUser.religious_affiliation && candidate.religious_affiliation) {
+    attempted += weights.faith;
+    let pts = 0;
     if (currentUser.religious_affiliation === candidate.religious_affiliation) {
-      score += weights.faith;
-      breakdown['Faith'] = weights.faith;
+      pts = weights.faith;
     } else {
-      // Partial credit for same faith family
       const faithGroups = {
-        'Muslim': ['Muslim (Sunni)', 'Muslim (Shia)', 'Muslim'],
-        'Christian': ['Christian (Catholic)', 'Christian (Protestant)', 'Christian'],
-        'Jewish': ['Jewish (Orthodox)', 'Jewish (Conservative)', 'Jewish']
+        Muslim: ['Muslim (Sunni)', 'Muslim (Shia)', 'Muslim'],
+        Christian: ['Christian (Catholic)', 'Christian (Protestant)', 'Christian', 'Christianity'],
+        Jewish: ['Jewish (Orthodox)', 'Jewish (Conservative)', 'Jewish']
       };
-      
-      const userFaithGroup = Object.keys(faithGroups).find(group => 
-        faithGroups[group].includes(currentUser.religious_affiliation)
-      );
-      const candFaithGroup = Object.keys(faithGroups).find(group => 
-        faithGroups[group].includes(candidate.religious_affiliation)
-      );
-      
-      if (userFaithGroup && userFaithGroup === candFaithGroup) {
-        score += weights.faith * 0.6;
-        breakdown['Faith'] = Math.round(weights.faith * 0.6);
-      }
+      const userGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(currentUser.religious_affiliation));
+      const candGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(candidate.religious_affiliation));
+      if (userGroup && userGroup === candGroup) pts = weights.faith * 0.6;
     }
-    
-    // Faith lifestyle match
-    if (currentUser.faith_lifestyle === candidate.faith_lifestyle) {
-      score += weights.faith * 0.2;
-      breakdown['Faith'] = (breakdown['Faith'] || 0) + Math.round(weights.faith * 0.2);
+    if (currentUser.faith_lifestyle && candidate.faith_lifestyle && currentUser.faith_lifestyle === candidate.faith_lifestyle) {
+      pts += weights.faith * 0.2;
     }
+    pts = Math.min(pts, weights.faith);
+    score += pts;
+    breakdown['Faith'] = Math.round(pts);
   }
 
-  // 5. VALUES OVERLAP SCORE (0-15 points)
+  // 5. VALUES
   const userValues = Array.isArray(currentUser.core_values) ? currentUser.core_values : [];
   const candValues = Array.isArray(candidate.core_values) ? candidate.core_values : [];
-  
   if (userValues.length > 0 && candValues.length > 0) {
-    const commonValues = userValues.filter(v => candValues.includes(v));
-    const valueOverlap = commonValues.length / Math.max(userValues.length, candValues.length, 1);
-    
-    score += weights.values * valueOverlap;
-    breakdown['Values'] = Math.round(weights.values * valueOverlap);
+    attempted += weights.values;
+    const common = userValues.filter(v => candValues.includes(v));
+    const overlap = common.length / Math.max(userValues.length, candValues.length);
+    const pts = weights.values * overlap;
+    score += pts;
+    breakdown['Values'] = Math.round(pts);
   }
 
-  // 6. LIFESTYLE COMPATIBILITY SCORE (0-15 points)
-  let lifestyleScore = 0;
-  
-  // Smoking compatibility
-  if (currentUser.smoking === candidate.smoking) {
-    lifestyleScore += 4;
-  } else if (currentUser.smoking === 'Never' && candidate.smoking === 'Socially') {
-    lifestyleScore += 2;
-  } else if (currentUser.smoking === 'Socially' && candidate.smoking === 'Never') {
-    lifestyleScore += 2;
-  }
-  
-  // Drinking compatibility
-  if (currentUser.drinking === candidate.drinking) {
-    lifestyleScore += 4;
-  } else if (
-    (currentUser.drinking === 'Never' && candidate.drinking === 'Socially') ||
-    (currentUser.drinking === 'Socially' && candidate.drinking === 'Never')
-  ) {
-    lifestyleScore += 2;
-  }
-  
-  // Education compatibility
-  if (currentUser.education === candidate.education) {
-    lifestyleScore += 3;
-  } else if (currentUser.education && candidate.education) {
+  // 6. LIFESTYLE — always attempted (gives a partial signal even when most fields empty)
+  attempted += weights.lifestyle;
+  let lifestyleRaw = 0;
+  if (currentUser.smoking === candidate.smoking) lifestyleRaw += 4;
+  else if ((currentUser.smoking === 'Never' && candidate.smoking === 'Socially') || (currentUser.smoking === 'Socially' && candidate.smoking === 'Never')) lifestyleRaw += 2;
+  if (currentUser.drinking === candidate.drinking) lifestyleRaw += 4;
+  else if ((currentUser.drinking === 'Never' && candidate.drinking === 'Socially') || (currentUser.drinking === 'Socially' && candidate.drinking === 'Never')) lifestyleRaw += 2;
+  if (currentUser.education === candidate.education) lifestyleRaw += 3;
+  else if (currentUser.education && candidate.education) {
     const eduLevels = ['High School', 'Bachelor', 'Master', 'PhD'];
-    const userEduIndex = eduLevels.indexOf(currentUser.education);
-    const candEduIndex = eduLevels.indexOf(candidate.education);
-    if (Math.abs(userEduIndex - candEduIndex) <= 1) {
-      lifestyleScore += 1.5;
-    }
+    const ui = eduLevels.indexOf(currentUser.education);
+    const ci = eduLevels.indexOf(candidate.education);
+    if (ui >= 0 && ci >= 0 && Math.abs(ui - ci) <= 1) lifestyleRaw += 1.5;
   }
-  
-  // Marital status / children compatibility
-  if (currentUser.marital_status === candidate.marital_status) {
-    lifestyleScore += 2;
-  }
-  if (currentUser.has_children === candidate.has_children) {
-    lifestyleScore += 2;
-  }
-  
-  score += (weights.lifestyle * lifestyleScore) / 15;
-  breakdown['Lifestyle'] = Math.round((weights.lifestyle * lifestyleScore) / 15);
+  if (currentUser.marital_status === candidate.marital_status) lifestyleRaw += 2;
+  if (currentUser.has_children === candidate.has_children) lifestyleRaw += 2;
+  const lifestylePts = (weights.lifestyle * lifestyleRaw) / 15;
+  score += lifestylePts;
+  breakdown['Lifestyle'] = Math.round(lifestylePts);
 
-  // 7. PROFILE COMPLETENESS BONUS (0-5 points)
+  // 7. COMPLETENESS — always attempted
+  attempted += weights.completeness;
   const candidateCompleteness = calculateProfileCompleteness(candidate);
   const completenessBonus = (candidateCompleteness / 100) * weights.completeness;
   score += completenessBonus;
   breakdown['Completeness'] = Math.round(completenessBonus);
 
-  // Cap score at 100
-  const finalScore = Math.min(Math.round(score), 100);
+  // Normalize: percent of points earned out of points attempted (not full weight total)
+  // This means a profile with only partial data on both sides still gets a real percentage
+  // instead of being penalized to 0% by missing dimensions.
+  const finalScore = attempted > 0 ? Math.min(Math.round((score / attempted) * 100), 100) : 0;
 
-  return { 
-    score: finalScore, 
+  return {
+    score: finalScore,
     breakdown,
     candidateAge,
     candidateDistance: candidate.distance || null
