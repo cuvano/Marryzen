@@ -65,7 +65,7 @@ const LandingPage = () => {
           transition={{ duration: 0.8 }}
           className="text-center max-w-5xl mx-auto"
         >
-          <h1 className="text-5xl md:text-7xl font-extrabold text-[#1F1F1F] mb-6 tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-4xl sm:text-5xl md:text-7xl font-extrabold text-[#1F1F1F] mb-6 tracking-tight leading-tight">
             Marryzen
             <span className="block text-[#C85A72] mt-3 text-3xl md:text-5xl font-serif italic">Where Serious Marriages Begin</span>
           </h1>
@@ -321,7 +321,7 @@ const LandingPage = () => {
                     { quote: "No games, no ghosting. Just real conversations about future goals. We're getting married next summer!", name: "Michael & Elena", loc: "Matched in New York" }
                 ].map((story, i) => (
                     <div key={i} className="bg-white p-8 rounded-[14px] relative border border-[#E6DCD2] shadow-sm">
-                        <div className="text-[#E6B450] text-5xl font-serif absolute top-4 left-6 opacity-60">"</div>
+                        <div className="text-[#E6B450] text-3xl sm:text-4xl sm:text-5xl font-serif absolute top-4 left-6 opacity-60">"</div>
                         <p className="text-[#333333] text-lg italic mb-8 pt-6 relative z-10 leading-relaxed">{story.quote}</p>
                         <div className="border-t border-[#FAF7F2] pt-6">
                             <p className="text-[#1F1F1F] font-bold text-lg">{story.name}</p>
@@ -336,7 +336,7 @@ const LandingPage = () => {
       {/* --- FINAL CTA --- */}
       <section className="section-pad bg-gradient-to-b from-[#F9E7EB] to-[#FAF7F2]">
          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#1F1F1F] mb-6">Start Your Marriage Journey Today</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1F1F1F] mb-6">Start Your Marriage Journey Today</h2>
             <p className="text-xl text-[#706B67] mb-12 max-w-3xl mx-auto leading-relaxed">
                 Your partner is out there looking for you too. Don't wait for chance.
             </p>
