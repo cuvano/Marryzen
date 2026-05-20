@@ -261,7 +261,7 @@ const HelpSupportPage = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#E6B450] rounded-full mb-4">
             <HelpCircle className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-[#1F1F1F] mb-4">Help & Support</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#1F1F1F] mb-4">Help & Support</h1>
           <p className="text-lg text-[#706B67] max-w-2xl mx-auto">
             We're here to help! Find answers to common questions or contact our support team.
           </p>
