@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import RequireVerified from '@/components/RequireVerified';
 import FloatingNotificationBadge from '@/components/FloatingNotificationBadge';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
 
@@ -61,8 +62,8 @@ function App() {
   return (
     <>
       <Helmet>
-        <title>Marryzen — A platform for serious marriage</title>
-        <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only — no casual dating." />
+        <title>Marryzen â A platform for serious marriage</title>
+        <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only â no casual dating." />
       </Helmet>
       <AuthProvider>
         <PremiumModalContext.Provider value={{ openPremiumModal: () => setIsModalOpen(true) }}>
@@ -83,12 +84,14 @@ function App() {
                       <Route element={<AuthenticatedLayout />}>
                           <Route path="/verify-email" element={<VerifyEmailPage />} />
                           <Route path="/dashboard" element={<DashboardPage />} />
-                          <Route path="/discovery" element={<DiscoveryPage />} />
-                          <Route path="/matches" element={<MatchesPage />} />
-                          <Route path="/chat" element={<ChatPage />} />
-                          <Route path="/chat/:conversationId" element={<ChatPage />} />
-                          <Route path="/profile" element={<ProfilePage />} />
-                          <Route path="/profile/:userId" element={<ProfilePage />} />
+                          <Route element={<RequireVerified />}>
+                            <Route path="/discovery" element={<DiscoveryPage />} />
+                            <Route path="/matches" element={<MatchesPage />} />
+                            <Route path="/chat" element={<ChatPage />} />
+                            <Route path="/chat/:conversationId" element={<ChatPage />} />
+                            <Route path="/profile" element={<ProfilePage />} />
+                            <Route path="/profile/:userId" element={<ProfilePage />} />
+                          </Route>
                           <Route path="/premium" element={<PremiumPage />} />
                           <Route path="/billing" element={<BillingPage />} />
                           <Route path="/referrals" element={<ReferralPage />} />
