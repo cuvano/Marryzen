@@ -488,7 +488,7 @@ const ProfilePage = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#E6B450]" /></div>;
   if (!profile) return null;
 
-  const age = profile.date_of_birth ? new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : 'N/A';
+  const age = profile.date_of_birth ? new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : null;
   const mainPhoto = profile.photos?.[0];
   const photoLimit = profile.is_premium ? 12 : 4;
   const currentPhotoCount = profile.photos?.length || 0;
@@ -582,7 +582,7 @@ const ProfilePage = () => {
             </div>
             <div className="min-w-0 max-w-full sm:max-w-2xl px-1">
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,.88)]">
-                {profile.full_name}, {age}
+                {[profile.full_name, age].filter(Boolean).join(', ') || 'Member'}
               </h1>
               <p className="mt-1 flex items-center gap-2 text-base text-white sm:text-lg [text-shadow:0_1px_3px_rgba(0,0,0,1)]">
                 <MapPin size={18} className="shrink-0 opacity-95" />
@@ -657,7 +657,7 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
-              {Array.from({ length: currentPhotoCount === 0 ? Math.max(0, photoLimit - 1) : Math.max(0, photoLimit - currentPhotoCount) }).map((_, i) => (
+              {Array.from({ length: (isOwnProfile && !isPreviewMode) ? (currentPhotoCount === 0 ? Math.max(0, photoLimit - 1) : Math.max(0, photoLimit - currentPhotoCount)) : 0 }).map((_, i) => (
                 <div key={`empty-${i}`} className="aspect-square rounded-lg border-2 border-dashed border-[#D4D2CE] flex items-center justify-center bg-[#F5F5F3]">
                   {isOwnProfile && !isPreviewMode && (
                     <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center gap-1">
