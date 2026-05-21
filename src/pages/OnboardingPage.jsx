@@ -24,7 +24,7 @@ const OnboardingPage = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
-  /** Logged-in user already has a profiles row — never show "create password" on step 1 (use Account settings). */
+  /** Logged-in user already has a profiles row â never show "create password" on step 1 (use Account settings). */
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
   const [sessionProfileReady, setSessionProfileReady] = useState(false);
   const [step1Errors, setStep1Errors] = useState({});
@@ -126,7 +126,7 @@ const OnboardingPage = () => {
                         : Number(profile.onboarding_step);
                 const step =
                     stepNum != null && !Number.isNaN(stepNum) ? stepNum : null;
-                // Edit flow: finished onboarding, explicit ?edit=1, or live member with inconsistent step (e.g. step 2–4 but already approved)
+                // Edit flow: finished onboarding, explicit ?edit=1, or live member with inconsistent step (e.g. step 2â4 but already approved)
                 const isLiveMemberBadStep =
                     !isReferralLink &&
                     step != null &&
@@ -192,7 +192,7 @@ const OnboardingPage = () => {
                     } else if (step != null && step > 1 && step < totalSteps) {
                         setCurrentStep(step);
                     } else {
-                        // Step null, 1, or unknown — stay on step 1 (do not skip to photos)
+                        // Step null, 1, or unknown â stay on step 1 (do not skip to photos)
                         setCurrentStep(1);
                     }
                 }
@@ -407,7 +407,7 @@ const OnboardingPage = () => {
                       // Email confirmation is required - save form data and redirect
                       toast({ 
                           title: "Check Your Email", 
-                          description: "We've sent you a confirmation email. Confirm your email to be approved — then click the link and return here to continue.",
+                          description: "We've sent you a confirmation email. Confirm your email to be approved â then click the link and return here to continue.",
                           duration: 8000
                       });
                       
@@ -498,7 +498,7 @@ const OnboardingPage = () => {
                   if (profileError.code === '42501') {
                       toast({ 
                           title: "Profile Creation Failed", 
-                          description: "RLS policy not configured. Please run the SQL in Supabase Dashboard → SQL Editor. See SUPABASE_SETUP_COMPLETE.sql file.",
+                          description: "RLS policy not configured. Please run the SQL in Supabase Dashboard â SQL Editor. See SUPABASE_SETUP_COMPLETE.sql file.",
                           variant: "destructive",
                           duration: 10000
                       });
@@ -672,16 +672,16 @@ const OnboardingPage = () => {
              // Show different messages for new signup vs editing
              if (isEditMode) {
                  toast({
-                    title: "Profile Updated! ✅",
+                    title: "Profile Updated! â",
                     description: "Your changes have been saved.",
                  });
              } else {
                  toast({
-                    title: "Profile Activated! 🎉",
+                    title: "Profile Activated! ð",
                     description: "Welcome to Marryzen!",
                  });
              }
-             navigate('/dashboard');
+             navigate('/auth/verify?fromOnboarding=1');
         }
 
     } catch (error) {
@@ -776,7 +776,7 @@ const OnboardingPage = () => {
       parts.push('set a password');
     }
     if (parts.length === 0) return null;
-    return `To continue: ${parts.slice(0, 4).join('; ')}${parts.length > 4 ? '…' : '.'}`;
+    return `To continue: ${parts.slice(0, 4).join('; ')}${parts.length > 4 ? 'â¦' : '.'}`;
   };
 
   const step1HintText = step1ContinueHint();
@@ -807,7 +807,7 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   className="text-[#C85A72] hover:bg-[#F9E7EB] hover:text-[#C85A72] font-semibold px-6"
                 >
-                  ← Back
+                  â Back
                 </Button>
               )}
               {isEditMode && (

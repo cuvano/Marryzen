@@ -80,7 +80,7 @@ const DashboardPage = () => {
           setUserProfile(profile);
           // Drop the blocking spinner as soon as the profile is in state.
           // Stats + suggestions resolve in the background and update the UI
-          // when they arrive — the user does not have to wait on them.
+          // when they arrive â the user does not have to wait on them.
           setLoading(false);
 
           const profileStatusLower = profile.status?.toLowerCase()?.trim();
@@ -465,10 +465,10 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-4 bg-[#FAF7F2] flex items-center justify-center">
-        <Helmet><title>Dashboard â Marryzen</title></Helmet>
+        <Helmet><title>Dashboard Ã¢ÂÂ Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#706B67] font-medium">Finding your people…</p>
+          <p className="text-[#706B67] font-medium">Finding your peopleâ¦</p>
         </div>
       </div>
     );
@@ -548,6 +548,31 @@ const DashboardPage = () => {
               >
                 <X className="w-4 h-4" />
               </button>
+            </motion.div>
+          )}
+
+          {/* ID Verification Banner — every member must be Didit-verified to start matching */}
+          {userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="bg-gradient-to-r from-[#FFF7E1] to-[#FFF1CD] border border-[#E6B450] rounded-xl p-4 mb-4 flex items-start gap-3"
+            >
+              <ShieldCheck className="w-6 h-6 text-[#8a6c1e] mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-bold text-[#1F1F1F] mb-1">Verify your identity to start matching</h3>
+                <p className="text-sm text-[#5e4e1f] leading-relaxed">
+                  Marryzen is the verified marriage app — every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/auth/verify')}
+                  className="mt-3 bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
+                >
+                  Verify my identity
+                </Button>
+              </div>
             </motion.div>
           )}
 
