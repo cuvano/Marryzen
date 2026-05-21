@@ -537,11 +537,11 @@ const ProfilePage = () => {
 
       {/* Full-width hero — edge to edge cover, content in wide container */}
       <div className="w-full bg-[#E8E6E4]">
-        <div className="relative h-[280px] sm:h-[320px] lg:h-[380px] w-full overflow-hidden group">
+        <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[160px] sm:h-[180px]'}`}>
           {profile.cover_photo ? (
             <img src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#E0DDD9] to-[#D4D1CC]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E6B450] via-[#D0A23D] to-[#1F1F1F]" />
           )}
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-black/90 via-black/45 via-30% to-transparent" />
           <div className="pointer-events-none absolute left-0 right-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
