@@ -297,12 +297,12 @@ const NotificationsPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">All ({notifications.length})</TabsTrigger>
-            <TabsTrigger value="unread">Unread ({unreadCount})</TabsTrigger>
-            <TabsTrigger value="matches">Matches</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="rewards">Rewards</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:grid sm:grid-cols-5 gap-1">
+            <TabsTrigger value="all" className="whitespace-nowrap shrink-0">All ({notifications.length})</TabsTrigger>
+            <TabsTrigger value="unread" className="whitespace-nowrap shrink-0">Unread ({unreadCount})</TabsTrigger>
+            <TabsTrigger value="matches" className="whitespace-nowrap shrink-0">Matches</TabsTrigger>
+            <TabsTrigger value="messages" className="whitespace-nowrap shrink-0">Messages</TabsTrigger>
+            <TabsTrigger value="rewards" className="whitespace-nowrap shrink-0">Rewards</TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="space-y-6">

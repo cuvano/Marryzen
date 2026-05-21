@@ -162,7 +162,7 @@ const PremiumPage = () => {
         
         // Check if it's a function not found error
         if (error.message?.includes('Function not found') || error.message?.includes('404')) {
-          throw new Error("Payment system is not configured. The Stripe Edge Function is not deployed. Please deploy the 'stripe-api' function in Supabase Dashboard → Edge Functions.");
+          throw new Error("Payment system is not configured. The Stripe Edge Function is not deployed. Please deploy the 'stripe-api' function in Supabase Dashboard â Edge Functions.");
         }
         
         // Check if it's a non-2xx status code - try to get the actual error from the response
@@ -244,35 +244,38 @@ const PremiumPage = () => {
   // Stripe Price IDs - Use environment variables or update directly
   // To use environment variables, add to .env:
   // VITE_STRIPE_PRICE_MONTHLY=price_xxxxxxxxxxxxx
-  // VITE_STRIPE_PRICE_6MONTH=price_xxxxxxxxxxxxx
-  // VITE_STRIPE_PRICE_12MONTH=price_xxxxxxxxxxxxx
+  // VITE_STRIPE_PRICE_QUARTERLY=price_xxxxxxxxxxxxx
+  // VITE_STRIPE_PRICE_ANNUAL=price_xxxxxxxxxxxxx
   const plans = [
     {
       id: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_monthly_mock', // Replace with your Stripe Price ID
       name: 'Monthly Plan',
       duration: '1 month',
       price: '$29.99',
+      perMonth: '$29.99 / month',
       description: 'Flexible commitment',
       buttonText: isPremium ? 'Extend by 1 Month' : 'Start Monthly Premium',
       isPopular: false
     },
     {
-      id: import.meta.env.VITE_STRIPE_PRICE_6MONTH || 'price_6month_mock', // Replace with your Stripe Price ID
-      name: '6-Month Plan',
-      duration: '6 months',
-      price: '$119.94',
-      description: 'Good Value - Save 33%',
-      buttonText: isPremium ? 'Add 6 Months' : 'Choose 6-Month Plan',
+      id: import.meta.env.VITE_STRIPE_PRICE_QUARTERLY || import.meta.env.VITE_STRIPE_PRICE_6MONTH || 'price_quarterly_mock', // Replace with your Stripe Price ID
+      name: 'Quarterly Plan',
+      duration: '3 months',
+      price: '$59.97',
+      perMonth: '$19.99 / month',
+      description: 'Good value — save 33% vs monthly',
+      buttonText: isPremium ? 'Add 3 Months' : 'Choose Quarterly',
       isPopular: false,
-      badge: 'Good Value'
+      badge: 'Save 33%'
     },
     {
-      id: import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_12month_mock', // Replace with your Stripe Price ID
-      name: '12-Month Plan',
+      id: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_annual_mock', // Replace with your Stripe Price ID
+      name: 'Annual Plan',
       duration: '12 months',
-      price: '$179.94',
-      description: 'Best Value - Save 50%',
-      buttonText: isPremium ? 'Add 12 Months' : 'Choose 12-Month Plan',
+      price: '$155.88',
+      perMonth: '$12.99 / month',
+      description: 'Best value — save 57% vs monthly',
+      buttonText: isPremium ? 'Add 12 Months' : 'Choose Annual',
       isPopular: true,
       badge: 'Best Value'
     }
@@ -299,7 +302,7 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8 pb-20 bg-[#FAF7F2]">
-      <Helmet><title>Premium — Marryzen</title></Helmet>
+      <Helmet><title>Premium â Marryzen</title></Helmet>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
             <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] mb-4 pl-0">
