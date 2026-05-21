@@ -77,27 +77,21 @@ const DashboardPage = () => {
         }
 
         if (profile) {
-           setUserProfile(profile);
-          
-          // Debug: Log profile status
-          console.log('Dashboard - Initial Profile Load:', {
-            status: profile.status,
-            statusType: typeof profile.status,
-            statusLower: profile.status?.toLowerCase()?.trim(),
-            isApproved: profile.status?.toLowerCase()?.trim() === 'approved',
-            fullProfile: profile
-          });
-          
-          // Fetch real stats from database
-          await fetchRealStats(user.id, profile);
-          
-          // Fetch suggested profiles only if approved (case-insensitive check)
+          setUserProfile(profile);
+          // Drop the blocking spinner as soon as the profile is in state.
+          // Stats + suggestions resolve in the background and update the UI
+          // when they arrive — the user does not have to wait on them.
+          setLoading(false);
+
           const profileStatusLower = profile.status?.toLowerCase()?.trim();
-          if (profileStatusLower === 'approved') {
-            await fetchSuggestedProfiles(user.id, profile);
-          }
-        } else {
-          console.log('Dashboard - No profile found');
+          Promise.all([
+            fetchRealStats(user.id, profile),
+            profileStatusLower === 'approved'
+              ? fetchSuggestedProfiles(user.id, profile)
+              : Promise.resolve()
+          ]).catch((err) => {
+            console.warn('Dashboard background fetch error:', err);
+          });
         }
       } catch (error) {
         // Ignore 404 NOT_FOUND errors
@@ -292,11 +286,14 @@ const DashboardPage = () => {
 
       // Fetch approved profiles that user hasn't interacted with
       // Fetch more to allow for better matching algorithm ranking
+      // PERF: keep the field set tight so we don't drag huge base64 photo blobs
+      // off legacy rows just to score and rank. The discovery page does the full
+      // detail fetch. Lower the candidate pool from 50 -> 20 for faster dashboard paint.
       let query = supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, photos, is_premium, identify_as, date_of_birth, location_city, location_country, latitude, longitude, religion, religion_practice, looking_for_gender, age_range, distance_preference, height_range, education_level, smoking_drinking, marital_status, has_children, wants_children, languages, core_values, occupation, status')
         .eq('status', 'approved')
-        .limit(50); // Fetch more for better algorithm ranking
+        .limit(20);
 
       const { data: profiles, error } = await query;
 
@@ -468,10 +465,10 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-4 bg-[#FAF7F2] flex items-center justify-center">
-        <Helmet><title>Dashboard — Marryzen</title></Helmet>
+        <Helmet><title>Dashboard â Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#706B67] font-medium">Loading dashboard...</p>
+          <p className="text-[#706B67] font-medium">Finding your people…</p>
         </div>
       </div>
     );
