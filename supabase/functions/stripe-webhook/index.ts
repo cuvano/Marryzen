@@ -130,6 +130,40 @@ serve(async (req) => {
         }
 
         console.log('Profile updated for user:', userId, updateData)
+
+        // Send receipt email via Resend (best-effort; never blocks webhook 200).
+        try {
+          const RESEND'API'KEY = Deno.env.get('RESEND'API'KEY')
+          const customerEmail = session.customer'details?.email || session.customer'email
+          if (RESEND'API'KEY && customerEmail) {
+            const total = (session.amount'total ?? 0) / 100
+            const currency = (session.currency || 'usd').toUpperCase()
+            const fmt = total.toLocaleString('en-US', { style: 'currency', currency })
+            const html = `<div style='font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#FAF7F2'>` +
+              `<div style='text-align:center;margin-bottom:24px'><span style='font-size:28px;font-weight:800;color:#1F1F1F'>Marryzen<span style='color:#C85A72'>.</span></span></div>` +
+              `<h1 style='color:#1F1F1F;font-size:22px;margin:0 0 12px'>Welcome to Marryzen Premium</h1>` +
+              `<p style='color:#4B5563;line-height:1.6'>Your payment has been received. You now have full access to verified marriage-intent matching, advanced filters, and priority placement.</p>` +
+              `<div style='background:#FFFFFF;border:1px solid #E6DCD2;border-radius:12px;padding:16px;margin:20px 0'>` +
+              `<div style='display:flex;justify-content:space-between'><strong>Amount</strong><span>${fmt}</span></div>` +
+              `<div style='display:flex;justify-content:space-between;margin-top:8px'><strong>Date</strong><span>${new Date().toLocaleDateString('en-US')}</span></div>` +
+              `</div>` +
+              `<p style='color:#6B7280;font-size:13px;line-height:1.6'>Your subscription renews automatically. Cancel anytime from Settings → Subscription. You will receive a reminder 24 hours before renewal.</p>` +
+              `<p style='color:#9CA3AF;font-size:12px;margin-top:32px;text-align:center'>Marryzen — The verified marriage app</p></div>`
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${RESEND'API'KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'Marryzen <noreply@marryzen.com>',
+                to: customerEmail,
+                subject: 'Your Marryzen Premium receipt',
+                html
+              })
+            })
+          }
+        } catch (err) {
+          console.error('Receipt email send failed', err)
+        }
+
         break
       }
 
@@ -203,6 +237,71 @@ serve(async (req) => {
           console.error('Error updating profile:', updateError)
         } else {
           console.log('Premium removed for user:', userId)
+        }
+        break
+      }
+
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
+        // Renewal payment succeeded. Extend the premium window.
+        const invoice = event.data.object
+        const customerId = invoice.customer
+        let periodEnd = null
+        try {
+          if (invoice.subscription) {
+            const sub = await stripe.subscriptions.retrieve(invoice.subscription)
+            periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+          }
+        } catch (err) {
+          console.error('Could not retrieve subscription on invoice.paid:', err)
+        }
+
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .limit(1)
+
+        if (profiles && profiles.length) {
+          const userId = profiles[0].id
+          const updateData = { is_premium: true }
+          if (periodEnd) updateData.premium_expires_at = periodEnd
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', userId)
+          if (updateError) console.error('Renewal update error:', updateError)
+          else console.log('Renewal applied for user:', userId, periodEnd)
+        }
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        // Renewal failed. Stripe will retry per dunning settings. Log it; do not flip premium immediately.
+        const invoice = event.data.object
+        const customerId = invoice.customer
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .eq('stripe_customer_id', customerId)
+          .limit(1)
+        if (profiles && profiles.length) {
+          console.warn('Invoice payment failed for user:', profiles[0].id, 'attempt:', invoice.attempt_count)
+          // Best-effort dunning email via Resend.
+          try {
+            const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+            const recipient = invoice.customer_email || profiles[0].email
+            if (RESEND_API_KEY && recipient) {
+              const html = `<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px"><h1 style="color:#1F1F1F">Payment didn’t go through</h1><p>We were unable to process your Marryzen Premium renewal. We will retry your card automatically. To avoid any interruption, please update your billing details in <a href="https://www.marryzen.com/billing">Settings → Billing</a>.</p></div>`
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: 'Marryzen <noreply@marryzen.com>', to: recipient, subject: 'Action needed: update your Marryzen billing', html })
+              })
+            }
+          } catch (err) {
+            console.error('Dunning email send failed', err)
+          }
         }
         break
       }
