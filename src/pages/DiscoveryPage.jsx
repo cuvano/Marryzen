@@ -1339,7 +1339,7 @@ const DiscoveryPage = () => {
                                                 }
                                             }}
                                             layoutId={`carousel-profile-${profile.id}`}
-                                            className="flex-shrink-0 w-[calc(33.333%-0.5rem)] min-w-[250px] max-w-[280px]"
+                                            className="flex-shrink-0 w-full sm:w-[calc(33.333%-0.5rem)] sm:min-w-[250px] sm:max-w-[280px]"
                                         >
                                             <ProfileCard 
                                                 profile={profile}

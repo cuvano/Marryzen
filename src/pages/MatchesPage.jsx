@@ -531,10 +531,10 @@ const MatchesPage = () => {
             </p>
           )}
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-[#E6DCD2]">
+          <div className="flex gap-2 border-b border-[#E6DCD2] overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => setActiveTab('matches')}
-              className={`px-4 py-2 font-medium transition-colors ${
+              className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'matches'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
                   : 'text-[#706B67] hover:text-[#1F1F1F]'
@@ -545,7 +545,7 @@ const MatchesPage = () => {
             {userProfile?.is_premium && (
               <button
                 onClick={() => setActiveTab('interactions')}
-                className={`px-4 py-2 font-medium transition-colors ${
+                className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === 'interactions'
                     ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
                     : 'text-[#706B67] hover:text-[#1F1F1F]'
@@ -556,7 +556,7 @@ const MatchesPage = () => {
             )}
             <button
               onClick={() => setActiveTab('likes-you')}
-              className={`px-4 py-2 font-medium transition-colors ${
+              className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'likes-you'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
                   : 'text-[#706B67] hover:text-[#1F1F1F]'
@@ -567,7 +567,7 @@ const MatchesPage = () => {
             {userProfile?.is_premium && (
               <button
                 onClick={() => setActiveTab('profile-views')}
-                className={`px-4 py-2 font-medium transition-colors ${
+                className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === 'profile-views'
                     ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
                     : 'text-[#706B67] hover:text-[#1F1F1F]'
@@ -578,7 +578,7 @@ const MatchesPage = () => {
             )}
             <button
               onClick={() => setActiveTab('favorites')}
-              className={`px-4 py-2 font-medium transition-colors ${
+              className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'favorites'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
                   : 'text-[#706B67] hover:text-[#1F1F1F]'
