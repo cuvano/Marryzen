@@ -395,7 +395,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-[#FAF7F2] overflow-hidden">
-      <Helmet><title>Messages â Marryzen</title></Helmet>
+      <Helmet><title>Messages Ã¢ÂÂ Marryzen</title></Helmet>
       <div className={`w-full md:w-80 bg-white border-r border-[#E6DCD2] flex flex-col ${activeConversation ? 'hidden md:flex' : 'flex'}`}>
          <div className="p-4 border-b border-[#E6DCD2]">
             <h2 className="font-bold text-xl text-[#1F1F1F]">Messages</h2>
@@ -477,7 +477,7 @@ const ChatPage = () => {
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-2 flex gap-1">
-                                        {['â¤ï¸', 'ð', 'ð®', 'ð¢', 'ð'].map(emoji => (
+                                        {['Ã¢ÂÂ¤Ã¯Â¸Â', 'Ã°ÂÂÂ', 'Ã°ÂÂÂ®', 'Ã°ÂÂÂ¢', 'Ã°ÂÂÂ'].map(emoji => (
                                             <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="hover:bg-gray-100 p-1 rounded text-lg">{emoji}</button>
                                         ))}
                                     </PopoverContent>
@@ -524,7 +524,7 @@ const ChatPage = () => {
                             {!currentUser?.is_premium && (
                                 <div className="mb-2 text-xs text-center text-[#706B67]">
                                     Messages today: <span className="font-bold">{dailyMessageCount}/10</span>
-                                    {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">â¢ Limit soon</span>}
+                                    {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">Ã¢ÂÂ¢ Limit soon</span>}
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -543,24 +543,25 @@ const ChatPage = () => {
             </>
          ) : <div className="flex-1 flex items-center justify-center text-slate-400">Select a conversation</div>}
       </div>
+    {activeConversation?.partner?.id && (
+      <>
+        <ReportUserModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          reportedUserName={activeConversation.partner.full_name}
+          reportedUserId={activeConversation.partner.id}
+        />
+        <BlockUserModal
+          isOpen={isBlockModalOpen}
+          onClose={() => setIsBlockModalOpen(false)}
+          blockedUserName={activeConversation.partner.full_name}
+          blockedUserId={activeConversation.partner.id}
+          onBlocked={() => navigate('/matches')}
+        />
+      </>
+    )}
     </div>
-      {activeConversation?.partner?.id && (
-        <>
-          <ReportUserModal
-            isOpen={isReportModalOpen}
-            onClose={() => setIsReportModalOpen(false)}
-            reportedUserName={activeConversation.partner.full_name}
-            reportedUserId={activeConversation.partner.id}
-          />
-          <BlockUserModal
-            isOpen={isBlockModalOpen}
-            onClose={() => setIsBlockModalOpen(false)}
-            blockedUserName={activeConversation.partner.full_name}
-            blockedUserId={activeConversation.partner.id}
-            onBlocked={() => navigate('/matches')}
-          />
-        </>
-      )}
+
   );
 };
 
