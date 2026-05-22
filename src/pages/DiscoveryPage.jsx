@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Helmet } from 'react-helmet';
+import { funnel } from '@/lib/analytics';
 const DiscoveryPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -155,7 +156,7 @@ const DiscoveryPage = () => {
       setDailyLikeCount(likeRes.count || 0);
       setDailyPassCount(passRes.count || 0);
 
-      // Do not set loading = false here — keep loader until first profile fetch completes
+      // Do not set loading = false here â keep loader until first profile fetch completes
     };
     init();
   }, [navigate]);
@@ -214,7 +215,7 @@ const DiscoveryPage = () => {
     return () => clearTimeout(timeout);
   }, [filters]);
 
-  // Same as opening /profile/:id — "Who viewed you" only had rows from that route; Discovery uses inline detail.
+  // Same as opening /profile/:id â "Who viewed you" only had rows from that route; Discovery uses inline detail.
   useEffect(() => {
     if (!selectedProfile?.id || !currentUser?.id) return;
     if (selectedProfile.id === currentUser.id) return;
@@ -319,7 +320,7 @@ const DiscoveryPage = () => {
                 // Verified-only (any user can enable via quick filter; premium sidebar toggle also sets this)
                 if (filters.verifiedOnly && !isIdentityVerifiedProfile(p)) return false;
 
-                // “Active today” = same local calendar day as viewer’s device; missing/stale last_active_at excluded
+                // âActive todayâ = same local calendar day as viewerâs device; missing/stale last_active_at excluded
                 if (filters.recentActive && !isProfileActiveLocalToday(p.last_active_at)) return false;
 
                 // Premium Checks
@@ -487,7 +488,7 @@ const DiscoveryPage = () => {
             console.error('Mutual match check error:', mutualError);
           }
             if (mutual) {
-                toast({ title: "It's a Match! 🎉", description: `You matched with ${target.full_name}` });
+                toast({ title: "It's a Match! ð", description: `You matched with ${target.full_name}` });
                 const user1_id = currentUser.id < target.id ? currentUser.id : target.id;
                 const user2_id = currentUser.id > target.id ? currentUser.id : target.id;
                 const { error: convoErr } = await supabase
@@ -712,7 +713,7 @@ const DiscoveryPage = () => {
     useEffect(() => { setPhotoIdx(0); }, [profile?.id]);
     return (
       <div className="bg-white rounded-2xl border border-[#E6DCD2] shadow-lg overflow-hidden">
-        <Helmet><title>Discover profiles — Marryzen</title></Helmet>
+        <Helmet><title>Discover profiles â Marryzen</title></Helmet>
         <div className="relative">
           {/* Close Button */}
           <Button
@@ -731,7 +732,7 @@ const DiscoveryPage = () => {
               alt={profile.full_name}
               className="w-full h-full object-cover object-top"
             />
-            {/* Bottom + light top scrim only — photo stays clear in the middle (standard dating-app pattern) */}
+            {/* Bottom + light top scrim only â photo stays clear in the middle (standard dating-app pattern) */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[52%] bg-gradient-to-t from-black via-black/65 via-22% to-transparent" />
             <div className="pointer-events-none absolute left-0 right-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
             
@@ -744,7 +745,7 @@ const DiscoveryPage = () => {
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,1)]">
                     <MapPin className="w-4 h-4 shrink-0 opacity-95" />
                     <span>{profile.location_city || 'Unknown City'}</span>
-                    {profile.distance !== undefined && <span className="text-white/90">• {Math.round(profile.distance)} km away</span>}
+                    {profile.distance !== undefined && <span className="text-white/90">â¢ {Math.round(profile.distance)} km away</span>}
                   </div>
                 </div>
                 <Button
@@ -936,8 +937,8 @@ const DiscoveryPage = () => {
     if (filters.recentActive) {
       suggestions.push({
         icon: Clock,
-        title: 'Turn off “Active today”',
-        description: 'Only people who used Marryzen today (your device’s date) qualify. Turn this off to see more members.',
+        title: 'Turn off âActive todayâ',
+        description: 'Only people who used Marryzen today (your deviceâs date) qualify. Turn this off to see more members.',
         action: onRemovePremiumFilters,
         color: 'text-green-700',
         bg: 'bg-green-50'
@@ -1104,7 +1105,7 @@ const DiscoveryPage = () => {
                             <span className="text-sm text-[#1F1F1F]">
                               Likes today: <span className="font-bold">{dailyLikeCount}/{LIKE_LIMIT_FREE}</span>
                               {dailyLikeCount >= LIKE_LIMIT_FREE - 3 && dailyLikeCount < LIKE_LIMIT_FREE && (
-                                <span className="text-yellow-600 ml-2">• Limit soon</span>
+                                <span className="text-yellow-600 ml-2">â¢ Limit soon</span>
                               )}
                             </span>
                           </div>
@@ -1112,7 +1113,7 @@ const DiscoveryPage = () => {
                             <span className="opacity-70">Passes today:</span>
                             <span className="font-bold">{dailyPassCount}/{PASS_LIMIT_FREE}</span>
                             {dailyPassCount >= PASS_LIMIT_FREE - 3 && dailyPassCount < PASS_LIMIT_FREE && (
-                              <span className="text-yellow-600">• Limit soon</span>
+                              <span className="text-yellow-600">â¢ Limit soon</span>
                             )}
                           </div>
                         </div>
@@ -1191,7 +1192,7 @@ const DiscoveryPage = () => {
                          </div>
                     </div>
 
-                    {/* Filter Summary Tags — only render when any filter is active */}
+                    {/* Filter Summary Tags â only render when any filter is active */}
                     {(filters.faith || filters.city || filters.recentActive || filters.verifiedOnly) && (
                       <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
@@ -1230,7 +1231,7 @@ const DiscoveryPage = () => {
                     </div>
                 ) : loadError && profiles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-6 bg-white rounded-2xl border border-[#E6DCD2] p-8">
-                        <p className="text-[#706B67] text-center max-w-sm">Something went wrong loading profiles. This can happen briefly — try again.</p>
+                        <p className="text-[#706B67] text-center max-w-sm">Something went wrong loading profiles. This can happen briefly â try again.</p>
                         <Button
                             onClick={() => fetchProfiles()}
                             className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"

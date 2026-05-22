@@ -10,6 +10,7 @@ import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
 
 import { Helmet } from 'react-helmet';
+import { funnel } from '@/lib/analytics';
 const PremiumPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -92,6 +93,7 @@ const PremiumPage = () => {
   };
 
   const handleSubscribe = async (priceId) => {
+    funnel.checkoutStarted({ priceId });
     setLoadingPlanId(priceId);
     setLoading(true);
     try {
@@ -162,7 +164,7 @@ const PremiumPage = () => {
         
         // Check if it's a function not found error
         if (error.message?.includes('Function not found') || error.message?.includes('404')) {
-          throw new Error("Payment system is not configured. The Stripe Edge Function is not deployed. Please deploy the 'stripe-api' function in Supabase Dashboard â Edge Functions.");
+          throw new Error("Payment system is not configured. The Stripe Edge Function is not deployed. Please deploy the 'stripe-api' function in Supabase Dashboard Ã¢ÂÂ Edge Functions.");
         }
         
         // Check if it's a non-2xx status code - try to get the actual error from the response
@@ -263,7 +265,7 @@ const PremiumPage = () => {
       duration: '3 months',
       price: '$59.97',
       perMonth: '$19.99 / month',
-      description: 'Good value — save 33% vs monthly',
+      description: 'Good value â save 33% vs monthly',
       buttonText: isPremium ? 'Add 3 Months' : 'Choose Quarterly',
       isPopular: false,
       badge: 'Save 33%'
@@ -274,7 +276,7 @@ const PremiumPage = () => {
       duration: '12 months',
       price: '$155.88',
       perMonth: '$12.99 / month',
-      description: 'Best value — save 57% vs monthly',
+      description: 'Best value â save 57% vs monthly',
       buttonText: isPremium ? 'Add 12 Months' : 'Choose Annual',
       isPopular: true,
       badge: 'Best Value'
@@ -302,7 +304,7 @@ const PremiumPage = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8 pb-20 bg-[#FAF7F2]">
-      <Helmet><title>Premium â Marryzen</title></Helmet>
+      <Helmet><title>Premium Ã¢ÂÂ Marryzen</title></Helmet>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
             <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] mb-4 pl-0">

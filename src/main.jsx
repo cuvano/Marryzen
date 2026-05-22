@@ -24,6 +24,8 @@ if (POSTHOG_KEY) {
   posthog.init(POSTHOG_KEY, {
     api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
     person_profiles: 'identified_only',
+    autocapture: true,
+    session_recording: { maskAllInputs: true },
     capture_pageview: true,
     capture_pageleave: true,
   });

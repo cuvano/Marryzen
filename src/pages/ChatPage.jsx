@@ -11,6 +11,7 @@ import ReportUserModal from '@/components/ReportUserModal';
 import BlockUserModal from '@/components/BlockUserModal';
 
 import { Helmet } from 'react-helmet';
+import { funnel } from '@/lib/analytics';
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -341,7 +342,7 @@ const ChatPage = () => {
           return;
       }
 
-      const { error } = await supabase.from('messages').insert({
+      const { error } = await supabase/* track */ .from('messages').insert({
           conversation_id: activeConversation.id,
           sender_id: currentUser.id,
           recipient_id: activeConversation.partner.id,

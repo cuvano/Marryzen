@@ -19,6 +19,7 @@ import { getPotentialMatchesCount } from '@/lib/matchStats';
 
 import { Helmet } from 'react-helmet';
 import PromptsEditorModal from '@/components/PromptsEditorModal';
+import { funnel } from '@/lib/analytics';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -608,7 +609,7 @@ const DashboardPage = () => {
                         .eq('id', userProfile.id)
                         .select('*')
                         .maybeSingle();
-                      if (!error && updated) setUserProfile(updated);
+                      if (!error && updated) { setUserProfile(updated); funnel.timelineSet({ value: opt.value }); }
                     }}
                     className="px-3 py-2 rounded-lg border border-[#E6DCD2] hover:border-[#E6B450] hover:bg-[#FFFBEB] text-sm font-medium text-[#1F1F1F] transition-colors"
                   >
@@ -846,7 +847,7 @@ const DashboardPage = () => {
           isOpen={showPromptsEditor}
           onClose={() => setShowPromptsEditor(false)}
           currentPrompts={userProfile?.prompts || []}
-          onSaved={(saved) => setUserProfile(prev => prev ? { ...prev, prompts: saved } : prev)}
+          onSaved={(saved) => { setUserProfile(prev => prev ? { ...prev, prompts: saved } : prev); funnel.promptsSaved({ count: saved.length }); }}
         />
 
         <Footer />
