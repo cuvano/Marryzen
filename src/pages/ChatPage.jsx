@@ -7,6 +7,8 @@ import { ArrowLeft, MoreVertical, ShieldAlert, Crown, Smile } from 'lucide-react
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import ReportUserModal from '@/components/ReportUserModal';
+import BlockUserModal from '@/components/BlockUserModal';
 
 import { Helmet } from 'react-helmet';
 const ChatPage = () => {
@@ -19,6 +21,8 @@ const ChatPage = () => {
   const [activeConversation, setActiveConversation] = useState(null);
   const [partnerPremiumStatus, setPartnerPremiumStatus] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -391,7 +395,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-[#FAF7F2] overflow-hidden">
-      <Helmet><title>Messages — Marryzen</title></Helmet>
+      <Helmet><title>Messages â Marryzen</title></Helmet>
       <div className={`w-full md:w-80 bg-white border-r border-[#E6DCD2] flex flex-col ${activeConversation ? 'hidden md:flex' : 'flex'}`}>
          <div className="p-4 border-b border-[#E6DCD2]">
             <h2 className="font-bold text-xl text-[#1F1F1F]">Messages</h2>
@@ -429,6 +433,24 @@ const ChatPage = () => {
                           <Crown className="w-4 h-4 text-[#E6B450] fill-[#E6B450]" title="Premium Member" />
                         )}
                     </div>
+                    {activeConversation?.partner?.id && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsBlockModalOpen(true)}
+                          className="text-sm font-semibold text-[#706B67] hover:text-red-700 underline-offset-2 hover:underline"
+                        >
+                          Block
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsReportModalOpen(true)}
+                          className="text-sm font-semibold text-red-600 hover:text-red-700 underline-offset-2 hover:underline"
+                        >
+                          Report
+                        </button>
+                      </div>
+                    )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.map(msg => (
@@ -455,7 +477,7 @@ const ChatPage = () => {
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-2 flex gap-1">
-                                        {['❤️', '😂', '😮', '😢', '👍'].map(emoji => (
+                                        {['â¤ï¸', 'ð', 'ð®', 'ð¢', 'ð'].map(emoji => (
                                             <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="hover:bg-gray-100 p-1 rounded text-lg">{emoji}</button>
                                         ))}
                                     </PopoverContent>
@@ -502,7 +524,7 @@ const ChatPage = () => {
                             {!currentUser?.is_premium && (
                                 <div className="mb-2 text-xs text-center text-[#706B67]">
                                     Messages today: <span className="font-bold">{dailyMessageCount}/10</span>
-                                    {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">• Limit soon</span>}
+                                    {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">â¢ Limit soon</span>}
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -522,6 +544,23 @@ const ChatPage = () => {
          ) : <div className="flex-1 flex items-center justify-center text-slate-400">Select a conversation</div>}
       </div>
     </div>
+      {activeConversation?.partner?.id && (
+        <>
+          <ReportUserModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            reportedUserName={activeConversation.partner.full_name}
+            reportedUserId={activeConversation.partner.id}
+          />
+          <BlockUserModal
+            isOpen={isBlockModalOpen}
+            onClose={() => setIsBlockModalOpen(false)}
+            blockedUserName={activeConversation.partner.full_name}
+            blockedUserId={activeConversation.partner.id}
+            onBlocked={() => navigate('/matches')}
+          />
+        </>
+      )}
   );
 };
 

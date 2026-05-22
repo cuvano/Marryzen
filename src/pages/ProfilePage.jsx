@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import ReportUserModal from '@/components/ReportUserModal';
+import BlockUserModal from '@/components/BlockUserModal';
 
 import { Helmet } from 'react-helmet';
 const Row = ({ label, value }) => (
@@ -52,6 +53,7 @@ const ProfilePage = () => {
   const [uploadingSelfie, setUploadingSelfie] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [referralInfo, setReferralInfo] = useState(null);
   const profilePhotoInputRef = useRef(null);
   const latestPhotosRef = useRef([]);
@@ -500,13 +502,13 @@ const ProfilePage = () => {
     ...(profile.religious_affiliation ? [{ label: profile.religious_affiliation, icon: Heart }] : []),
     ...(profile.relationship_goal ? [{ label: profile.relationship_goal, icon: Target }] : []),
     ...(profile.family_goals ? [{ label: profile.family_goals, icon: Home }] : []),
-    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' · '), icon: Languages }] : []),
+    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' Â· '), icon: Languages }] : []),
   ].slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#F5F5F3]">
-      <Helmet><title>Profile — Marryzen</title></Helmet>
-      {/* Top bar — full width, content aligned */}
+      <Helmet><title>Profile â Marryzen</title></Helmet>
+      {/* Top bar â full width, content aligned */}
       <div className="w-full border-b border-[#E8E6E4] bg-white/95 backdrop-blur-sm sticky top-0 z-20">
         <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-4 flex items-center justify-between">
           {!isOwnProfile ? (
@@ -528,14 +530,19 @@ const ProfilePage = () => {
             </div>
           )}
           {!isOwnProfile && (
-            <button type="button" onClick={() => setIsReportModalOpen(true)} className="text-sm font-medium text-[#C53030] hover:text-[#9B2C2C] transition-colors py-2 px-1">
-              Report
-            </button>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setIsBlockModalOpen(true)} className="text-sm font-semibold text-[#706B67] hover:text-red-700 underline-offset-2 hover:underline">
+                Block
+              </button>
+              <button type="button" onClick={() => setIsReportModalOpen(true)} className="text-sm font-semibold text-red-600 hover:text-red-700 underline-offset-2 hover:underline">
+                Report
+              </button>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Full-width hero — edge to edge cover, content in wide container */}
+      {/* Full-width hero â edge to edge cover, content in wide container */}
       <div className="w-full bg-[#E8E6E4]">
         <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[160px] sm:h-[180px]'}`}>
           {profile.cover_photo ? (
@@ -559,7 +566,7 @@ const ProfilePage = () => {
             </button>
           )}
         </div>
-        {/* Hero content — avatar + name in wide container */}
+        {/* Hero content â avatar + name in wide container */}
         <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row sm:items-end gap-6 pb-8">
             <div className="relative shrink-0">
@@ -602,14 +609,14 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Wide content area — two columns on large screens */}
+      {/* Wide content area â two columns on large screens */}
       <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-8 lg:py-10">
-        {/* Profile strength — full width strip when incomplete */}
+        {/* Profile strength â full width strip when incomplete */}
         {isOwnProfile && !isPreviewMode && completeness < 100 && (
           <div className="mb-8 rounded-xl bg-white border border-[#E8E6E4] px-6 py-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-[15px] text-[#333]">
-                Profile strength: <strong>{completeness}%</strong> — {checklist.filter(c => !c.completed).length} items to complete
+                Profile strength: <strong>{completeness}%</strong> â {checklist.filter(c => !c.completed).length} items to complete
               </p>
               <Progress value={completeness} className="h-2 w-48 rounded-full" />
             </div>
@@ -617,7 +624,7 @@ const ProfilePage = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-          {/* Left column — Photos + Account status */}
+          {/* Left column â Photos + Account status */}
           <div className="lg:col-span-4 xl:col-span-4 space-y-6">
             {/* Photos */}
             <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
@@ -683,7 +690,7 @@ const ProfilePage = () => {
               </div>
             </section>
 
-            {/* Account status — left column */}
+            {/* Account status â left column */}
             {isOwnProfile && (
               <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-[#E8E6E4]">
@@ -732,7 +739,7 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {/* Right column — About + details (wider) */}
+          {/* Right column â About + details (wider) */}
           <div className="lg:col-span-8 xl:col-span-8 space-y-6">
             <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-[#E8E6E4] flex items-center justify-between">
@@ -959,6 +966,13 @@ const ProfilePage = () => {
           onClose={() => setIsReportModalOpen(false)}
           reportedUserName={profile.full_name}
           reportedUserId={profile.id}
+        />
+        <BlockUserModal
+          isOpen={isBlockModalOpen}
+          onClose={() => setIsBlockModalOpen(false)}
+          blockedUserName={profile?.full_name}
+          blockedUserId={profile?.id}
+          onBlocked={() => navigate('/discovery')}
         />
       )}
     </div>
@@ -1200,7 +1214,7 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
   );
 };
 
-// Image Crop Dialog Component — matches onboarding Step2 cropper so crop result = what you see
+// Image Crop Dialog Component â matches onboarding Step2 cropper so crop result = what you see
 const CONTAINER_SIZE = 400;
 
 const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading = false }) => {
@@ -1337,7 +1351,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
             )}
             <div className="absolute inset-0 border-4 border-[#E6B450] pointer-events-none shadow-lg" />
             <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-              Drag to move • Zoom to adjust
+              Drag to move â¢ Zoom to adjust
             </div>
           </div>
           <div className="space-y-3 max-w-md mx-auto">
