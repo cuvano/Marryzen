@@ -39,7 +39,9 @@
     "react-router-dom": "^6.16.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
-    "terser": "^5.37.0"
+    "terser": "^5.37.0",
+    "posthog-js": "^1.205.0",
+    "@sentry/react": "^9.49.0"
   },
   "devDependencies": {
     "@types/node": "^20.8.3",

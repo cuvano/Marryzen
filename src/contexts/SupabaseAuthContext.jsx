@@ -15,6 +15,15 @@ export const AuthProvider = ({ children }) => {
   const handleSession = useCallback(async (session) => {
     setSession(session);
     setUser(session?.user ?? null);
+      try {
+        if (session?.user ?? null && session?.user ?? null.id) {
+          posthog.identify(session?.user ?? null.id, { email: session?.user ?? null.email });
+          Sentry.setUser({ id: session?.user ?? null.id, email: session?.user ?? null.email });
+        } else {
+          posthog.reset();
+          Sentry.setUser(null);
+        }
+      } catch (_) {};
     setLoading(false);
   }, []);
 
