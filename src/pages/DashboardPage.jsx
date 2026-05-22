@@ -619,7 +619,7 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* Prompts Banner Ã¢ÂÂ Hinge-style three prompts to make profiles feel like marriage-intent profiles */}
+          {/* Prompts Banner ... Hinge-style three prompts to make profiles feel like marriage-intent profiles */}
           {userProfile && (!userProfile.prompts || userProfile.prompts.length < 3) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -630,7 +630,7 @@ const DashboardPage = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Help your future spouse meet you</h3>
                 <p className="text-sm text-[#706B67]">
-                  Pick three prompts and write short answers. Profiles with prompts get up to 3ÃÂ more conversations.
+                  Pick three prompts and write short answers. Profiles with prompts get up to 3x more conversations.
                 </p>
               </div>
               <Button
