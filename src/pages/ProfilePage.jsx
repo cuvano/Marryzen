@@ -502,13 +502,13 @@ const ProfilePage = () => {
     ...(profile.religious_affiliation ? [{ label: profile.religious_affiliation, icon: Heart }] : []),
     ...(profile.relationship_goal ? [{ label: profile.relationship_goal, icon: Target }] : []),
     ...(profile.family_goals ? [{ label: profile.family_goals, icon: Home }] : []),
-    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' Â· '), icon: Languages }] : []),
+    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' ÃÂ· '), icon: Languages }] : []),
   ].slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#F5F5F3]">
-      <Helmet><title>Profile â Marryzen</title></Helmet>
-      {/* Top bar â full width, content aligned */}
+      <Helmet><title>Profile Ã¢ÂÂ Marryzen</title></Helmet>
+      {/* Top bar Ã¢ÂÂ full width, content aligned */}
       <div className="w-full border-b border-[#E8E6E4] bg-white/95 backdrop-blur-sm sticky top-0 z-20">
         <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-4 flex items-center justify-between">
           {!isOwnProfile ? (
@@ -542,7 +542,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Full-width hero â edge to edge cover, content in wide container */}
+      {/* Full-width hero Ã¢ÂÂ edge to edge cover, content in wide container */}
       <div className="w-full bg-[#E8E6E4]">
         <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[160px] sm:h-[180px]'}`}>
           {profile.cover_photo ? (
@@ -566,7 +566,7 @@ const ProfilePage = () => {
             </button>
           )}
         </div>
-        {/* Hero content â avatar + name in wide container */}
+        {/* Hero content Ã¢ÂÂ avatar + name in wide container */}
         <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
           <div className="relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row sm:items-end gap-6 pb-8">
             <div className="relative shrink-0">
@@ -609,14 +609,14 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Wide content area â two columns on large screens */}
+      {/* Wide content area Ã¢ÂÂ two columns on large screens */}
       <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-8 lg:py-10">
-        {/* Profile strength â full width strip when incomplete */}
+        {/* Profile strength Ã¢ÂÂ full width strip when incomplete */}
         {isOwnProfile && !isPreviewMode && completeness < 100 && (
           <div className="mb-8 rounded-xl bg-white border border-[#E8E6E4] px-6 py-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-[15px] text-[#333]">
-                Profile strength: <strong>{completeness}%</strong> â {checklist.filter(c => !c.completed).length} items to complete
+                Profile strength: <strong>{completeness}%</strong> Ã¢ÂÂ {checklist.filter(c => !c.completed).length} items to complete
               </p>
               <Progress value={completeness} className="h-2 w-48 rounded-full" />
             </div>
@@ -624,7 +624,7 @@ const ProfilePage = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-          {/* Left column â Photos + Account status */}
+          {/* Left column Ã¢ÂÂ Photos + Account status */}
           <div className="lg:col-span-4 xl:col-span-4 space-y-6">
             {/* Photos */}
             <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
@@ -690,7 +690,7 @@ const ProfilePage = () => {
               </div>
             </section>
 
-            {/* Account status â left column */}
+            {/* Account status Ã¢ÂÂ left column */}
             {isOwnProfile && (
               <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-[#E8E6E4]">
@@ -739,7 +739,7 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {/* Right column â About + details (wider) */}
+          {/* Right column Ã¢ÂÂ About + details (wider) */}
           <div className="lg:col-span-8 xl:col-span-8 space-y-6">
             <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-[#E8E6E4] flex items-center justify-between">
@@ -857,6 +857,19 @@ const ProfilePage = () => {
         </div>
       </div>
 
+      {Array.isArray(profile.prompts) && profile.prompts.length > 0 && (
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <h2 className="text-xl font-bold text-[#1F1F1F] mb-4">In their own words</h2>
+          <div className="space-y-4">
+            {profile.prompts.map((p, i) => (
+              <div key={i} className="bg-white border border-[#E6DCD2] rounded-2xl p-4">
+                <p className="text-xs font-semibold text-[#E6B450] uppercase tracking-wide mb-1">{p.prompt}</p>
+                <p className="text-[#1F1F1F] leading-relaxed">{p.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <Footer />
 
       {/* Bio Edit Dialog */}
@@ -1214,7 +1227,7 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
   );
 };
 
-// Image Crop Dialog Component â matches onboarding Step2 cropper so crop result = what you see
+// Image Crop Dialog Component Ã¢ÂÂ matches onboarding Step2 cropper so crop result = what you see
 const CONTAINER_SIZE = 400;
 
 const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading = false }) => {
@@ -1351,7 +1364,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
             )}
             <div className="absolute inset-0 border-4 border-[#E6B450] pointer-events-none shadow-lg" />
             <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-              Drag to move â¢ Zoom to adjust
+              Drag to move Ã¢ÂÂ¢ Zoom to adjust
             </div>
           </div>
           <div className="space-y-3 max-w-md mx-auto">

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { 
+import PromptsEditorModal from '@/components/PromptsEditorModal';
   Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, 
   AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders,
   Camera, FileText, Clock, ArrowRight, X
@@ -27,6 +28,7 @@ const DashboardPage = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusBannerDismissed, setStatusBannerDismissed] = useState(false);
+  const [showPromptsEditor, setShowPromptsEditor] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   
   const [stats, setStats] = useState({
@@ -80,7 +82,7 @@ const DashboardPage = () => {
           setUserProfile(profile);
           // Drop the blocking spinner as soon as the profile is in state.
           // Stats + suggestions resolve in the background and update the UI
-          // when they arrive Ã¢ÂÂ the user does not have to wait on them.
+          // when they arrive ÃÂ¢ÃÂÃÂ the user does not have to wait on them.
           setLoading(false);
 
           const profileStatusLower = profile.status?.toLowerCase()?.trim();
@@ -465,10 +467,10 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-4 bg-[#FAF7F2] flex items-center justify-center">
-        <Helmet><title>Dashboard ÃÂ¢ÃÂÃÂ Marryzen</title></Helmet>
+        <Helmet><title>Dashboard ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#706B67] font-medium">Finding your peopleÃ¢ÂÂ¦</p>
+          <p className="text-[#706B67] font-medium">Finding your peopleÃÂ¢ÃÂÃÂ¦</p>
         </div>
       </div>
     );
@@ -551,7 +553,7 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* ID Verification Banner â every member must be Didit-verified to start matching */}
+          {/* ID Verification Banner Ã¢ÂÂ every member must be Didit-verified to start matching */}
           {userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -563,7 +565,7 @@ const DashboardPage = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Verify your identity to start matching</h3>
                 <p className="text-sm text-[#5e4e1f] leading-relaxed">
-                  Marryzen is the verified marriage app â every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
+                  Marryzen is the verified marriage app Ã¢ÂÂ every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
                 </p>
                 <Button
                   size="sm"
@@ -576,7 +578,7 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* Marriage Timeline Banner — self-select seriousness */}
+          {/* Marriage Timeline Banner â self-select seriousness */}
           {userProfile && !userProfile.marriage_timeline && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -613,6 +615,29 @@ const DashboardPage = () => {
                   </button>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {/* Prompts Banner — Hinge-style three prompts to make profiles feel like marriage-intent profiles */}
+          {userProfile && (!userProfile.prompts || userProfile.prompts.length < 3) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="bg-white border border-[#E6DCD2] rounded-xl p-4 mb-4 flex items-center justify-between gap-4"
+            >
+              <div className="flex-1">
+                <h3 className="font-bold text-[#1F1F1F] mb-1">Help your future spouse meet you</h3>
+                <p className="text-sm text-[#706B67]">
+                  Pick three prompts and write short answers. Profiles with prompts get up to 3× more conversations.
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowPromptsEditor(true)}
+                className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold flex-shrink-0"
+              >
+                Add prompts
+              </Button>
             </motion.div>
           )}
 
@@ -815,6 +840,13 @@ const DashboardPage = () => {
             )}
         </motion.div>
         )}
+
+        <PromptsEditorModal
+          isOpen={showPromptsEditor}
+          onClose={() => setShowPromptsEditor(false)}
+          currentPrompts={userProfile?.prompts || []}
+          onSaved={(saved) => setUserProfile(prev => prev ? { ...prev, prompts: saved } : prev)}
+        />
 
         <Footer />
       </div>
