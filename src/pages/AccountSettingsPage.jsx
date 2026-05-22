@@ -8,11 +8,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Lock, Mail, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, CreditCard } from 'lucide-react';
 import Footer from '@/components/Footer';
+import DeleteAccountModal from '@/components/DeleteAccountModal';
+import { Download, Trash2 } from 'lucide-react';
 
 const AccountSettingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   
@@ -354,6 +357,58 @@ const AccountSettingsPage = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Danger Zone — data export + delete account (GDPR Article 15/17) */}
+        <Card className="mt-6 border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-700">Your data &amp; account</CardTitle>
+            <CardDescription>
+              Export everything Marryzen holds about you, or permanently delete your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) return;
+                    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://adufstvmmzpqdcmpinqd.supabase.co'}/functions/v1/account-export`, {
+                      headers: { Authorization: `Bearer ${session.access_token}` }
+                    });
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `marryzen-export-${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  } catch (err) {
+                    console.error('Export failed', err);
+                  }
+                }}
+                className="border-[#E6DCD2]"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export my data
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDeleteAccount(true)}
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete my account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <DeleteAccountModal isOpen={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} />
 
         <Footer />
       </div>
