@@ -857,7 +857,17 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {Array.isArray(profile.prompts) && profile.prompts.length > 0 && (
+{profile.marriage_timeline && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFFBEB] border border-[#E6B450] text-sm font-semibold text-[#1F1F1F]">
+            {profile.marriage_timeline === 'within_6mo' && 'Looking to marry within 6 months'}
+            {profile.marriage_timeline === 'within_1y' && 'Looking to marry within 1 year'}
+            {profile.marriage_timeline === 'within_2y' && 'Looking to marry within 2 years'}
+            {profile.marriage_timeline === 'open' && 'Open to the right person'}
+          </span>
+        </div>
+      )}
+            {Array.isArray(profile.prompts) && profile.prompts.length > 0 && (
         <div className="max-w-3xl mx-auto px-4 py-6">
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-4">In their own words</h2>
           <div className="space-y-4">
