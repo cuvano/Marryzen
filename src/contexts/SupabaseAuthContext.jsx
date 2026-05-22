@@ -16,14 +16,15 @@ export const AuthProvider = ({ children }) => {
     setSession(session);
     setUser(session?.user ?? null);
       try {
-        if (session?.user ?? null && session?.user ?? null.id) {
-          posthog.identify(session?.user ?? null.id, { email: session?.user ?? null.email });
-          Sentry.setUser({ id: session?.user ?? null.id, email: session?.user ?? null.email });
+        const _u = session?.user ?? null;
+        if (_u && _u.id) {
+          posthog.identify(_u.id, { email: _u.email });
+          Sentry.setUser({ id: _u.id, email: _u.email });
         } else {
           posthog.reset();
           Sentry.setUser(null);
         }
-      } catch (_) {};
+      } catch (_) {}
     setLoading(false);
   }, []);
 
