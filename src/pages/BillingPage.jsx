@@ -107,10 +107,22 @@ const BillingPage = () => {
         if (data?.url) {
             window.location.href = data.url;
         } else {
+          const fallbackUrl = import.meta.env.VITE_STRIPE_CUSTOMER_PORTAL_URL;
+          if (fallbackUrl) {
+            window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+          } else {
             throw new Error("Could not create portal session");
+          }
         }
     } catch (err) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        // Fallback: open the Stripe-hosted Customer Portal public URL.
+        // Stripe asks for the user's email, sends a magic link, user lands in the portal.
+        const fallbackUrl = import.meta.env.VITE_STRIPE_CUSTOMER_PORTAL_URL;
+        if (fallbackUrl) {
+          window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
     } finally {
         setPortalLoading(false);
     }
