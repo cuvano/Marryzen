@@ -80,7 +80,7 @@ const DashboardPage = () => {
           setUserProfile(profile);
           // Drop the blocking spinner as soon as the profile is in state.
           // Stats + suggestions resolve in the background and update the UI
-          // when they arrive â the user does not have to wait on them.
+          // when they arrive Ã¢ÂÂ the user does not have to wait on them.
           setLoading(false);
 
           const profileStatusLower = profile.status?.toLowerCase()?.trim();
@@ -465,10 +465,10 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-4 bg-[#FAF7F2] flex items-center justify-center">
-        <Helmet><title>Dashboard Ã¢ÂÂ Marryzen</title></Helmet>
+        <Helmet><title>Dashboard ÃÂ¢ÃÂÃÂ Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#706B67] font-medium">Finding your peopleâ¦</p>
+          <p className="text-[#706B67] font-medium">Finding your peopleÃ¢ÂÂ¦</p>
         </div>
       </div>
     );
@@ -551,7 +551,7 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* ID Verification Banner — every member must be Didit-verified to start matching */}
+          {/* ID Verification Banner â every member must be Didit-verified to start matching */}
           {userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -563,7 +563,7 @@ const DashboardPage = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Verify your identity to start matching</h3>
                 <p className="text-sm text-[#5e4e1f] leading-relaxed">
-                  Marryzen is the verified marriage app — every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
+                  Marryzen is the verified marriage app â every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
                 </p>
                 <Button
                   size="sm"
@@ -572,6 +572,46 @@ const DashboardPage = () => {
                 >
                   Verify my identity
                 </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Marriage Timeline Banner — self-select seriousness */}
+          {userProfile && !userProfile.marriage_timeline && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.13 }}
+              className="bg-white border border-[#E6DCD2] rounded-xl p-4 mb-4"
+            >
+              <h3 className="font-bold text-[#1F1F1F] mb-1">When are you hoping to get married?</h3>
+              <p className="text-sm text-[#706B67] mb-3">
+                We show this on your profile so other members can see you're serious. You can change it later.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { value: 'within_6mo', label: 'Within 6 months' },
+                  { value: 'within_1y', label: 'Within 1 year' },
+                  { value: 'within_2y', label: 'Within 2 years' },
+                  { value: 'open', label: "I'm open" }
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={async () => {
+                      const { data: updated, error } = await supabase
+                        .from('profiles')
+                        .update({ marriage_timeline: opt.value })
+                        .eq('id', userProfile.id)
+                        .select('*')
+                        .maybeSingle();
+                      if (!error && updated) setUserProfile(updated);
+                    }}
+                    className="px-3 py-2 rounded-lg border border-[#E6DCD2] hover:border-[#E6B450] hover:bg-[#FFFBEB] text-sm font-medium text-[#1F1F1F] transition-colors"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </motion.div>
           )}
