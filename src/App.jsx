@@ -84,12 +84,13 @@ function App() {
                       <Route element={<AuthenticatedLayout />}>
                           <Route path="/verify-email" element={<VerifyEmailPage />} />
                           <Route path="/dashboard" element={<DashboardPage />} />
+                          <Route path="/profile" element={<ProfilePage />} />
+
                           <Route element={<RequireVerified />}>
                             <Route path="/discovery" element={<DiscoveryPage />} />
                             <Route path="/matches" element={<MatchesPage />} />
                             <Route path="/chat" element={<ChatPage />} />
                             <Route path="/chat/:conversationId" element={<ChatPage />} />
-                            <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/profile/:userId" element={<ProfilePage />} />
                           </Route>
                           <Route path="/premium" element={<PremiumPage />} />
