@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/SupabaseAuthContext';
 /**
  * Gate that requires the signed-in member to have completed Didit ID verification.
  *
- * Marryzen's brand promise is "every member is identity-verified" — this enforces it
+ * Marryzen's brand promise is "every member is identity-verified" â this enforces it
  * for the interaction surfaces (discovery, matches, chat, other-profile views).
  *
  * Bypassed for:
@@ -55,7 +55,7 @@ const RequireVerified = ({ children }) => {
     );
   }
   if (!state.allowed) {
-    return <Navigate to="/auth/verify?required=1" replace />;
+    return <Navigate to="/profile?verify=1" replace />;
   }
   return children ? children : <Outlet />;
 };

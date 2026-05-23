@@ -571,7 +571,7 @@ const DashboardPage = () => {
                 </p>
                 <Button
                   size="sm"
-                  onClick={() => navigate('/auth/verify')}
+                  onClick={() => navigate('/profile')}
                   className="mt-3 bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
                 >
                   Verify my identity
