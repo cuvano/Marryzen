@@ -225,7 +225,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
         </div>
         <Slider 
             value={[zoom]} 
-            min={0.5} 
+            min={0.1} 
             max={3} 
             step={0.05} 
             onValueChange={(val) => setZoom(val[0])}
@@ -244,7 +244,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             Reset
           </Button>
           <p className="text-[10px] text-[#706B67] text-center">
-            Drag to reposition • Zoom to adjust
+            Drag to reposition â¢ Zoom to adjust
           </p>
         </div>
       </div>
