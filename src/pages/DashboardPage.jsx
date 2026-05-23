@@ -691,14 +691,14 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Two Column Layout: Next Steps + Marriage Tools */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        <div className="space-y-6 mb-8">
           {/* Next Steps Widget */}
           {nextSteps.length > 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.3 }}
-              className="lg:col-span-1"
+              className=""
             >
               <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 shadow-sm">
                 <h2 className="text-xl font-bold text-[#1F1F1F] mb-4 flex items-center gap-2">
@@ -733,7 +733,7 @@ const DashboardPage = () => {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.35 }}
-            className={nextSteps.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}
+            className=""
           >
           <h2 className="text-2xl font-bold text-[#1F1F1F] mb-6">Marriage Tools</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
