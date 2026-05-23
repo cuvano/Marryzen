@@ -51,9 +51,7 @@ const DashboardPage = () => {
     }
     // Check if status banner was dismissed or if it was already shown once
     const dismissed = localStorage.getItem('status_banner_dismissed');
-    const statusShown = localStorage.getItem('status_banner_shown');
-    
-    if (dismissed || statusShown) {
+        if (dismissed) {
       setStatusBannerDismissed(true);
     }
 
@@ -180,10 +178,7 @@ const DashboardPage = () => {
       const statusShown = localStorage.getItem('status_banner_shown');
       if (!statusShown) {
         // Auto-dismiss after 5 seconds
-        const timer = setTimeout(() => {
-          setStatusBannerDismissed(true);
-          localStorage.setItem('status_banner_shown', 'true');
-        }, 5000);
+        const timer = /* auto-dismiss removed - banner persists until user clicks X */ undefined;
         
         return () => clearTimeout(timer);
       }
