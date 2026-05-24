@@ -63,7 +63,7 @@ const ReferralPage = () => {
 
     } catch (error) {
       console.error(error);
-      toast({ title: \"Error\", description: \"Failed to load referral data\", variant: \"destructive\" });
+      toast({ title: "Error", description: "Failed to load referral data", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -72,20 +72,20 @@ const ReferralPage = () => {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      toast({ title: \"Copied!\", description: \"Referral link copied to clipboard.\" });
+      toast({ title: "Copied!", description: "Referral link copied to clipboard." });
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
-      toast({ title: \"Failed to copy\", description: \"Please try again.\", variant: \"destructive\" });
+      toast({ title: "Failed to copy", description: "Please try again.", variant: "destructive" });
     });
   };
 
   const copyCodeToClipboard = (code) => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
-      toast({ title: \"Copied!\", description: \"Referral code copied to clipboard.\" });
+      toast({ title: "Copied!", description: "Referral code copied to clipboard." });
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
-      toast({ title: \"Failed to copy\", description: \"Please try again.\", variant: \"destructive\" });
+      toast({ title: "Failed to copy", description: "Please try again.", variant: "destructive" });
     });
   };
 
@@ -118,45 +118,48 @@ const ReferralPage = () => {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  if (loading) return <div className=\"flex justify-center p-20\"><Loader2 className=\"animate-spin text-[#E6B450]\" /></div>;
+  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-[#E6B450]" /></div>;
 
   return (
-    <div className=\"min-h-screen bg-[#FAF7F2] p-4 md:p-8\">
-      <div className=\"max-w-5xl mx-auto\">
-        <h1 className=\"text-3xl font-bold text-[#1F1F1F] mb-2\">Invite Friends</h1>
-        <p className=\"text-[#706B67] mb-8\">Help friends find serious partners and earn premium rewards.</p>
+    <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Invite Friends</h1>
+        <p className="text-[#706B67] mb-8">Help friends find serious partners and earn premium rewards.</p>
 
         {/* Stats Grid */}
-        <div className=\"grid grid-cols-2 md:grid-cols-4 gap-4 mb-8\">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card>
-            <CardContent className=\"p-6 text-center\">
-              <Users className=\"w-8 h-8 mx-auto text-blue-500 mb-2\" />
-              <div className=\"text-2xl font-bold\">{stats.total}</div>
-              <div className=\"text-xs text-gray-500 font-medium\">Total Friends Invited</div>
+            <CardContent className="p-6 text-center">
+              <Users className="w-8 h-8 mx-auto text-blue-500 mb-2" />
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-xs text-gray-500 font-medium">Total Friends Invited</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className=\"p-6 text-center\">
-              <CheckCircle className=\"w-8 h-8 mx-auto text-green-500 mb-2\" />
-              <div className=\"text-2xl font-bold\">{stats.completed}</div>
-              <div className=\"text-xs text-gray-500 font-medium\">Approved Profiles</div>
+            <CardContent className="p-6 text-center">
+              <CheckCircle className="w-8 h-8 mx-auto text-green-500 mb-2" />
+              <div className="text-2xl font-bold">{stats.completed}</div>
+              <div className="text-xs text-gray-500 font-medium">Approved Profiles</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className=\"p-6 text-center\">
-              <Loader2 className=\"w-8 h-8 mx-auto text-yellow-500 mb-2\" />
-              <div className=\"text-2xl font-bold\">{stats.pending}</div>
-              <div className=\"text-xs text-gray-500 font-medium\">Pending Approval</div>
+            <CardContent className="p-6 text-center">
+              <Loader2 className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
+              <div className="text-2xl font-bold">{stats.pending}</div>
+              <div className="text-xs text-gray-500 font-medium">Pending Approval</div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className=\"p-6 text-center\">
-              <Gift className=\"w-8 h-8 mx-auto text-[#C85A72] mb-2\" />
-              <div className=\"text-2xl font-bold\">{stats.rewards}</div>
-              <div className=\"text-xs text-gray-500 font-medium\">Rewards Available</div>
+            <CardContent className="p-6 text-center">
+              <Gift className="w-8 h-8 mx-auto text-[#C85A72] mb-2" />
+              <div className="text-2xl font-bold">{stats.rewards}</div>
+              <div className="text-xs text-gray-500 font-medium">Rewards Available</div>
             </CardContent>
           </Card>
-        </div>6B450] bg-[#FFFBEB]">
+        </div>
+
+        {/* Share Section */}
+        <Card className="mb-8 border-[#E6B450] bg-[#FFFBEB]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Share2 className="w-5 h-5"/> Your Unique Referral Link</CardTitle>
             <CardDescription>Share this link. When friends sign up and verify, you both get a free month of Premium.</CardDescription>
