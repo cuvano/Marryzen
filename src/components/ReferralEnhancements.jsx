@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Share2, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 /**
- * Referral page enhancements — pipeline funnel, native share button, FAQ accordion.
- * Drops in below the existing How It Works section without touching it.
+ * Referral page enhancements â native share CTA, "Your invites" pipeline,
+ * trust line, and FAQ accordion. Styled to match the rest of /referral
+ * (cream card backgrounds, gold border accents).
+ *
+ * Reward economics (v1.1, per user feedback):
+ *   - 1 month free when referee completes Didit verification
+ *   - 1 more month when referee upgrades to a paid plan
+ *   - Cap: 12 free months per rolling year
  *
  * Props: { referralLink, shareCopy }
  */
@@ -22,7 +28,6 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
     let cancelled = false;
     (async () => {
       try {
-        // Pull all referrals by this user, count by status
         const { data, error } = await supabase
           .from('referrals')
           .select('status, reward_claimed, referred_user_id')
@@ -30,7 +35,6 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
         if (cancelled) return;
         if (error || !data) { setLoading(false); return; }
         const invited = data.length;
-        // For verified + paid counts, join against profiles
         const referredIds = data.map(r => r.referred_user_id).filter(Boolean);
         let verified = 0;
         let paid = 0;
@@ -56,7 +60,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
   }, [user?.id]);
 
   const handleNativeShare = async () => {
-    const text = shareCopy || `I've been on Marryzen — it's a dating app where everyone is ID-verified and actually looking for marriage. Thought of you. Here's a month free if you want to check it out: ${referralLink}`;
+    const text = shareCopy || `I've been on Marryzen - a dating app where everyone is ID-verified and actually looking for marriage. Thought of you. Here's a month free if you want to check it out: ${referralLink}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Marryzen', text, url: referralLink });
@@ -69,13 +73,14 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
     }
   };
 
-  const monthsEarned = counts.verified + (counts.paid * 2);
+  // 1 month per verified + 1 month per paid (capped at 12/year)
+  const monthsEarned = Math.min(counts.verified + counts.paid, 12);
   const nextMilestone = monthsEarned < 1 ? 1 : monthsEarned < 6 ? 6 : monthsEarned < 12 ? 12 : null;
 
   const faqs = [
     {
       q: 'How do I know when my friend joins?',
-      a: 'Your pipeline above updates automatically. We will also email you when a friend completes verification or upgrades to Premium so you can celebrate together.',
+      a: 'The "Your invites" pipeline above updates automatically. We will also email you when a friend completes verification or upgrades to Premium so you can celebrate together.',
     },
     {
       q: 'What counts as "verified"?',
@@ -83,7 +88,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
     },
     {
       q: 'When does my free month start?',
-      a: 'The first month is credited as soon as your friend completes verification. Two more months are added when they upgrade to a paid plan. Free months stack on top of any plan you already have.',
+      a: 'The first month is credited as soon as your friend completes verification. One more month is credited if they upgrade to a paid plan. Free months stack on top of any plan you already have.',
     },
     {
       q: 'Is there a limit?',
@@ -96,52 +101,57 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
   ];
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto px-4 pb-12">
-      {/* Native share — primary CTA for mobile users */}
+    <div className="space-y-6 mb-8">
+      {/* Native share â primary CTA, styled to match brand */}
       <Button
         onClick={handleNativeShare}
-        className="w-full bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold py-6 text-base"
+        className="w-full bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold py-6 text-base rounded-lg"
       >
         <Share2 className="w-5 h-5 mr-2" />
         Invite a friend
       </Button>
 
-      {/* Pipeline funnel */}
-      <Card className="bg-white border-[#E6DCD2]">
-        <CardContent className="p-5">
-          <h3 className="font-bold text-[#1F1F1F] mb-4">Your invites</h3>
+      {/* "Your invites" pipeline â matches Card style used elsewhere on the page */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-[#E6B450]"/> Your invites
+          </CardTitle>
+          <CardDescription>Live pipeline â updates when friends sign up, verify, and upgrade.</CardDescription>
+        </CardHeader>
+        <CardContent>
           {loading ? (
             <p className="text-sm text-[#706B67]">Loading...</p>
           ) : counts.invited === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-[#706B67] mb-1">Your invites will appear here.</p>
-              <p className="text-sm text-[#9CA3AF]">Send your first one — it takes 10 seconds.</p>
+            <div className="text-center py-8 bg-[#FAF7F2] rounded-lg border border-dashed border-[#E6DCD2]">
+              <p className="text-[#1F1F1F] font-medium mb-1">Your invites will appear here.</p>
+              <p className="text-sm text-[#706B67]">Send your first one - it takes 10 seconds.</p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1F1F1F]">{counts.invited}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide mt-1">Invited</div>
+                <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
+                  <div className="text-3xl font-bold text-[#1F1F1F]">{counts.invited}</div>
+                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Invited</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1F1F1F]">{counts.verified}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide mt-1">Verified</div>
+                <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
+                  <div className="text-3xl font-bold text-[#1F1F1F]">{counts.verified}</div>
+                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Verified</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1F1F1F]">{counts.paid}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide mt-1">Subscribed</div>
+                <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
+                  <div className="text-3xl font-bold text-[#1F1F1F]">{counts.paid}</div>
+                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Subscribed</div>
                 </div>
               </div>
-              <div className="bg-[#FFFBEB] border border-[#E6B450] rounded-lg p-3">
+              <div className="bg-[#FFFBEB] border border-[#E6B450] rounded-lg p-4">
                 <p className="text-sm font-semibold text-[#1F1F1F]">
                   {monthsEarned > 0
                     ? `${monthsEarned} free month${monthsEarned === 1 ? '' : 's'} of Premium earned.`
-                    : 'No rewards yet — keep sharing.'}
+                    : 'No rewards yet - keep sharing.'}
                 </p>
                 {nextMilestone && (
                   <p className="text-xs text-[#706B67] mt-1">
-                    Next milestone: {nextMilestone} months.
+                    Next milestone: {nextMilestone} month{nextMilestone === 1 ? '' : 's'}.
                   </p>
                 )}
               </div>
@@ -150,22 +160,27 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
         </CardContent>
       </Card>
 
-      {/* Trust line */}
-      <p className="text-xs text-[#706B67] text-center px-4">
-        Your friends will never know who invited them unless you tell them. We never post anywhere on your behalf.
-      </p>
+      {/* Trust line - bigger and more visible per user feedback */}
+      <div className="bg-[#FAF7F2] border border-[#E6DCD2] rounded-lg p-4 flex items-start gap-3">
+        <Lock className="w-5 h-5 text-[#E6B450] flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-[#1F1F1F] leading-relaxed">
+          Your friends will never know who invited them unless you tell them. We never post anywhere on your behalf.
+        </p>
+      </div>
 
-      {/* FAQ accordion */}
-      <Card className="bg-white border-[#E6DCD2]">
-        <CardContent className="p-5">
-          <h3 className="font-bold text-[#1F1F1F] mb-3">Frequently asked questions</h3>
-          <div className="space-y-2">
+      {/* FAQ accordion - matches Card style */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Frequently asked questions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
             {faqs.map((item, i) => (
               <div key={i} className="border-b border-[#E6DCD2] last:border-b-0">
                 <button
                   type="button"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between py-3 text-left"
+                  className="w-full flex items-center justify-between py-4 text-left hover:bg-[#FAF7F2] -mx-2 px-2 rounded transition-colors"
                 >
                   <span className="font-semibold text-sm text-[#1F1F1F] pr-3">{item.q}</span>
                   {openFaq === i ? (
@@ -175,7 +190,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
                   )}
                 </button>
                 {openFaq === i && (
-                  <p className="text-sm text-[#706B67] leading-relaxed pb-3">{item.a}</p>
+                  <p className="text-sm text-[#706B67] leading-relaxed pb-4 px-2">{item.a}</p>
                 )}
               </div>
             ))}
