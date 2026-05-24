@@ -504,9 +504,6 @@ const DashboardPage = () => {
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
               <p className="text-[#706B67] mt-1">A marriage-focused platform for serious relationships.</p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/profile?openVerify=1')} className="bg-white border-[#E6DCD2] text-[#333333] hover:bg-[#FAF7F2] hidden sm:flex">
-              <Settings className="w-4 h-4 mr-2" /> My Profile
-            </Button>
           </div>
 
           {/* Profile Status Banner - Only show once, dismissible */}
