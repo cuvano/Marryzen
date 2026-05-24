@@ -463,11 +463,11 @@ const DiscoveryPage = () => {
     }
 
     // DB Call
-    const { data, error } = await supabase.from('user_interactions').insert({
+    const { data, error } = await supabase.from('user_interactions').upsert({
         user_id: currentUser.id,
         target_user_id: target.id,
         interaction_type: type
-    }).select().maybeSingle();
+    }, { onConflict: 'user_id,target_user_id' }).select().maybeSingle();
 
     if (!error && data) {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
