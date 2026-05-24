@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
-import RequireVerified from '@/components/RequireVerified';
 import FloatingNotificationBadge from '@/components/FloatingNotificationBadge';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
 
@@ -85,14 +84,11 @@ function App() {
                           <Route path="/verify-email" element={<VerifyEmailPage />} />
                           <Route path="/dashboard" element={<DashboardPage />} />
                           <Route path="/profile" element={<ProfilePage />} />
-
-                          <Route element={<RequireVerified />}>
                             <Route path="/discovery" element={<DiscoveryPage />} />
                             <Route path="/matches" element={<MatchesPage />} />
                             <Route path="/chat" element={<ChatPage />} />
                             <Route path="/chat/:conversationId" element={<ChatPage />} />
                             <Route path="/profile/:userId" element={<ProfilePage />} />
-                          </Route>
                           <Route path="/premium" element={<PremiumPage />} />
                           <Route path="/billing" element={<BillingPage />} />
                           <Route path="/referrals" element={<ReferralPage />} />

@@ -562,7 +562,7 @@ const DashboardPage = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Verify your identity to start matching</h3>
                 <p className="text-sm text-[#5e4e1f] leading-relaxed">
-                  Marryzen is the verified marriage app ... every member completes a quick ID check with our partner Didit before they can view profiles or send messages. It takes about 60 seconds.
+                  Marryzen is the verified marriage app. Every member completes a quick ID check before they can view profiles or send messages. It takes about 60 seconds.
                 </p>
                 <Button
                   size="sm"
