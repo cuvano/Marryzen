@@ -1196,8 +1196,8 @@ const DiscoveryPage = () => {
                     {(filters.faith || filters.city || filters.recentActive || filters.verifiedOnly) && (
                       <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
-                          {filters.faith && <Badge variant="secondary" className="bg-white border gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
-                          {filters.city && <Badge variant="secondary" className="bg-white border gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
+                          {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
+                          {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
                           {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
                           {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">ID verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
                           {/* Undo Button - Premium Only */}
