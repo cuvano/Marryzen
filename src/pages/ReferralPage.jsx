@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/components/ui/use-toast';
 import { Copy, Users, CheckCircle, Gift, Loader2, Share2, Check, UserPlus, Shield, Award, MessageSquare, FileText, ExternalLink } from 'lucide-react';
 import Footer from '@/components/Footer';
+import ReferralEnhancements from '@/components/ReferralEnhancements';
 
 const ReferralPage = () => {
   const { toast } = useToast();
@@ -349,6 +350,7 @@ const ReferralPage = () => {
         
         <div className="mt-12"><Footer /></div>
       </div>
+      <ReferralEnhancements referralLink={typeof referralLink !== 'undefined' ? referralLink : (typeof shareUrl !== 'undefined' ? shareUrl : '')} shareCopy={typeof shareMessage !== 'undefined' ? shareMessage : ''} />
     </div>
   );
 };
