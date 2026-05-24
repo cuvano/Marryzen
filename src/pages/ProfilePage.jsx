@@ -232,8 +232,7 @@ const ProfilePage = () => {
           } catch (_) {}
         }
         toast({
-          title: 'Verification unavailable',
-          description: details ? `${msg} ${details}` : msg,
+          title: 'Verification unavailable', description: 'Identity verification is temporarily unavailable. Please try again in a few moments, or contact support if the issue persists.',
           variant: 'destructive',
         });
         return;

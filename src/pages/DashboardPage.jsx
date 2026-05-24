@@ -504,7 +504,7 @@ const DashboardPage = () => {
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
               <p className="text-[#706B67] mt-1">A marriage-focused platform for serious relationships.</p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/profile')} className="bg-white border-[#E6DCD2] text-[#333333] hover:bg-[#FAF7F2] hidden sm:flex">
+            <Button variant="outline" onClick={() => navigate('/profile?openVerify=1')} className="bg-white border-[#E6DCD2] text-[#333333] hover:bg-[#FAF7F2] hidden sm:flex">
               <Settings className="w-4 h-4 mr-2" /> My Profile
             </Button>
           </div>
@@ -528,7 +528,7 @@ const DashboardPage = () => {
                   {(userProfile.status?.toLowerCase()?.trim() === 'pending_review') && (
                     <Button 
                       size="sm" 
-                      onClick={() => navigate('/profile')} 
+                      onClick={() => navigate('/profile?openVerify=1')} 
                       className="mt-3 bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
                     >
                       Complete Profile
@@ -566,7 +566,7 @@ const DashboardPage = () => {
                 </p>
                 <Button
                   size="sm"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate('/profile?openVerify=1')}
                   className="mt-3 bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold"
                 >
                   Verify my identity
