@@ -6,7 +6,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 /**
- * Referral page enhancements â native share CTA, "Your invites" pipeline,
+ * Referral page enhancements - native share CTA, "Your invites" tracker,
  * trust line, and FAQ accordion. Styled to match the rest of /referral
  * (cream card backgrounds, gold border accents).
  *
@@ -80,7 +80,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
   const faqs = [
     {
       q: 'How do I know when my friend joins?',
-      a: 'The "Your invites" pipeline above updates automatically. We will also email you when a friend completes verification or upgrades to Premium so you can celebrate together.',
+      a: 'The "Your invites" tracker above updates automatically. We will also email you when a friend completes verification or upgrades to Premium so you can celebrate together.',
     },
     {
       q: 'What counts as "verified"?',
@@ -102,7 +102,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
 
   return (
     <div className="space-y-6 mb-8">
-      {/* Native share â primary CTA, styled to match brand */}
+      {/* Native share - primary CTA, styled to match brand */}
       <Button
         onClick={handleNativeShare}
         className="w-full bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] font-bold py-6 text-base rounded-lg"
@@ -111,13 +111,13 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
         Invite a friend
       </Button>
 
-      {/* "Your invites" pipeline â matches Card style used elsewhere on the page */}
+      {/* "Your invites" tracker - matches Card style used elsewhere on the page */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5 text-[#E6B450]"/> Your invites
           </CardTitle>
-          <CardDescription>Live pipeline â updates when friends sign up, verify, and upgrade.</CardDescription>
+          <CardDescription>See who signed up, verified, and upgraded - updates automatically.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
