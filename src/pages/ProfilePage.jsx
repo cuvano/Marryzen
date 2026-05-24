@@ -49,6 +49,14 @@ const ProfilePage = () => {
   const [userEmail, setUserEmail] = useState(null);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isSelfieDialogOpen, setIsSelfieDialogOpen] = useState(false);
+
+  // Auto-open identity verification dialog when /profile?openVerify=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openVerify') === '1') {
+      setIsSelfieDialogOpen(true);
+    }
+  }, []);
   const [selfieImage, setSelfieImage] = useState(null);
   const [uploadingSelfie, setUploadingSelfie] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
