@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award, Shield, Lock } from 'lucide-react';
+import { LogOut, User, Settings, Heart, Menu, X, LayoutDashboard, Search, Gift, Bell, MessageSquare, UserPlus, CheckCircle, XCircle, Award, Shield, Lock, Crown } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import {
   DropdownMenu,
@@ -190,7 +190,7 @@ const Header = () => {
           {user ? (
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-              <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
+              <NavItem label="My Matches" path="/matches" icon={Heart} active={location.pathname === '/matches'} />
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               
@@ -352,9 +352,10 @@ const Header = () => {
           {user ? (
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
-              <NavItem label="My Matches" path="/matches" icon={Search} active={location.pathname === '/matches'} />
+              <NavItem label="My Matches" path="/matches" icon={Heart} active={location.pathname === '/matches'} />
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
+              <NavItem label="Premium" path="/premium" icon={Crown} active={location.pathname === '/premium'} />
               <NavItem 
                 label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
                 path="/notifications" 
