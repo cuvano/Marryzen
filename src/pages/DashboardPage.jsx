@@ -507,7 +507,7 @@ const DashboardPage = () => {
           </div>
 
           {/* Profile Status Banner - Only show once, dismissible */}
-          {userProfile && statusConfig && !statusBannerDismissed && (
+          {userProfile && statusConfig && userProfile.status !== 'approved' && !statusBannerDismissed && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
