@@ -735,12 +735,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   )}
-                  {referralInfo && (
-                    <div className="border-t border-[#E8E6E4] pt-3">
-                      <p className="text-xs text-[#666]">Referred by <strong className="text-[#111]">{referralInfo.referrerName}</strong></p>
-                      <p className="text-xs text-[#666] mt-0.5 font-mono">{referralInfo.referralCode}</p>
-                    </div>
-                  )}
+                  {/* Referred by row removed - lives on /referral page only */}
                 </div>
               </section>
             )}
