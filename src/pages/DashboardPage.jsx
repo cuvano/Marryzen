@@ -3,11 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, 
-  AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders,
-  Camera, FileText, Clock, ArrowRight, X
-} from 'lucide-react';
+import { Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders, Camera, FileText, Clock, ArrowRight, X, Gift, ShieldAlert } from 'lucide-react';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -32,6 +28,8 @@ const DashboardPage = () => {
   const [statusBannerDismissed, setStatusBannerDismissed] = useState(false);
   const [showPromptsEditor, setShowPromptsEditor] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [unclaimedCredits, setUnclaimedCredits] = useState([]);
+  const [claimingCredit, setClaimingCredit] = useState(false);
   
   const [stats, setStats] = useState({
     potentialMatches: 0,
@@ -66,6 +64,16 @@ const DashboardPage = () => {
 
         // Check email verification status
         setEmailVerified(user.email_confirmed_at !== null);
+        try {
+          const { data: credits } = await supabase
+            .from('premium_credits')
+            .select('id, days, source, earned_at, expires_at')
+            .eq('user_id', authUser.id)
+            .is('claimed_at', null)
+            .gt('expires_at', new Date().toISOString())
+            .order('earned_at', { ascending: false });
+          setUnclaimedCredits(credits || []);
+        } catch (e) { console.error('Failed to load credits:', e); }
 
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
@@ -494,6 +502,28 @@ const DashboardPage = () => {
     { icon: Crown, title: 'Upgrade for Serious Features', description: 'Unlock advanced filters', action: () => navigate('/premium'), bg: 'bg-[#FFFBEB]', iconColor: 'text-[#F59E0B]', disabled: false }
   ];
 
+  const handleClaimCredit = async (creditId) => {
+    if (claimingCredit) return;
+    setClaimingCredit(true);
+    try {
+      const { data, error } = await supabase.rpc('claim_premium_credit', { p_credit_id: creditId });
+      if (error) throw error;
+      if (data && data.ok) {
+        const newExpiry = new Date(data.new_expiry).toLocaleDateString();
+        toast({ title: 'Free month activated', description: 'Your Premium runs through ' + newExpiry + '.' });
+        setUnclaimedCredits(prev => prev.filter(c => c.id !== creditId));
+        if (userProfile) setUserProfile({ ...userProfile, is_premium: true, premium_expires_at: data.new_expiry });
+      } else {
+        toast({ title: 'Could not claim credit', description: (data && data.error) || 'Unknown error', variant: 'destructive' });
+      }
+    } catch (e) {
+      console.error('Claim failed:', e);
+      toast({ title: 'Could not claim credit', description: e.message || 'Try again', variant: 'destructive' });
+    } finally {
+      setClaimingCredit(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 bg-[#FAF7F2]">
       <div className="max-w-6xl mx-auto">
@@ -548,7 +578,31 @@ const DashboardPage = () => {
           )}
 
           {/* ID Verification Banner ... every member must be Didit-verified to start matching */}
-          {userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && (
+          {/* Premium Credit Banner */}
+          {unclaimedCredits && unclaimedCredits.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="bg-gradient-to-r from-[#FFFBEB] to-[#FFF7DD] border border-[#E6B450] rounded-xl p-4 mb-4 flex items-start gap-3">
+              <Gift className="w-6 h-6 text-[#8a6c1e] mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-bold text-[#1F1F1F] mb-1">{unclaimedCredits.length === 1 ? '1 free month of Premium is ready' : unclaimedCredits.length + ' free months of Premium ready'}</h3>
+                <p className="text-sm text-[#706B67] mb-3">Earned from your referrals. Activate when you're ready - the 30-day clock starts the moment you claim.</p>
+                <button onClick={() => handleClaimCredit(unclaimedCredits[0].id)} disabled={claimingCredit} className="bg-[#E6B450] hover:bg-[#D0A23D] disabled:opacity-50 text-[#1F1F1F] font-semibold px-4 py-2 rounded-lg text-sm transition-colors">{claimingCredit ? 'Activating...' : 'Activate 1 month'}</button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Name mismatch banner */}
+          {userProfile && userProfile.identity_verification_status === 'name_mismatch' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-4 mb-4 flex items-start gap-3">
+              <ShieldAlert className="w-6 h-6 text-[#B91C1C] mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-bold text-[#7F1D1D] mb-1">ID name doesn't match your profile</h3>
+                <p className="text-sm text-[#991B1B] mb-3">Your ID verified, but the name on your document {userProfile.id_name_on_record ? '(' + userProfile.id_name_on_record + ')' : ''} doesn't match your profile. Update your profile name to your legal first name (last initial is fine) and your verification will complete automatically.</p>
+                <button onClick={() => navigate('/profile')} className="bg-[#B91C1C] hover:bg-[#991B1B] text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors">Update profile name</button>
+              </div>
+            </motion.div>
+          )}
+
+          {userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && userProfile.identity_verification_status !== 'name_mismatch' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
