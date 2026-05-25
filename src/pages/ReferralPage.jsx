@@ -304,10 +304,14 @@ const ReferralPage = () => {
                     {referrals.map((ref) => (
                       <tr key={ref.id} className="bg-white border-b hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-900">
-                          {ref.referred?.full_name || 'Pending User'}
-                          {ref.referred_user_id && (
-                            <span className="text-xs text-gray-500 block mt-1">ID: {ref.referred_user_id.substring(0, 8)}...</span>
-                          )}
+                          {(() => {
+                            const fn = ref.referred?.full_name;
+                            if (!fn) return 'Pending User';
+                            const parts = fn.trim().split(/\s+/);
+                            if (parts.length === 1) return parts[0];
+                            const last = parts[parts.length - 1];
+                            return parts[0] + ' ' + (last[0] || '') + '.';
+                          })()}
                         </td>
                         <td className="px-4 py-3">{new Date(ref.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-xs text-gray-500">
