@@ -91,13 +91,15 @@ const Step1 = ({
             id="name"
             value={formData.name}
             onChange={(e) => updateFormData('name', e.target.value)}
+            aria-describedby={errors.name ? 'name-error' : 'name-helper'}
+            aria-invalid={!!errors.name}
             className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 ${errors.name ? 'border-red-500 focus:border-red-500' : ''}`}
             placeholder="Enter your full name"
           />
           {errors.name ? (
-            <p className="text-red-500 text-sm">{errors.name}</p>
+            <p id="name-error" className="text-red-500 text-sm">{errors.name}</p>
           ) : (
-            <p className="text-[#706B67] text-xs mt-1 font-medium">Enter your name exactly as it appears on your government ID — we use this to verify your identity.</p>
+            <p id="name-helper" className="text-[#706B67] text-xs mt-1 font-medium">Enter your name exactly as it appears on your government ID — we use this to verify your identity.</p>
           )}
         </div>
 
@@ -108,11 +110,13 @@ const Step1 = ({
             type="email"
             value={formData.email}
             onChange={(e) => updateFormData('email', e.target.value)}
+            aria-describedby={errors.email ? 'email-error' : 'email-helper'}
+            aria-invalid={!!errors.email}
             className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
             placeholder="your@email.com"
           />
           {errors.email ? (
-            <div className="flex flex-col gap-1">
+            <div id="email-error" className="flex flex-col gap-1">
               <p className="text-red-500 text-sm">{errors.email}</p>
               {errors.email.includes("already registered") && (
                 <button onClick={() => navigate('/login')} className="text-[#C85A72] text-sm font-bold hover:underline self-start">
@@ -121,7 +125,7 @@ const Step1 = ({
               )}
             </div>
           ) : (
-            <p className="text-[#706B67] text-xs mt-1 font-medium">We'll never share your email with other members.</p>
+            <p id="email-helper" className="text-[#706B67] text-xs mt-1 font-medium">We'll never share your email with other members.</p>
           )}
         </div>
 
