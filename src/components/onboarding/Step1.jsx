@@ -61,7 +61,7 @@ const Step1 = ({
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+      age--;
     }
     setAgeError(age < 18);
   };
@@ -83,7 +83,7 @@ const Step1 = ({
         <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Tell Us About Yourself</h2>
         <p className="text-[#706B67] text-lg font-medium">We'll start with a few basics to find matches that truly fit you.</p>
       </div>
-      
+
       <div className="grid gap-6">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-[#333333] font-bold text-base">Full Name</Label>
@@ -94,9 +94,13 @@ const Step1 = ({
             className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 ${errors.name ? 'border-red-500 focus:border-red-500' : ''}`}
             placeholder="Enter your full name"
           />
-          {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+          {errors.name ? (
+            <p className="text-red-500 text-sm">{errors.name}</p>
+          ) : (
+            <p className="text-[#706B67] text-xs mt-1 font-medium">Enter your name exactly as it appears on your government ID — we use this to verify your identity.</p>
+          )}
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="email" className="text-[#333333] font-bold text-base">Email</Label>
           <Input
@@ -108,69 +112,69 @@ const Step1 = ({
             placeholder="your@email.com"
           />
           {errors.email ? (
-              <div className="flex flex-col gap-1">
-                  <p className="text-red-500 text-sm">{errors.email}</p>
-                  {errors.email.includes("already registered") && (
-                      <button onClick={() => navigate('/login')} className="text-[#C85A72] text-sm font-bold hover:underline self-start">
-                          Go to Login
-                      </button>
-                  )}
-              </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-red-500 text-sm">{errors.email}</p>
+              {errors.email.includes("already registered") && (
+                <button onClick={() => navigate('/login')} className="text-[#C85A72] text-sm font-bold hover:underline self-start">
+                  Go to Login
+                </button>
+              )}
+            </div>
           ) : (
             <p className="text-[#706B67] text-xs mt-1 font-medium">We'll never share your email with other members.</p>
           )}
         </div>
-        
+
         {/* Create password: only for brand-new sign-up (see Account settings to change an existing password) */}
         {showPasswordFields && (
           <>
             <div className="space-y-2">
-                <Label htmlFor="password" className={`text-[#333333] font-bold text-base`}>Password</Label>
-                <div className="relative">
-                    <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password || ''}
-                        onChange={(e) => updateFormData('password', e.target.value)}
-                        className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
-                        placeholder="Create a password"
-                    />
-                     <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
-                    >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-                {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-                {!errors.password && (
-                     <p className="text-[#706B67] text-xs font-medium">
-                        Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
-                     </p>
-                )}
+              <Label htmlFor="password" className={`text-[#333333] font-bold text-base`}>Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password || ''}
+                  onChange={(e) => updateFormData('password', e.target.value)}
+                  className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
+                  placeholder="Create a password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+              {!errors.password && (
+                <p className="text-[#706B67] text-xs font-medium">
+                  Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-                 <Label htmlFor="confirmPassword" className={`text-[#333333] font-bold text-base`}>Confirm Password</Label>
-                 <div className="relative">
-                    <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={formData.confirmPassword || ''}
-                        onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                        className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
-                        placeholder="Confirm password"
-                    />
-                     <button 
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
-                    >
-                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-                 {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
+              <Label htmlFor="confirmPassword" className={`text-[#333333] font-bold text-base`}>Confirm Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword || ''}
+                  onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+                  className={`bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                  placeholder="Confirm password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
             </div>
           </>
         )}
@@ -201,78 +205,78 @@ const Step1 = ({
             </p>
           )}
         </div>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-             <div className="space-y-2">
-              <Label htmlFor="locationCountry" className="text-[#333333] font-bold text-base">Country of Residence</Label>
-              <select
-                id="locationCountry"
-                value={formData.locationCountry}
-                onChange={(e) => updateFormData('locationCountry', e.target.value)}
-                className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
-              >
-                <option value="">Select Country...</option>
-                {COUNTRIES.map(country => (
-                    <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="countryOfOrigin" className="text-[#333333] font-bold text-base">Country of Origin</Label>
-              <select
-                id="countryOfOrigin"
-                value={formData.countryOfOrigin || ''}
-                onChange={(e) => updateFormData('countryOfOrigin', e.target.value)}
-                className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
-              >
-                <option value="">Select Country...</option>
-                {COUNTRIES.map(country => (
-                    <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
-            </div>
 
-            {formData.locationCountry === 'United States' ? (
-                 <div className="space-y-2">
-                  <Label htmlFor="locationState" className="text-[#333333] font-bold text-base">State</Label>
-                  <select
-                    id="locationState"
-                    value={formData.locationState}
-                    onChange={(e) => updateFormData('locationState', e.target.value)}
-                    className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
-                  >
-                    <option value="">Select State...</option>
-                    {US_STATES.map(state => (
-                        <option key={state} value={state}>{state}</option>
-                    ))}
-                  </select>
-                </div>
-            ) : (
-                 <div className="space-y-2">
-                    <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
-                    <Input
-                        id="locationCity"
-                        value={formData.locationCity}
-                        onChange={(e) => updateFormData('locationCity', e.target.value)}
-                        className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
-                        placeholder="Enter City"
-                    />
-                </div>
-            )}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="locationCountry" className="text-[#333333] font-bold text-base">Country of Residence</Label>
+            <select
+              id="locationCountry"
+              value={formData.locationCountry}
+              onChange={(e) => updateFormData('locationCountry', e.target.value)}
+              className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
+            >
+              <option value="">Select Country...</option>
+              {COUNTRIES.map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="countryOfOrigin" className="text-[#333333] font-bold text-base">Country of Origin</Label>
+            <select
+              id="countryOfOrigin"
+              value={formData.countryOfOrigin || ''}
+              onChange={(e) => updateFormData('countryOfOrigin', e.target.value)}
+              className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
+            >
+              <option value="">Select Country...</option>
+              {COUNTRIES.map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+          </div>
+
+          {formData.locationCountry === 'United States' ? (
+            <div className="space-y-2">
+              <Label htmlFor="locationState" className="text-[#333333] font-bold text-base">State</Label>
+              <select
+                id="locationState"
+                value={formData.locationState}
+                onChange={(e) => updateFormData('locationState', e.target.value)}
+                className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
+              >
+                <option value="">Select State...</option>
+                {US_STATES.map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
+              <Input
+                id="locationCity"
+                value={formData.locationCity}
+                onChange={(e) => updateFormData('locationCity', e.target.value)}
+                className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
+                placeholder="Enter City"
+              />
+            </div>
+          )}
         </div>
 
         {formData.locationCountry === 'United States' && (
-             <div className="space-y-2">
-                <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
-                <Input
-                    id="locationCity"
-                    value={formData.locationCity}
-                    onChange={(e) => updateFormData('locationCity', e.target.value)}
-                    className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
-                    placeholder="Enter City"
-                />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
+            <Input
+              id="locationCity"
+              value={formData.locationCity}
+              onChange={(e) => updateFormData('locationCity', e.target.value)}
+              className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
+              placeholder="Enter City"
+            />
+          </div>
         )}
 
         <div className="space-y-2">
@@ -302,9 +306,9 @@ const Step1 = ({
             </button>
           </div>
           {formData.identifyAs && (
-             <p className="text-xs text-[#706B67] mt-1 font-medium">
-                You will be matched with: <span className="font-bold">{formData.identifyAs === 'Man' ? 'Women' : 'Men'}</span>
-             </p>
+            <p className="text-xs text-[#706B67] mt-1 font-medium">
+              You will be matched with: <span className="font-bold">{formData.identifyAs === 'Man' ? 'Women' : 'Men'}</span>
+            </p>
           )}
         </div>
 
@@ -342,7 +346,7 @@ const Step1 = ({
             <p className="text-red-600 text-sm font-medium">{errors.captcha}</p>
           </div>
         )}
-        
+
         {/* Privacy/security notice - only show when reCAPTCHA is actually enabled */}
         {isRecaptchaEnabled && (
           <div className="text-xs text-[#706B67] text-center pt-2 pb-2 flex items-center justify-center gap-1">
