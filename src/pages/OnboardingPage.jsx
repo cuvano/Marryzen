@@ -358,6 +358,7 @@ const OnboardingPage = () => {
                 options: {
                   data: {
                     recaptcha_token: recaptchaTokenValue,
+                    referral_code: referralCode || undefined,
                   }
                 }
               });
