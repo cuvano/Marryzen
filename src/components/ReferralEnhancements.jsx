@@ -15,11 +15,19 @@ import { useAuth } from '@/contexts/SupabaseAuthContext';
  *   - 1 more month when referee upgrades to a paid plan
  *   - Cap: 12 free months per rolling year
  *
+ * Counter accuracy (v1.2):
+ *   - "Subscribed" only counts referees with a real stripe_customer_id (paid checkout),
+ *     not those who only activated a free credit.
+ *   - monthsEarned is derived from the premium_credits table (the source of truth),
+ *     not from referee state which can lie (verified-but-credit-not-granted,
+ *     free-credit activation flipping is_premium, etc.).
+ *
  * Props: { referralLink, shareCopy }
  */
 const ReferralEnhancements = ({ referralLink, shareCopy }) => {
   const { user } = useAuth();
   const [counts, setCounts] = useState({ invited: 0, verified: 0, paid: 0 });
+  const [monthsEarned, setMonthsEarned] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -28,12 +36,21 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from('referrals')
-          .select('status, reward_claimed, referred_user_id')
-          .eq('referrer_id', user.id);
+        // Fetch referrals + own referral credits in parallel
+        const [refRes, credRes] = await Promise.all([
+          supabase
+            .from('referrals')
+            .select('status, reward_claimed, referred_user_id')
+            .eq('referrer_id', user.id),
+          supabase
+            .from('premium_credits')
+            .select('days')
+            .eq('user_id', user.id)
+            .in('source', ['referral_verify', 'referral_subscribe', 'referral_verify_after_rename']),
+        ]);
         if (cancelled) return;
-        if (error || !data) { setLoading(false); return; }
+
+        const data = refRes.data || [];
         const invited = data.length;
         const referredIds = data.map(r => r.referred_user_id).filter(Boolean);
         let verified = 0;
@@ -41,15 +58,23 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
         if (referredIds.length) {
           const { data: profs } = await supabase
             .from('profiles')
-            .select('id, is_verified, is_premium')
+            .select('id, is_verified, is_premium, stripe_customer_id')
             .in('id', referredIds);
           if (profs) {
             verified = profs.filter(p => p.is_verified).length;
-            paid = profs.filter(p => p.is_premium).length;
+            // "Subscribed" = real Stripe checkout only (free-credit activation alone doesn't count)
+            paid = profs.filter(p => p.is_premium && p.stripe_customer_id).length;
           }
         }
+
+        // monthsEarned = sum of actual referral credits in premium_credits, /30, capped at 12
+        const credits = credRes.data || [];
+        const totalDays = credits.reduce((s, c) => s + (c.days || 0), 0);
+        const months = Math.min(Math.round(totalDays / 30), 12);
+
         if (!cancelled) {
           setCounts({ invited, verified, paid });
+          setMonthsEarned(months);
           setLoading(false);
         }
       } catch (_) {
@@ -73,8 +98,6 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
     }
   };
 
-  // 1 month per verified + 1 month per paid (capped at 12/year)
-  const monthsEarned = Math.min(counts.verified + counts.paid, 12);
   const nextMilestone = monthsEarned < 1 ? 1 : monthsEarned < 6 ? 6 : monthsEarned < 12 ? 12 : null;
 
   const faqs = [
@@ -132,15 +155,15 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.invited}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Invited</div>
+                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Invited</div>
                 </div>
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.verified}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Verified</div>
+                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Verified</div>
                 </div>
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.paid}</div>
-                  <div className="text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Subscribed</div>
+                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Subscribed</div>
                 </div>
               </div>
               <div className="bg-[#FFFBEB] border border-[#E6B450] rounded-lg p-4">
