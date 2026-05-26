@@ -12,6 +12,7 @@ const SOURCE_LABELS = {
   referral_verify: 'Referral - friend verified',
   referral_subscribe: 'Referral - friend subscribed',
   referral_verify_after_rename: 'Referral - friend verified',
+  referee_signup_bonus: 'Welcome bonus - joined via referral',
 };
 
 // Reviewer fix #2: map raw RPC error codes to human-readable messages
