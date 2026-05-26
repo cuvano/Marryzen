@@ -27,6 +27,7 @@ const VerificationQueue = () => {
   const navigate = useNavigate();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [decidingId, setDecidingId] = useState(null);
 
   const fetchQueue = async () => {
     const { data, error } = await supabase
@@ -48,24 +49,31 @@ const VerificationQueue = () => {
   }, []);
 
   const handleDecision = async (userId, decision) => {
+    // Guard against double-click while a decision is in flight (any row)
+    if (decidingId) return;
+    setDecidingId(userId);
     const updates = decision === 'APPROVED'
       ? { identity_verification_status: 'verified', is_verified: true }
       : { identity_verification_status: 'rejected' };
 
-    const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+    try {
+      const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
 
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-      return;
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      toast({
+        title: decision === 'APPROVED' ? 'Verification approved' : 'Verification rejected',
+        description: decision === 'APPROVED' ? 'User is now verified.' : 'User has been notified.',
+        variant: decision === 'APPROVED' ? 'default' : 'destructive'
+      });
+
+      setQueue((prev) => prev.filter((p) => p.id !== userId));
+    } finally {
+      setDecidingId(null);
     }
-
-    toast({
-      title: decision === 'APPROVED' ? 'Verification approved' : 'Verification rejected',
-      description: decision === 'APPROVED' ? 'User is now verified.' : 'User has been notified.',
-      variant: decision === 'APPROVED' ? 'default' : 'destructive'
-    });
-
-    setQueue((prev) => prev.filter((p) => p.id !== userId));
   };
 
   if (loading) {
@@ -180,11 +188,20 @@ const VerificationQueue = () => {
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-950/50 border-t border-slate-800 py-3 px-4 flex justify-end gap-3">
-                <Button variant="destructive" onClick={() => handleDecision(profile.id, 'REJECTED')}>
-                  <X className="w-4 h-4 mr-2" /> Reject
+                <Button
+                  variant="destructive"
+                  disabled={decidingId !== null}
+                  onClick={() => handleDecision(profile.id, 'REJECTED')}
+                  className="disabled:opacity-60"
+                >
+                  <X className="w-4 h-4 mr-2" /> {decidingId === profile.id ? 'Rejecting…' : 'Reject'}
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleDecision(profile.id, 'APPROVED')}>
-                  <Check className="w-4 h-4 mr-2" /> Approve verification
+                <Button
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-60"
+                  disabled={decidingId !== null}
+                  onClick={() => handleDecision(profile.id, 'APPROVED')}
+                >
+                  <Check className="w-4 h-4 mr-2" /> {decidingId === profile.id ? 'Approving…' : 'Approve verification'}
                 </Button>
               </CardFooter>
             </Card>
