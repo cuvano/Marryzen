@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: "ADMIN_REPORT_EMAIL has no valid recipients" }, { status: 500, headers: CORS });
   }
 
-  const safetyPanelUrl = "https://www.marryzen.com/admin/safety";
+  const safetyPanelUrl = "https://www.marryzen.com/admin/reports";
   const subject = "[Marryzen Safety] New report: " + category;
   const html =
     "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;\">" +
