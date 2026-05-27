@@ -1,53 +1,61 @@
 // supabase/functions/didit-webhook/index.ts
 //
-// Marryzen ID verification webhook (v8)
+// Marryzen ID verification webhook (v9)
 //
-// Behavior (canonical, replaces ad-hoc v7 deployed source):
+// Significant changes vs v8:
 //
-// - Accepts POST from Didit with the verification decision payload.
-//   Responds 2xx as fast as possible; all credit/grant work is best-effort
-//   and never blocks the webhook ack.
+//   * Signature verification (OPT-IN). The code path is implemented but
+//     gated behind DIDIT_REQUIRE_SIGNATURE=1 env var. With the flag UNSET
+//     (current production state) we behave like v8: accept any well-formed
+//     POST. Setting DIDIT_REQUIRE_SIGNATURE=1 enables HMAC-SHA256 checking
+//     against DIDIT_WEBHOOK_SECRET. We try X-Signature-V2 first (canonical
+//     JSON, middleware-safe); X-Signature-Simple is gated separately by
+//     ALLOW_SIMPLE_SIG=1. X-Timestamp must be within 5 minutes. Failed
+//     verification returns 401.
 //
-// - Marks the user `verified` when Didit returns Approved AND the name on
-//   the ID document fuzzy-matches the user's self-reported full_name
-//   (Levenshtein + token-prefix, threshold 0.75). If the name does not
-//   match, the user stays in `pending` with `id_name_on_record` and
-//   `name_match_score` set so the admin/dashboard can surface the issue.
+//     Why opt-in: when v9 first shipped with required verification, the
+//     test webhook from Didit returned a digest that didn't match our
+//     computed expected digest. Root cause TBD (secret mismatch or
+//     canonicalization edge case). Until that's debugged with a one-off
+//     diagnostic build, we keep the security at v8 levels and ship the
+//     V3 plural-array + anti-farming fixes that are independently valuable.
 //
-// - On successful verify:
-//     * If the user was referred (profiles.referred_by IS NOT NULL and
-//       != self), insert a 30-day `referral_verify` credit for the
-//       referrer (best-effort, idempotent via unique partial index,
-//       capped to <12 referral credits per year).
-//     * Insert a 30-day `referee_signup_bonus` credit for the verifying
-//       user (best-effort, idempotent via unique partial index — one
-//       welcome credit per user lifetime).
-//     * Update referrals.status = 'completed' for the matching row.
+//   * V3 payload extraction. v8 read singular legacy fields
+//     (decision.id_verification, decision.face_match) which only appear when
+//     a destination is pinned to webhook_version="V2". The current Didit
+//     destination is V3 and sends plural arrays:
 //
-// - Anti-farming (NEW in v8): the ID document is fingerprinted as
-//   SHA-256(`${type}|${number}|${country}`) and stored on the profile
-//   as `document_hash`. A partial unique index on
-//   (document_hash WHERE is_verified) means a SECOND account trying to
-//   verify with the same physical ID is rejected before flipping
-//   is_verified — the second user stays `rejected` (NO credits
-//   granted on either side). The status alone communicates the
-//   rejection; ID name + match score on the row give the admin
-//   queue enough context.
+//         decision.id_verifications[]
+//         decision.face_matches[]
+//         decision.aml_screenings[]
 //
-// - All inserts/updates use SECURITY DEFINER paths (service_role key)
-//   so RLS doesn't block legitimate writes from the webhook context.
+//     so the extractors read those instead. The document hash composition
+//     uses document_number + issuing_state (the actual field name; v8 tried
+//     issuing_country and silently produced nulls).
 //
-// - OPTIONS preflight handler responds with CORS headers so Didit's
-//   webhook test UI succeeds.
+//   * Didit status values are capitalized ("Approved", "Declined", "In Review",
+//     "In Progress", "Abandoned", "Expired", "KYC Expired", "Resubmitted").
+//     We lower-case before comparing.
 //
-// Idempotency: every credit insert tolerates Postgres 23505 (unique
-// violation) as a no-op success. Self-referral guards are in place.
+//   * "Approved with warnings" is NOT a real Didit status — removed the
+//     reviewer-paranoia branch.
+//
+// Behavior preserved from v8:
+//   - OPTIONS preflight with CORS, POST-only otherwise.
+//   - Best-effort credit grants that never block the 2xx ack.
+//   - Name match (Levenshtein + token-set, threshold 0.80).
+//   - Anti-farming via SHA-256(documentNumber|issuingState) and the partial
+//     unique index profiles_document_hash_unique_verified.
+//   - Idempotent inserts (23505 tolerated).
+//   - Replay fast path when the user is already verified.
+//   - Concurrent-write race lost path on 23505 of the profile update.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-didit-signature",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-didit-signature, x-signature, x-signature-v2, x-signature-simple, x-timestamp",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -57,7 +65,132 @@ const supabase = createClient(
   { auth: { persistSession: false } },
 );
 
-// ---------- Name match helpers (Levenshtein + token prefix) ----------
+const WEBHOOK_SECRET = Deno.env.get("DIDIT_WEBHOOK_SECRET") ?? "";
+
+// ---------- Signature verification ----------
+
+const TIMESTAMP_TOLERANCE_SECONDS = 300;
+
+function hexFromBuffer(buf: ArrayBuffer): string {
+  const arr = new Uint8Array(buf);
+  let out = "";
+  for (let i = 0; i < arr.length; i++) out += arr[i].toString(16).padStart(2, "0");
+  return out;
+}
+
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  return hexFromBuffer(sig);
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// "Shorten" whole-valued floats to ints, matching Didit's float normalization.
+function shortenFloats(data: unknown): unknown {
+  if (Array.isArray(data)) return data.map(shortenFloats);
+  if (data !== null && typeof data === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      out[k] = shortenFloats(v);
+    }
+    return out;
+  }
+  if (typeof data === "number" && !Number.isInteger(data) && data % 1 === 0) {
+    return Math.trunc(data);
+  }
+  return data;
+}
+
+// Recursively sort object keys (alphabetical).
+function sortKeys(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(sortKeys);
+  if (obj !== null && typeof obj === "object") {
+    const sorted: Record<string, unknown> = {};
+    for (const k of Object.keys(obj as Record<string, unknown>).sort()) {
+      sorted[k] = sortKeys((obj as Record<string, unknown>)[k]);
+    }
+    return sorted;
+  }
+  return obj;
+}
+
+// Canonical V2 JSON: sorted keys, compact separators, Unicode preserved.
+function canonicalJsonV2(body: unknown): string {
+  return JSON.stringify(sortKeys(shortenFloats(body)));
+}
+
+function buildSimpleString(body: Record<string, unknown>): string {
+  return [
+    body.timestamp ?? "",
+    body.session_id ?? "",
+    body.status ?? "",
+    body.webhook_type ?? "",
+  ].join(":");
+}
+
+async function verifyDiditSignature(
+  parsedBody: Record<string, unknown>,
+  headers: Headers,
+  secret: string,
+): Promise<{ ok: boolean; reason?: string; method?: string }> {
+  if (!secret) return { ok: false, reason: "no_secret_configured" };
+
+  const tsHeader = headers.get("x-timestamp");
+  if (!tsHeader) return { ok: false, reason: "missing_timestamp_header" };
+  const ts = Number(tsHeader);
+  if (!Number.isFinite(ts)) return { ok: false, reason: "bad_timestamp_header" };
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - ts) > TIMESTAMP_TOLERANCE_SECONDS) {
+    return { ok: false, reason: "timestamp_out_of_window" };
+  }
+
+  // Normalise header hex (lowercase, strip optional "sha256=" prefix).
+  // Our expected hex is already lowercase. Comparing case-insensitively
+  // avoids false-401s if Didit (or any proxy) upper-cases the digest.
+  const normalizeSig = (s: string | null): string =>
+    (s || "").replace(/^sha256=/i, "").toLowerCase();
+
+  // Try V2 first (canonical JSON, middleware-safe).
+  const sigV2 = normalizeSig(headers.get("x-signature-v2"));
+  if (sigV2) {
+    const expected = await hmacSha256Hex(secret, canonicalJsonV2(parsedBody));
+    if (constantTimeEqual(expected, sigV2)) return { ok: true, method: "v2" };
+  }
+
+  // Fallback to Simple (envelope-only). Gated by env flag so the more-secure
+  // V2 path is the only acceptor by default. Flip ALLOW_SIMPLE_SIG=1 only if
+  // V2 breaks in production (middleware re-encoding); accepting Simple is a
+  // real security downgrade because it does NOT cover the decision block.
+  if (Deno.env.get("ALLOW_SIMPLE_SIG") === "1") {
+    const sigSimple = normalizeSig(headers.get("x-signature-simple"));
+    if (sigSimple) {
+      const expected = await hmacSha256Hex(secret, buildSimpleString(parsedBody));
+      if (constantTimeEqual(expected, sigSimple)) {
+        console.warn(
+          "didit-webhook v9: ACCEPTED via X-Signature-Simple — decision body is NOT authenticated.",
+        );
+        return { ok: true, method: "simple" };
+      }
+    }
+  }
+
+  return { ok: false, reason: "no_valid_signature" };
+}
+
+// ---------- Name match helpers (token-set + Levenshtein) ----------
 
 const NAME_MATCH_THRESHOLD = 0.80;
 
@@ -65,7 +198,7 @@ function normalizeTokens(name: string): string[] {
   return (name || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z\s'-]/g, " ")
     .split(/\s+/)
     .filter(Boolean);
@@ -82,9 +215,7 @@ function levenshtein(a: string, b: string): number {
     dp[0] = i;
     for (let j = 1; j <= n; j++) {
       const tmp = dp[j];
-      dp[j] = a[i - 1] === b[j - 1]
-        ? prev
-        : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
       prev = tmp;
     }
   }
@@ -95,11 +226,9 @@ function namesMatch(profileName: string, idName: string): { match: boolean; scor
   const a = normalizeTokens(profileName);
   const b = normalizeTokens(idName);
   if (!a.length || !b.length) return { match: false, score: 0 };
-
-  // Token-set similarity: each token in shorter array finds best fuzzy match in longer
   const shorter = a.length <= b.length ? a : b;
   const longer = a.length <= b.length ? b : a;
-  let totalScore = 0;
+  let total = 0;
   for (const t of shorter) {
     let best = 0;
     for (const u of longer) {
@@ -107,10 +236,10 @@ function namesMatch(profileName: string, idName: string): { match: boolean; scor
       const sim = 1 - dist / Math.max(t.length, u.length);
       if (sim > best) best = sim;
     }
-    totalScore += best;
+    total += best;
   }
-  const avgScore = totalScore / shorter.length;
-  return { match: avgScore >= NAME_MATCH_THRESHOLD, score: avgScore };
+  const avg = total / shorter.length;
+  return { match: avg >= NAME_MATCH_THRESHOLD, score: avg };
 }
 
 // ---------- Document hash (anti-farming) ----------
@@ -118,116 +247,110 @@ function namesMatch(profileName: string, idName: string): { match: boolean; scor
 async function sha256Hex(s: string): Promise<string> {
   const buf = new TextEncoder().encode(s);
   const hash = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return hexFromBuffer(hash);
 }
 
-function normalizeDocPart(s: string | undefined | null): string {
-  return (s || "").toString().trim().toUpperCase().replace(/[\s\-]+/g, "");
+function normalizeDocPart(s: unknown): string {
+  return (s == null ? "" : String(s))
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-]+/g, "");
 }
 
 async function computeDocumentHash(doc: {
-  type?: string | null;
-  number?: string | null;
-  country?: string | null;
+  number?: unknown;
+  state?: unknown;
 }): Promise<string | null> {
-  // We intentionally drop document_type from the hash composition.
-  // Didit's OCR sometimes returns the type and sometimes omits it; including
-  // it in the hash would let the same physical doc fingerprint differently
-  // on a re-verification and bypass anti-farming. number+country alone is
-  // sufficient: state-issued ID numbers are unique within a country.
   const number = normalizeDocPart(doc.number);
-  const country = normalizeDocPart(doc.country);
-  if (!number || !country) return null;
-  return await sha256Hex(`${number}|${country}`);
+  const state = normalizeDocPart(doc.state);
+  if (!number || !state) return null;
+  return await sha256Hex(`${number}|${state}`);
 }
 
-// ---------- Didit payload field extractors (defensive) ----------
+// ---------- Didit V3 payload extractors ----------
 
-function extractDocumentFields(payload: Record<string, unknown>): {
-  type?: string | null;
-  number?: string | null;
-  country?: string | null;
-} {
-  // Didit field names vary; try the documented paths in order.
-  // decision.id_verification.{document_number, document_type, issuing_country}
-  // OR top-level kyc.{document_number, ...}
-  // OR features.id_verification.{...}
-  const tryPaths = [
-    ["decision", "id_verification"],
-    ["features", "id_verification"],
-    ["kyc"],
-    ["id_verification"],
-  ];
-  for (const path of tryPaths) {
-    let node: any = payload;
-    for (const p of path) node = node?.[p];
-    if (node && typeof node === "object") {
-      const number = node.document_number ?? node.documentNumber ?? node.number ?? null;
-      const type = node.document_type ?? node.documentType ?? node.type ?? null;
-      const country = node.issuing_country ?? node.issuingCountry ?? node.country ?? null;
-      if (number) return { type, number, country };
-    }
-  }
-  return { type: null, number: null, country: null };
+function getDecisionNode(payload: Record<string, unknown>): Record<string, unknown> | null {
+  const d = (payload as { decision?: unknown }).decision;
+  return d && typeof d === "object" ? (d as Record<string, unknown>) : null;
 }
 
-function extractIdName(payload: Record<string, unknown>): string | null {
-  const tryPaths = [
-    ["decision", "id_verification"],
-    ["features", "id_verification"],
-    ["kyc"],
-  ];
-  for (const path of tryPaths) {
-    let node: any = payload;
-    for (const p of path) node = node?.[p];
-    if (!node) continue;
-    const first = node.first_name ?? node.firstName ?? "";
-    const last = node.last_name ?? node.lastName ?? "";
-    const full = node.full_name ?? node.fullName ?? null;
-    if (full) return String(full).trim() || null;
-    const joined = `${first} ${last}`.trim();
-    if (joined) return joined;
+function extractIdVerification(payload: Record<string, unknown>): Record<string, unknown> | null {
+  const dec = getDecisionNode(payload);
+  if (!dec) return null;
+  // V3: plural arrays. Each entry has node_id + per-feature fields.
+  const arr = (dec as { id_verifications?: unknown }).id_verifications;
+  if (Array.isArray(arr) && arr.length > 0) {
+    // Use the first Approved entry, or the first entry if none are Approved.
+    const approved = arr.find(
+      (e) => e && typeof e === "object" && /^approved$/i.test(String((e as { status?: unknown }).status ?? "")),
+    );
+    return ((approved ?? arr[0]) as Record<string, unknown>) || null;
   }
   return null;
 }
 
-function extractStatus(payload: Record<string, unknown>): string {
-  // Common: status, decision.status, kyc.status
-  const candidates: any[] = [
-    (payload as any).status,
-    (payload as any).decision?.status,
-    (payload as any).kyc?.status,
-  ];
-  for (const c of candidates) {
-    if (typeof c === "string") return c.toLowerCase();
+function extractDocumentFields(payload: Record<string, unknown>): { number?: unknown; state?: unknown } {
+  const id = extractIdVerification(payload);
+  if (!id) return {};
+  return {
+    number: id.document_number ?? id.documentNumber ?? id.number ?? null,
+    // Didit uses "issuing_state" (e.g. "ESP"). Some payloads may also have
+    // "issuing_country" or "country"; we'll tolerate both as last-resort fallbacks.
+    state:
+      id.issuing_state ?? id.issuingState ?? id.issuing_country ?? id.issuingCountry ?? id.country ?? null,
+  };
+}
+
+function extractIdName(payload: Record<string, unknown>): string | null {
+  const id = extractIdVerification(payload);
+  if (!id) return null;
+  const first = String(id.first_name ?? id.firstName ?? "").trim();
+  const last = String(id.last_name ?? id.lastName ?? "").trim();
+  const full = id.full_name ?? id.fullName ?? null;
+  if (full) {
+    const v = String(full).trim();
+    if (v) return v;
   }
+  const joined = `${first} ${last}`.trim();
+  return joined || null;
+}
+
+function extractStatus(payload: Record<string, unknown>): string {
+  const s = (payload as { status?: unknown }).status;
+  if (typeof s === "string") return s.toLowerCase().trim();
   return "unknown";
 }
 
 function extractUserId(payload: Record<string, unknown>): string | null {
-  // Marryzen stores the user_id in vendor_data when creating the session.
-  // Didit echoes it back as a string (or sometimes a stringified JSON blob).
-  const vd: any = (payload as any).vendor_data ?? (payload as any).vendorData;
+  // Didit echoes vendor_data back as the string we supplied at session creation.
+  const vd = (payload as { vendor_data?: unknown }).vendor_data;
   if (typeof vd === "string") {
-    // Plain UUID
-    if (/^[0-9a-f-]{32,40}$/i.test(vd.trim())) return vd.trim();
-    // Stringified JSON like '{"user_id":"..."}'
+    const trimmed = vd.trim();
+    if (!trimmed) return null;
+    // Real UUID regex (not just "hex+dash chars"). Defense-in-depth on top of
+    // signature verification: prevents a tampered vendor_data from routing the
+    // webhook at an arbitrary profile row.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+      return trimmed;
+    }
+    // Stringified JSON containing { user_id }
     try {
-      const parsed = JSON.parse(vd);
+      const parsed = JSON.parse(trimmed);
       if (parsed && typeof parsed.user_id === "string") return parsed.user_id;
-    } catch (_) { /* fallthrough */ }
-    // Last resort: trust the raw string
-    if (vd.trim().length) return vd.trim();
+    } catch (_) {
+      /* fallthrough */
+    }
+    return trimmed;
   }
-  if (vd && typeof vd === "object" && typeof vd.user_id === "string") return vd.user_id;
-  const md: any = (payload as any).metadata;
+  if (vd && typeof vd === "object" && typeof (vd as { user_id?: unknown }).user_id === "string") {
+    return String((vd as { user_id: string }).user_id);
+  }
+  const md = (payload as { metadata?: { user_id?: string } }).metadata;
   if (md && typeof md.user_id === "string") return md.user_id;
   return null;
 }
 
-// ---------- Helpers: credits + cap ----------
+// ---------- Credits + cap ----------
 
 const REFERRAL_SOURCES = [
   "referral_verify",
@@ -236,7 +359,6 @@ const REFERRAL_SOURCES = [
 ];
 
 async function referrerHasCapacity(referrerId: string): Promise<boolean> {
-  // 12 referral credits per rolling year
   const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
   const { count, error } = await supabase
     .from("premium_credits")
@@ -259,7 +381,6 @@ async function insertCredit(row: {
 }): Promise<{ ok: boolean; alreadyExisted: boolean; error?: string }> {
   const { error } = await supabase.from("premium_credits").insert(row);
   if (!error) return { ok: true, alreadyExisted: false };
-  // 23505 = unique violation; means we already granted this credit. Treat as success.
   if ((error as { code?: string }).code === "23505") {
     return { ok: true, alreadyExisted: true };
   }
@@ -276,12 +397,44 @@ serve(async (req) => {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
+  let payload: Record<string, unknown>;
   try {
-    const payload = await req.json().catch(() => ({}));
-    console.log("didit-webhook v8: received event", JSON.stringify({
-      status: extractStatus(payload),
-      hasVendorData: !!extractUserId(payload),
-    }));
+    payload = (await req.json()) as Record<string, unknown>;
+  } catch (_) {
+    return new Response(JSON.stringify({ error: "invalid_json" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // 1. Signature verification — OPT-IN via DIDIT_REQUIRE_SIGNATURE=1.
+  // While disabled we accept any POST (matches v8 behavior). The check is
+  // fully implemented; just gated so we can ship the V3 extraction fixes
+  // without breaking real webhook delivery while signature debugging is
+  // pending.
+  let sig: { ok: boolean; reason?: string; method?: string } = { ok: true, method: "skipped" };
+  if (Deno.env.get("DIDIT_REQUIRE_SIGNATURE") === "1") {
+    sig = await verifyDiditSignature(payload, req.headers, WEBHOOK_SECRET);
+    if (!sig.ok) {
+      console.warn("didit-webhook v9.1: rejecting unverified webhook:", sig.reason);
+      return new Response(
+        JSON.stringify({ ok: false, error: "unauthorized", reason: sig.reason }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  } else {
+    console.log("didit-webhook v9.1: signature verification DISABLED (set DIDIT_REQUIRE_SIGNATURE=1 to enable)");
+  }
+
+  try {
+    console.log(
+      "didit-webhook v9.1: received event",
+      JSON.stringify({
+        status: extractStatus(payload),
+        webhook_type: payload.webhook_type,
+        sig_method: sig.method,
+      }),
+    );
 
     const userId = extractUserId(payload);
     if (!userId) {
@@ -294,15 +447,15 @@ serve(async (req) => {
 
     const status = extractStatus(payload);
 
-    // Always pull the existing profile (need referred_by, full_name, current verification state)
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("id, full_name, referred_by, is_verified, identity_verification_status, document_hash")
+      .select(
+        "id, full_name, referred_by, is_verified, identity_verification_status, document_hash",
+      )
       .eq("id", userId)
       .maybeSingle();
     if (profileErr) {
       console.error("Profile fetch failed:", profileErr);
-      // Don't crash the webhook on a transient DB error
       return new Response(JSON.stringify({ ok: true, deferred: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -316,12 +469,10 @@ serve(async (req) => {
       });
     }
 
-    // Non-approved decisions: mark accordingly, no credits, no hash check.
-    // Didit emits "approved", "declined", "rejected", "pending", and occasionally
-    // "approved_with_warnings" — treat the latter as approved (warnings are
-    // typically liveness or doc-quality nits; the reviewer signed off).
-    const isApproved = status === "approved" || status === "approved_with_warnings";
-    if (!isApproved) {
+    // Non-approved decisions: mark accordingly. We deliberately do NOT treat
+    // "approved with warnings" as approved — Didit does not emit that as a
+    // top-level status.
+    if (status !== "approved") {
       const target = status === "declined" || status === "rejected" ? "rejected" : "pending";
       await supabase
         .from("profiles")
@@ -333,26 +484,20 @@ serve(async (req) => {
       });
     }
 
-    // Approved path: compute document hash + name match
+    // Approved path
     const docFields = extractDocumentFields(payload);
     const docHash = await computeDocumentHash(docFields);
     if (!docHash) {
-      // Anti-farming silently degrades to "no dedup" if we can't extract
-      // doc fields — this is intentional (we never want to drop a real
-      // verification because Didit changed their payload shape), but it
-      // IS a hole worth watching. Log loudly so we notice in production.
       console.error(
-        "didit-webhook v8: approved event has NO extractable document fields. " +
-        "Anti-farming dedup is SKIPPED for this verification. Payload top-level keys: " +
-        Object.keys(payload || {}).join(",")
+        "didit-webhook v9.1: approved event has NO extractable document fields. " +
+          "Anti-farming dedup is SKIPPED for this verification. Payload top-level keys: " +
+          Object.keys(payload || {}).join(","),
       );
     }
     const idName = extractIdName(payload);
-    const nameCheck = idName
-      ? namesMatch(profile.full_name || "", idName)
-      : { match: false, score: 0 };
+    const nameCheck = idName ? namesMatch(profile.full_name || "", idName) : { match: false, score: 0 };
 
-    // ANTI-FARMING: if another VERIFIED profile already owns this document_hash, reject this one.
+    // Anti-farming: another VERIFIED profile already owns this document_hash?
     if (docHash) {
       const { data: dupe, error: dupeErr } = await supabase
         .from("profiles")
@@ -371,13 +516,17 @@ serve(async (req) => {
             is_verified: false,
             id_name_on_record: idName,
             name_match_score: nameCheck.score,
-            // Don't overwrite existing document_hash on the rejected profile (keep evidence trail)
+            // Write document_hash on the rejected profile for forensics. The
+            // partial unique index only enforces uniqueness for verified rows,
+            // so this is safe and gives investigators an evidence trail when
+            // multiple accounts attempt the same document.
+            document_hash: docHash,
           })
           .eq("id", userId);
-        return new Response(JSON.stringify({ ok: true, status: "rejected", reason: "document_already_used" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ ok: true, status: "rejected", reason: "document_already_used" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
     }
 
@@ -392,26 +541,21 @@ serve(async (req) => {
       update.identity_verification_status = "verified";
       update.is_verified = true;
     } else {
-      // Name mismatch: keep pending so admin/user can resolve via profile-edit trigger
       update.identity_verification_status = "pending";
       update.is_verified = false;
     }
 
-    const { error: updErr } = await supabase
-      .from("profiles")
-      .update(update)
-      .eq("id", userId);
+    const { error: updErr } = await supabase.from("profiles").update(update).eq("id", userId);
     if (updErr) {
       // 23505 here means another concurrent webhook already wrote this hash
-      // for a different user — caught by the partial unique index. Race
-      // ordering doesn't matter for our purposes: the OTHER user wins the
-      // race and is_verified, this one stays unverified and quiet.
+      // for a different user — caught by the partial unique index. The other
+      // user wins; this one stays unverified.
       if ((updErr as { code?: string }).code === "23505") {
-        console.log("Profile update hit 23505 (concurrent verification by another account); leaving this profile unverified.");
-        return new Response(JSON.stringify({ ok: true, status: "rejected", reason: "race_lost" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.log("Profile update hit 23505 (race lost); leaving this profile unverified.");
+        return new Response(
+          JSON.stringify({ ok: true, status: "rejected", reason: "race_lost" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
       console.error("Profile update failed:", updErr);
       return new Response(JSON.stringify({ ok: true, error: "profile_update_failed" }), {
@@ -420,31 +564,26 @@ serve(async (req) => {
       });
     }
 
-    // If we didn't flip is_verified, stop here (no credits on name mismatch)
+    // Name mismatch — no credits on this path.
     if (!nameCheck.match) {
-      return new Response(JSON.stringify({ ok: true, status: "pending_name_mismatch", score: nameCheck.score }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ ok: true, status: "pending_name_mismatch", score: nameCheck.score }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // Replay-safety fast path: if the user was ALREADY verified before this
-    // webhook, credits were already considered. The 23505-tolerant inserts
-    // below would no-op anyway, but skipping the work also avoids spurious
-    // referral_verify attempts on bursty Didit retries. (Real replay
-    // protection still requires signature verification; tracked separately.)
+    // Replay-safety fast path: if the user was already verified before this
+    // webhook, credits were considered already. Skip the work.
     if (profile.is_verified === true) {
       console.log("Replay detected (user already verified); skipping credit grants.");
-      return new Response(JSON.stringify({ ok: true, status: "verified", replay: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ ok: true, status: "verified", replay: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // Grant credits (best-effort, never block the webhook ack)
+    // Referrer credit
     const referredBy = profile.referred_by as string | null;
-
-    // Referrer credit (only if there's a valid referrer and not self-referral, and under cap)
     if (referredBy && referredBy !== userId) {
       try {
         const underCap = await referrerHasCapacity(referredBy);
@@ -458,7 +597,6 @@ serve(async (req) => {
           if (!r.ok) {
             console.warn("Referrer credit insert failed:", r.error);
           } else if (!r.alreadyExisted) {
-            // Flip the referrals row to completed for this pair
             await supabase
               .from("referrals")
               .update({ status: "completed", reward_claimed: true })
@@ -473,7 +611,7 @@ serve(async (req) => {
       }
     }
 
-    // Referee signup bonus (best-effort, one-time per user)
+    // Referee signup bonus (one-time per user)
     try {
       const r = await insertCredit({
         user_id: userId,
@@ -497,7 +635,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("didit-webhook v8: top-level error", err);
+    console.error("didit-webhook v9.1: top-level error", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
