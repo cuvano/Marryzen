@@ -204,45 +204,96 @@ const ChatPage = () => {
       }
   };
 
-  // Spam detection
+  // Spam / scam detection. See ROADMAP_NEXT.md and the Session 8 reviewer
+  // notes — patterns here MUST avoid false positives on legitimate
+  // marriage-conversation topics (military, medical, family).
   const detectSpam = (text) => {
     const lowerText = text.toLowerCase();
-    
-    // Check for URLs
-    const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|bit\.ly|tinyurl)/i;
+
+    // 1. URLs / link shorteners
+    const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|bit\.ly|tinyurl|t\.co|goo\.gl|tiny\.cc|is\.gd|short\.io)/i;
     if (urlPattern.test(text)) {
-      return { isSpam: true, reason: "URLs are not allowed in messages for security reasons." };
+      return { isSpam: true, reason: "Links aren't allowed in messages. Get to know each other on Marryzen first." };
     }
-    
-    // Check for phone numbers
+
+    // 2. Phone numbers
     const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
     if (phonePattern.test(text)) {
-      return { isSpam: true, reason: "Phone numbers are not allowed. Please use Marryzen messaging to communicate." };
+      return { isSpam: true, reason: "Phone numbers can't be shared yet. Keep the conversation on Marryzen until you've built trust." };
     }
-    
-    // Check for email addresses
+
+    // 3. Email addresses
     const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
     if (emailPattern.test(text)) {
-      return { isSpam: true, reason: "Email addresses are not allowed. Please use Marryzen messaging to communicate." };
+      return { isSpam: true, reason: "Email addresses can't be shared in chat. Use Marryzen messaging until you've matched in person." };
     }
-    
-    // Check for common spam words/phrases
-    const spamWords = ['click here', 'buy now', 'free money', 'make money', 'work from home', 'get rich', 'viagra', 'casino', 'lottery'];
-    if (spamWords.some(word => lowerText.includes(word))) {
-      return { isSpam: true, reason: "Your message contains prohibited content. Please send a respectful message." };
+
+    // 4. Off-platform messaging handles. ONLY app names that are
+    //    extremely unlikely to appear in casual conversation:
+    //    whatsapp, wa.me, telegram, t.me, kik, viber, wechat, kakao.
+    //    Deliberately NOT listed: "signal", "discord", "snap", "insta",
+    //    "ig" — all of these have legitimate non-app meanings.
+    const offPlatformHandles = /\b(whats?app|wa\.me|telegram|t\.me|\bkik\b|viber|wechat|kakao(talk)?)\b/i;
+    if (offPlatformHandles.test(text)) {
+      return { isSpam: true, reason: "Outside messaging apps can't be shared. Stay on Marryzen to keep our community safe from scams." };
     }
-    
-    // Check for excessive capitalization (shouting)
+
+    // 5. Crypto wallet addresses (BTC bech32, BTC legacy, ETH/EVM hex).
+    //    BTC legacy regex is intentionally tolerant — false positive on
+    //    a license key in chat is extremely rare on this platform.
+    const cryptoAddr = /\b(bc1[a-z0-9]{8,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|0x[a-fA-F0-9]{40})\b/;
+    if (cryptoAddr.test(text)) {
+      return { isSpam: true, reason: "Crypto wallet addresses aren't allowed in messages." };
+    }
+
+    // 6. Off-platform payment requests. Bounded patterns only —
+    //    `paypal.me/X`, `$cashtag` (Cash App / Venmo),
+    //    payment-app brand names where they're unambiguous (cashapp,
+    //    venmo, zelle), and clear money-asking terms.
+    //    AVOIDED bare-word "wise" — required wise.com only.
+    const paypalLink = /paypal\.me\b/i;
+    // Anchor $cashtag to start-of-line or any non-alphanumeric char
+    // so we don't trip on mid-token "$" (e.g., "USD$ave") but DO catch
+    // adversarial concatenations like "pay me at:$jdoe".
+    const cashTag = /(?:^|[^A-Za-z0-9])\$[A-Za-z][A-Za-z0-9_]{2,}\b/;
+    const paymentAppBrands = /\b(cash\s*app|cashapp|venmo|zelle\b|wise\.com|revolut\b|western\s*union|moneygram)\b/i;
+    const giftCards = /\b(gift\s*card|itunes\s*card|amazon\s*card|google\s*play\s*card|steam\s*card|apple\s*pay\s*me)\b/i;
+    if (paypalLink.test(text) || cashTag.test(text) || paymentAppBrands.test(text) || giftCards.test(text)) {
+      return { isSpam: true, reason: "Off-platform payment requests aren't allowed. Real partners don't ask for money." };
+    }
+
+    // 7. Direct money-asking phrases — these are blunt enough to block.
+    const moneyAsk = /\b(send\s+me\s+money|wire\s+me|i\s+need\s+money|send\s+(funds|cash))\b/i;
+    if (moneyAsk.test(text)) {
+      return { isSpam: true, reason: "Asking for money isn't allowed on Marryzen." };
+    }
+
+    // 8. SOFT warnings — common scam-phrase topics that ALSO have
+    //    legitimate uses. Show a yellow toast but don't block.
+    const softScamPhrases = [
+      'investment opportunity', 'crypto investment', 'forex', 'binary option',
+      'oil rig', 'overseas mission', 'army deployment', 'syria deployment',
+      'emergency funds', 'medical emergency', 'stuck abroad', 'stranded',
+      'inheritance', 'wealthy uncle', 'dying father',
+      'click here', 'buy now', 'free money', 'make money easy', 'work from home',
+      'get rich', 'guaranteed return', 'risk free', 'no risk investment',
+      'viagra', 'casino', 'lottery', 'sugar daddy', 'sugar baby', 'findom'
+    ];
+    if (softScamPhrases.some(p => lowerText.includes(p))) {
+      return { isSpam: false, warning: "This phrase is often used in scams. Please be careful — real partners don't pressure you about money." };
+    }
+
+    // 9. Excessive capitalization (warning)
     const capsRatio = (text.match(/[A-Z]/g) || []).length / text.length;
     if (capsRatio > 0.7 && text.length > 10) {
       return { isSpam: false, warning: "Please avoid using excessive capitalization." };
     }
-    
-    // Check for repeated characters (e.g., "heyyyyyyyy")
+
+    // 10. Repeated characters (warning)
     if (/(.)\1{4,}/.test(text)) {
       return { isSpam: false, warning: "Please avoid excessive character repetition." };
     }
-    
+
     return { isSpam: false };
   };
 
