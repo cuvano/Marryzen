@@ -337,6 +337,20 @@ const ChatPage = () => {
           return;
       }
 
+      // Moderation gate: banned/suspended users cannot send messages
+      if (currentUser.status === 'banned') {
+          toast({ title: "Account Banned", description: "Your account is permanently banned and cannot send messages.", variant: "destructive" });
+          return;
+      }
+      if (currentUser.status === 'suspended') {
+          const stillSuspended = !currentUser.suspended_until || new Date(currentUser.suspended_until) > new Date();
+          if (stillSuspended) {
+              const untilStr = currentUser.suspended_until ? new Date(currentUser.suspended_until).toLocaleString() : 'further review';
+              toast({ title: "Account Suspended", description: `You cannot send messages until ${untilStr}.`, variant: "destructive" });
+              return;
+          }
+      }
+
       // Spam detection
       const spamCheck = detectSpam(messageText);
       if (spamCheck.isSpam) {
