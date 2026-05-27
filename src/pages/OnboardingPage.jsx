@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { executeRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
+import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 import Step1 from '@/components/onboarding/Step1';
@@ -269,6 +270,11 @@ const OnboardingPage = () => {
         const m = today.getMonth() - birthDate.getMonth();
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
         if (age < 18) isValid = false;
+    }
+    // Payment-processor / sanctions block on Country of Residence.
+    if (formData.locationCountry && SANCTIONED_RESIDENCE.includes(formData.locationCountry)) {
+      errors.locationCountry = "Marryzen isn't available in your current country of residence due to sanctions and payment-processor restrictions.";
+      isValid = false;
     }
     // reCAPTCHA validation will be done in handleNext before signup
     setStep1Errors(errors);
