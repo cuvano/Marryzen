@@ -16,6 +16,7 @@ import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
 import FilterPanel from '@/components/discovery/FilterPanel';
+import { checkRateLimit } from '@/lib/rateLimit';
 import ProfileCard from '@/components/discovery/ProfileCard';
 import {
   DropdownMenu,
@@ -440,6 +441,15 @@ const DiscoveryPage = () => {
         openPremiumModal && openPremiumModal();
         return;
       }
+    }
+
+// Server-side rate limit on LIKEs only — passes don't grief anyone.
+    // Defense-in-depth on top of: 500ms debounce, rapid-like counter,
+    // daily-limit check (all above). 120/min for logged-in users.
+    // Helper shows its own destructive toast on 429, so we just early-return.
+    if (type === 'like') {
+      const likeGate = await checkRateLimit('LIKE', { toast });
+      if (!likeGate.allowed) return;
     }
 
     setLastActionTime(now);
