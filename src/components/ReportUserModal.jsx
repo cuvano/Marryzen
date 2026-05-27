@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { X, ShieldAlert, Send, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) => {
   const { toast } = useToast();
@@ -60,6 +61,14 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) 
           description: "You must be logged in to submit a report.",
           variant: "destructive",
         });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Anti-griefing: server-side rate-limit (REPORT_SUBMIT: 10/hr per user, 5/hr per IP).
+      // Stops a malicious user from filing dozens of reports against innocent matches.
+      const gate = await checkRateLimit('REPORT_SUBMIT', { toast });
+      if (!gate.allowed) {
         setIsSubmitting(false);
         return;
       }
