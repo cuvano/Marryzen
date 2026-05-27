@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Heart, ArrowRight, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 import { Helmet } from 'react-helmet';
 const LoginPage = () => {
@@ -49,6 +50,14 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Server-side rate-limit gate (LOGIN_ATTEMPTS: 10/hr per IP, 20/hr per user).
+    // Defends against credential stuffing. Fails OPEN if rate-limit infra is down.
+    const gate = await checkRateLimit('LOGIN_ATTEMPTS', { toast });
+    if (!gate.allowed) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
