@@ -88,6 +88,21 @@ const ReportUserModal = ({ isOpen, onClose, reportedUserName, reportedUserId }) 
         return;
       }
 
+      // Fire-and-forget: notify the safety team via Resend email.
+      // Edge Function derives reporter_id from JWT — we deliberately
+      // don't pass it in the body.
+      supabase.functions.invoke('notify-admin-report', {
+        body: {
+          reported_user_id: reportedUserId,
+          reported_user_name: reportedUserName,
+          reason_category: selectedReason,
+          reason_details: reasonText,
+        },
+      }).catch((err) => {
+        // Soft-fail: log but don't surface. Report is still recorded.
+        console.warn('notify-admin-report failed (non-fatal):', err);
+      });
+
       setIsSubmitted(true);
       toast({
         title: "Report Submitted",
