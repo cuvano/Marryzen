@@ -12,6 +12,7 @@ import BlockUserModal from '@/components/BlockUserModal';
 
 import { Helmet } from 'react-helmet';
 import { funnel } from '@/lib/analytics';
+import { checkRateLimit } from '@/lib/rateLimit';
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -342,7 +343,7 @@ const ChatPage = () => {
           toast({ title: "Account Banned", description: "Your account is permanently banned and cannot send messages.", variant: "destructive" });
           return;
       }
-      if (currentUser.status === 'suspended') {
+if (currentUser.status === 'suspended') {
           const stillSuspended = !currentUser.suspended_until || new Date(currentUser.suspended_until) > new Date();
           if (stillSuspended) {
               const untilStr = currentUser.suspended_until ? new Date(currentUser.suspended_until).toLocaleString() : 'further review';
@@ -350,6 +351,12 @@ const ChatPage = () => {
               return;
           }
       }
+
+      // Server-side rate limit (defense-in-depth: client already has a 500ms
+      // debounce + 10/min repeated-message cap). 60/min for logged-in users.
+      // Helper shows its own destructive toast on 429, so we just early-return.
+      const sendGate = await checkRateLimit('MESSAGE_SEND', { toast });
+      if (!sendGate.allowed) return;
 
       // Spam detection
       const spamCheck = detectSpam(messageText);
