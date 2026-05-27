@@ -74,15 +74,51 @@ const LoginPage = () => {
           email: data.session.user.email
         }));
 
-        // Check if profile exists and onboarding status
+        // Check if profile exists and onboarding status + moderation status
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('onboarding_step')
+          .select('onboarding_step, status, suspended_until')
           .eq('id', data.session.user.id)
-          .maybeSingle(); // Use maybeSingle to handle case where profile doesn't exist
+          .maybeSingle();
 
         if (profileError && profileError.code !== 'PGRST116') {
            console.error("Profile fetch error:", profileError);
+        }
+
+        // Moderation gate: banned / suspended users cannot proceed.
+        // Auto-clear time-limited suspensions whose timer has expired
+        // (server-side RPC; users don't have UPDATE on profiles.status).
+        if (profile) {
+          if (profile.status === 'banned') {
+            await supabase.auth.signOut();
+            toast({
+              title: "Account banned",
+              description: "Your Marryzen account has been permanently banned. Contact admin@marryzen.com if you believe this is in error.",
+              variant: "destructive",
+              duration: 12000,
+            });
+            setIsLoading(false);
+            return;
+          }
+          if (profile.status === 'suspended') {
+            const { data: cleared } = await supabase.rpc('clear_expired_suspension');
+            if (cleared === true) {
+              // Suspension was expired and just got cleared — continue login.
+            } else {
+              await supabase.auth.signOut();
+              const untilStr = profile.suspended_until
+                ? new Date(profile.suspended_until).toLocaleString()
+                : 'further review';
+              toast({
+                title: "Account suspended",
+                description: `Your Marryzen account is suspended until ${untilStr}. Contact admin@marryzen.com if you believe this is in error.`,
+                variant: "destructive",
+                duration: 12000,
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
         }
 
         toast({ title: "Welcome back!", description: "Successfully logged in." });
