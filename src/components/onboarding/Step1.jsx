@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { isRecaptchaEnabled } from '@/lib/recaptcha';
+import { SANCTIONED_RESIDENCE, filterResidenceCountries } from '@/lib/sanctionedJurisdictions';
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -220,10 +221,18 @@ const Step1 = ({
               className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
             >
               <option value="">Select Country...</option>
-              {COUNTRIES.map(country => (
-                <option key={country} value={country}>{country}</option>
-              ))}
+              {filterResidenceCountries(COUNTRIES, formData.locationCountry).map(country => {
+                const isBlocked = SANCTIONED_RESIDENCE.includes(country);
+                return (
+                  <option key={country} value={country} disabled={isBlocked}>
+                    {country}{isBlocked ? ' (not available)' : ''}
+                  </option>
+                );
+              })}
             </select>
+            <p className="text-[#706B67] text-xs mt-1 font-medium">
+              Marryzen isn't available in some jurisdictions due to US sanctions and payment-processor restrictions.
+            </p>
           </div>
 
           <div className="space-y-2">
