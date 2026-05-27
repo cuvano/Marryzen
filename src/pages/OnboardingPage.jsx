@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
 import { executeRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
 import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 import Step1 from '@/components/onboarding/Step1';
@@ -357,6 +358,14 @@ const OnboardingPage = () => {
           }
 
           if (!userId) {
+              // Server-side rate-limit gate on signup (anti-spam-account).
+              // SIGNUP_ATTEMPTS: 5/hr per IP, 10/hr per user. Fails OPEN if infra down.
+              const gate = await checkRateLimit('SIGNUP_ATTEMPTS', { toast });
+              if (!gate.allowed) {
+                setIsLoading(false);
+                return;
+              }
+
               // Include reCAPTCHA token in metadata for server-side verification
               const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
