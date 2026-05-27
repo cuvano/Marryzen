@@ -208,23 +208,31 @@ const ChatPage = () => {
   // notes — patterns here MUST avoid false positives on legitimate
   // marriage-conversation topics (military, medical, family).
   const detectSpam = (text) => {
-    const lowerText = text.toLowerCase();
+    // Normalize space-separated evasion: "m o n e y" → "money", "t e l e g r a m" → "telegram".
+    // Catches the common bypass where each letter of a flagged word is separated by spaces.
+    // Requires 3+ consecutive single chars to avoid false positives on initials like "M N S".
+    const denormSpaced = (s) => s.replace(/\b(?:[a-zA-Z]\s+){2,}[a-zA-Z]\b/g, (m) => m.replace(/\s+/g, ''));
+    const variants = [text, denormSpaced(text)];
+    const lowerVariants = variants.map((v) => v.toLowerCase());
+    const matchAny = (re) => variants.some((v) => re.test(v));
+    const containsAny = (sub) => lowerVariants.some((lv) => lv.includes(sub));
+    const lowerText = lowerVariants[0];
 
     // 1. URLs / link shorteners
     const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|bit\.ly|tinyurl|t\.co|goo\.gl|tiny\.cc|is\.gd|short\.io)/i;
-    if (urlPattern.test(text)) {
+    if (matchAny(urlPattern)) {
       return { isSpam: true, reason: "Links aren't allowed in messages. Get to know each other on Marryzen first." };
     }
 
     // 2. Phone numbers
     const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
-    if (phonePattern.test(text)) {
+    if (matchAny(phonePattern)) {
       return { isSpam: true, reason: "Phone numbers can't be shared yet. Keep the conversation on Marryzen until you've built trust." };
     }
 
     // 3. Email addresses
     const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-    if (emailPattern.test(text)) {
+    if (matchAny(emailPattern)) {
       return { isSpam: true, reason: "Email addresses can't be shared in chat. Use Marryzen messaging until you've matched in person." };
     }
 
@@ -234,7 +242,7 @@ const ChatPage = () => {
     //    Deliberately NOT listed: "signal", "discord", "snap", "insta",
     //    "ig" — all of these have legitimate non-app meanings.
     const offPlatformHandles = /\b(whats?app|wa\.me|telegram|t\.me|\bkik\b|viber|wechat|kakao(talk)?)\b/i;
-    if (offPlatformHandles.test(text)) {
+    if (matchAny(offPlatformHandles)) {
       return { isSpam: true, reason: "Outside messaging apps can't be shared. Stay on Marryzen to keep our community safe from scams." };
     }
 
@@ -242,7 +250,7 @@ const ChatPage = () => {
     //    BTC legacy regex is intentionally tolerant — false positive on
     //    a license key in chat is extremely rare on this platform.
     const cryptoAddr = /\b(bc1[a-z0-9]{8,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|0x[a-fA-F0-9]{40})\b/;
-    if (cryptoAddr.test(text)) {
+    if (matchAny(cryptoAddr)) {
       return { isSpam: true, reason: "Crypto wallet addresses aren't allowed in messages." };
     }
 
@@ -258,13 +266,13 @@ const ChatPage = () => {
     const cashTag = /(?:^|[^A-Za-z0-9])\$[A-Za-z][A-Za-z0-9_]{2,}\b/;
     const paymentAppBrands = /\b(cash\s*app|cashapp|venmo|zelle\b|wise\.com|revolut\b|western\s*union|moneygram)\b/i;
     const giftCards = /\b(gift\s*card|itunes\s*card|amazon\s*card|google\s*play\s*card|steam\s*card|apple\s*pay\s*me)\b/i;
-    if (paypalLink.test(text) || cashTag.test(text) || paymentAppBrands.test(text) || giftCards.test(text)) {
+    if (matchAny(paypalLink) || matchAny(cashTag) || matchAny(paymentAppBrands) || matchAny(giftCards)) {
       return { isSpam: true, reason: "Off-platform payment requests aren't allowed. Real partners don't ask for money." };
     }
 
     // 7. Direct money-asking phrases — these are blunt enough to block.
     const moneyAsk = /\b(send\s+me\s+money|wire\s+me|i\s+need\s+money|send\s+(funds|cash))\b/i;
-    if (moneyAsk.test(text)) {
+    if (matchAny(moneyAsk)) {
       return { isSpam: true, reason: "Asking for money isn't allowed on Marryzen." };
     }
 
@@ -279,7 +287,7 @@ const ChatPage = () => {
       'get rich', 'guaranteed return', 'risk free', 'no risk investment',
       'viagra', 'casino', 'lottery', 'sugar daddy', 'sugar baby', 'findom'
     ];
-    if (softScamPhrases.some(p => lowerText.includes(p))) {
+    if (softScamPhrases.some((p) => containsAny(p))) {
       return { isSpam: false, warning: "This phrase is often used in scams. Please be careful — real partners don't pressure you about money." };
     }
 
@@ -557,7 +565,7 @@ const ChatPage = () => {
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                            Someone is typing...
+                            {activeConversation.partner.full_name} is typing...
                         </div>
                     )}
                     <div ref={messagesEndRef} />
