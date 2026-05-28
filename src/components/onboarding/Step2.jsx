@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
+import { detectFacesInImage, warmUpFaceDetector } from '@/lib/faceDetection';
 
 const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
@@ -400,7 +401,42 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    // Pre-load face-detection model while user is selecting a photo, so the
+    // check feels instant when they finish cropping. No-op after first run.
+    warmUpFaceDetector();
+  }, []);
+
   const handleCropComplete = async (croppedBase64) => {
+      // Client-side face check before upload. Lazy-loaded face-api.js model.
+      // Fails OPEN on infra issues (older browsers, CDN outage, etc.) so legit
+      // users aren't blocked — the SafetyPanel + report flow catches what slips.
+      const faceCheck = await detectFacesInImage(croppedBase64);
+      if (!faceCheck.failOpen) {
+        if (faceCheck.faces === 0) {
+          toast({
+            title: "No face detected",
+            description: "We couldn't find a face in this photo. Please upload a clear photo where your face is visible.",
+            variant: "destructive",
+          });
+          setCropModalOpen(false);
+          setTempImage(null);
+          setPendingIndex(null);
+          return;
+        }
+        if (faceCheck.faces > 1) {
+          toast({
+            title: "Multiple people in photo",
+            description: "Please upload a photo of just yourself. Group photos make it hard for matches to know who you are.",
+            variant: "destructive",
+          });
+          setCropModalOpen(false);
+          setTempImage(null);
+          setPendingIndex(null);
+          return;
+        }
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       const finalValue = user?.id
         ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
