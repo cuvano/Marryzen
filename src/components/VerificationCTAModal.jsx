@@ -10,24 +10,24 @@ import { Button } from '@/components/ui/button';
  * Context-rich verification gate. Opens when an unverified (or pending /
  * rejected / name-mismatched) user attempts a value action (like, send
  * message). Shows them the person they were trying to engage with so the
- * ask has a face attached to it â much stronger conversion lever than a
+ * ask has a face attached to it — much stronger conversion lever than a
  * generic banner.
  *
  * Props:
- *   open           â boolean, controls visibility
- *   onClose        â () => void, called when user dismisses
- *   targetProfile  â the profile object they were trying to act on. Shape:
- *                    { full_name, photos } â both optional, modal degrades
+ *   open           — boolean, controls visibility
+ *   onClose        — () => void, called when user dismisses
+ *   targetProfile  — the profile object they were trying to act on. Shape:
+ *                    { full_name, photos } — both optional, modal degrades
  *                    gracefully if either is missing.
- *   action         â 'like' | 'message' (drives the headline verb)
- *   status         â 'unverified' | 'pending' | 'rejected' | 'name_mismatch'
+ *   action         — 'like' | 'message' (drives the headline verb)
+ *   status         — 'unverified' | 'pending' | 'rejected' | 'name_mismatch'
  *                    Selects the right CTA copy + destination URL. Default
  *                    is 'unverified' (Didit start flow).
  *
  * Routing:
- *   unverified / rejected â /profile?openVerify=1 (starts/restarts Didit)
- *   pending               â /profile (no action â copy explains waiting)
- *   name_mismatch         â /profile (no Didit re-burn â copy says rename)
+ *   unverified / rejected → /profile?openVerify=1 (starts/restarts Didit)
+ *   pending               → /profile (no action — copy explains waiting)
+ *   name_mismatch         → /profile (no Didit re-burn — copy says rename)
  *
  * Designed to match ReportUserModal's framer-motion overlay style so the
  * design language stays consistent across the app.
@@ -70,7 +70,7 @@ const VerificationCTAModal = ({
       return {
         Icon: ShieldCheck,
         headline: 'Your verification is being reviewed',
-        body: `We're still reviewing your ID. Once it's approved you'll be able to ${verbCopy} ${firstName || 'other members'} â this usually finishes within a few minutes.`,
+        body: `We're still reviewing your ID. Once it's approved you'll be able to ${verbCopy} ${firstName || 'other members'} — this usually finishes within a few minutes.`,
         cta: 'View profile',
         target: '/profile',
       };
@@ -104,6 +104,7 @@ const VerificationCTAModal = ({
       target: '/profile?openVerify=1',
     };
   })();
+
   const { Icon } = copy;
 
   const handleCTA = () => {
