@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,127 @@ import {
   Heart, Shield, CheckCircle, Users, Lock, Star, 
   MessageCircle, UserCheck, Search, BadgeCheck, LogIn 
 } from 'lucide-react';
+
+// Sample profiles shown on the landing page. STYLIZED MOCKUPS, NOT real users
+// — per exec consult (privacy + growth) all major dating apps (Tinder, Bumble,
+// Hinge, Muzz, Salams, Christian Mingle, eHarmony) use synthetic illustrations
+// rather than real users to avoid: (1) liability from outing a marriage-seeker
+// on a public URL their employer/family can find; (2) GDPR Art. 9 special-
+// category-data exposure (religion); (3) breach of our own "private and only
+// visible to matches" representation. The "Representative profiles" disclaimer
+// below the grid reinforces the privacy positioning faith users care about.
+//
+// Photos via Pravatar (free placeholder service backed by Unsplash).
+// ⚠️  TODO (HIGH PRIORITY): Pravatar has no SLA, rate-limits per origin, and
+// the `?img=N` IDs can rotate without notice — a face you reviewed today may
+// silently become a different person tomorrow. Before any meaningful marketing
+// push, REPLACE these URLs with either:
+//   (a) Direct Unsplash photo URLs (stable, free for commercial use), or
+//   (b) Photos uploaded to your own CDN (horizons-cdn.hostinger.com — same
+//       CDN that hosts the hero engagement photo).
+// Recommended in reviewer pass — flagged as #1 follow-up post-launch.
+//
+// Diversity quota: 3M/3F, 3+ religious affiliations, age range 27-34, mix US +
+// international city, 4+ visible ethnicities. Re-balance to match your real
+// user base as it grows.
+const SAMPLE_PROFILES = [
+  {
+    photo: 'https://i.pravatar.cc/600?img=47',
+    name: 'Sarah',
+    age: 29,
+    faithLabel: 'Christian • Practicing',
+    city: 'Brooklyn, NY',
+    occupation: 'Pediatric Nurse',
+    bio: 'Sunday service, weekday hikes, and a soft spot for golden retrievers.',
+  },
+  {
+    photo: 'https://i.pravatar.cc/600?img=12',
+    name: 'David',
+    age: 32,
+    faithLabel: 'Catholic • Practicing',
+    city: 'Chicago, IL',
+    occupation: 'Software Engineer',
+    bio: 'Looking for a teammate, not just a date. Faith and family come first.',
+  },
+  {
+    photo: 'https://i.pravatar.cc/600?img=44',
+    name: 'Aisha',
+    age: 27,
+    faithLabel: 'Muslim • Practicing',
+    city: 'London, UK',
+    occupation: 'Architecture Student',
+    bio: 'Iftar with family, weekend museum trips, building something meaningful.',
+  },
+  {
+    photo: 'https://i.pravatar.cc/600?img=33',
+    name: 'Yusuf',
+    age: 34,
+    faithLabel: 'Muslim • Practicing',
+    city: 'Houston, TX',
+    occupation: 'Civil Engineer',
+    bio: 'Quietly ambitious, family-oriented, ready for the next chapter.',
+  },
+  {
+    photo: 'https://i.pravatar.cc/600?img=49',
+    name: 'Maria',
+    age: 30,
+    faithLabel: 'Catholic • Practicing',
+    city: 'Madrid, Spain',
+    occupation: 'Marketing Manager',
+    bio: 'Mass on Sundays, paella on Saturdays. Seeking a partner for the long road.',
+  },
+  {
+    photo: 'https://i.pravatar.cc/600?img=68',
+    name: 'Daniel',
+    age: 31,
+    faithLabel: 'Christian • Evangelical',
+    city: 'Austin, TX',
+    occupation: 'High School Teacher',
+    bio: 'Bible study, BBQ, and looking for a wife to walk this life with.',
+  },
+];
+
+// Single sample-profile card. Image lazy-loads; entrance animation staggers.
+const SampleProfileCard = ({ photo, name, age, faithLabel, city, occupation, bio, delay = 0 }) => {
+  const prefersReduced = useReducedMotion();
+  return (
+  <motion.div
+    initial={prefersReduced ? false : { opacity: 0, y: 24 }}
+    whileInView={prefersReduced ? undefined : { opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: '-50px' }}
+    transition={prefersReduced ? { duration: 0 } : { duration: 0.5, delay, ease: 'easeOut' }}
+    className="bg-white rounded-[14px] border border-[#E6DCD2] shadow-sm hover:shadow-md transition-all overflow-hidden group"
+  >
+    <div className="relative aspect-[4/5] overflow-hidden bg-[#F3E8D9]">
+      <img
+        src={photo}
+        alt={`Sample profile illustration: ${name}, ${age}, ${city}`}
+        loading="lazy"
+        decoding="async"
+        className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-500"
+      />
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent h-2/5 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+        <h3 className="text-xl font-bold leading-tight">{name}, {age}</h3>
+        <p className="text-sm opacity-90 mt-0.5">{city}</p>
+      </div>
+    </div>
+    <div className="p-4 space-y-3">
+      <div className="flex flex-wrap gap-1.5">
+        <span className="text-xs bg-[#F9E7EB] text-[#C85A72] px-2.5 py-1 rounded-full font-semibold">
+          {faithLabel}
+        </span>
+        <span className="text-xs bg-[#F3E8D9] text-[#1F1F1F] px-2.5 py-1 rounded-full font-medium">
+          {occupation}
+        </span>
+      </div>
+      <p className="text-sm text-[#706B67] italic leading-snug">
+        &ldquo;{bio}&rdquo;
+      </p>
+    </div>
+  </motion.div>
+  );
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -134,8 +255,32 @@ const LandingPage = () => {
         </div>
       </div>
 
+      {/* --- INSIDE MARRYZEN (sample profile cards) --- */}
+      <section id="inside-marryzen" className="section-pad bg-[#FAF7F2] separator-line">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">
+              What Your Matches Look Like
+            </h2>
+            <p className="text-lg text-[#706B67] max-w-2xl mx-auto">
+              Faith-first, verified members seeking lifelong commitment — across denominations, cities, and stages of life.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {SAMPLE_PROFILES.map((p, i) => (
+              <SampleProfileCard key={p.name} {...p} delay={i * 0.06} />
+            ))}
+          </div>
+
+          <p className="text-center text-sm text-[#706B67] mt-10 italic opacity-80">
+            Illustrative examples, not real members. Actual member profiles are private and visible only to mutual matches.
+          </p>
+        </div>
+      </section>
+
       {/* --- HOW MARRYZEN WORKS --- */}
-      <section id="how-it-works" className="section-pad bg-[#FAF7F2] separator-line">
+      <section id="how-it-works" className="section-pad bg-[#F3E8D9] separator-line">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
                 <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">How Marryzen Works</h2>
