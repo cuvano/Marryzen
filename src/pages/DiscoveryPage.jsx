@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
+import VerificationCTAModal from '@/components/VerificationCTAModal';
 import { 
   SlidersHorizontal, Search, RotateCcw, Heart, Save, BookHeart, 
   Clock, Flame, Star, MapPin, Loader2, MoreHorizontal, Undo2,
@@ -74,6 +75,11 @@ const DiscoveryPage = () => {
   
   // Premium Modal
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  // B-Plus (May 2026): context-rich verification gate. When an unverified user
+  // attempts to LIKE, this stores { profile, status } so the modal can show
+  // who they were engaging with AND route to the right destination based on
+  // identity_verification_status (pending → wait, name_mismatch → rename, etc.)
+  const [verifyCTA, setVerifyCTA] = useState(null); // null | { profile, status }
   const [premiumModalFeature, setPremiumModalFeature] = useState(null);
 
   // Carousel & Detailed View State
@@ -100,7 +106,8 @@ const DiscoveryPage = () => {
     countries: [],
     // Premium
     recentActive: false,
-    verifiedOnly: false,
+    // verifiedOnly removed in B-Plus (May 2026) — verification is now mandatory
+    // and enforced server-side in fetchProfiles. See VerificationCTAModal.
   };
   
   const [filters, setFilters] = useState(() => {
@@ -260,9 +267,10 @@ const DiscoveryPage = () => {
 
         let query = supabase.from('profiles').select('*').eq('status', 'approved');
 
-        if (filters.verifiedOnly) {
-          query = query.eq('is_verified', true);
-        }
+        // B-Plus (May 2026): hard-exclude unverified profiles from Discovery
+        // for EVERY user. Every visible profile must be Didit-verified. The
+        // opt-in `verifiedOnly` filter + UI toggle were removed.
+        query = query.eq('is_verified', true);
 
         // Match by preferred gender: only show profiles whose gender matches what the current user is looking for (avoids "matching men to men")
         const preferredGender = currentUser.looking_for_gender?.trim();
@@ -318,8 +326,10 @@ const DiscoveryPage = () => {
                 }
                 if (filters.zodiacSign && p.zodiac_sign !== filters.zodiacSign) return false;
                 
-                // Verified-only (any user can enable via quick filter; premium sidebar toggle also sets this)
-                if (filters.verifiedOnly && !isIdentityVerifiedProfile(p)) return false;
+                // B-Plus (May 2026): client-side belt-and-suspenders — the server
+                // query already excludes unverified profiles, but if anything
+                // slipped through (cache, race condition), filter it out here.
+                if (!isIdentityVerifiedProfile(p)) return false;
 
                 // ...Active today... = same local calendar day as viewer...s device; missing/stale last_active_at excluded
                 if (filters.recentActive && !isProfileActiveLocalToday(p.last_active_at)) return false;
@@ -434,7 +444,24 @@ const DiscoveryPage = () => {
     // no grief), so capping them just blocks free users from reaching profiles
     // that might convert them to premium. Net negative for conversion.
 
-// Server-side rate limit on LIKEs only — passes don't grief anyone.
+    // B-Plus (May 2026): Identity verification gate. Unverified VIEWERS cannot
+    // LIKE. The hard-exclusion above filters unverified TARGETS from the grid,
+    // but the viewer's own is_verified is checked here — so a freshly-signed-up
+    // user can browse verified profiles but must verify before they can engage.
+    // Opens a context-rich modal with the target's photo + name. Branches on
+    // identity_verification_status so users in pending / rejected / name_mismatch
+    // get the right copy and don't burn extra Didit sessions unnecessarily.
+    if (type === 'like' && !currentUser?.is_verified) {
+      const ivs = (currentUser?.identity_verification_status || '').toLowerCase();
+      let status = 'unverified';
+      if (ivs === 'pending') status = 'pending';
+      else if (ivs === 'rejected') status = 'rejected';
+      else if (currentUser?.identity_verification_status === 'name_mismatch') status = 'name_mismatch';
+      setVerifyCTA({ profile: target, status });
+      return;
+    }
+
+    // Server-side rate limit on LIKEs only — passes don't grief anyone.
     // Defense-in-depth on top of: 500ms debounce, rapid-like counter,
     // daily-limit check (all above). 120/min for logged-in users.
     // Helper shows its own destructive toast on 429, so we just early-return.
@@ -601,7 +628,6 @@ const DiscoveryPage = () => {
           zodiacSign: filters.zodiacSign || '',
           countries: filters.countries || [],
           recentActive: filters.recentActive || false,
-          verifiedOnly: filters.verifiedOnly || false
       };
 
       const { data, error } = await supabase.from('user_preferences').insert({
@@ -683,7 +709,6 @@ const DiscoveryPage = () => {
           zodiacSign: filtersData.zodiacSign || '',
           countries: Array.isArray(filtersData.countries) ? filtersData.countries : [],
           recentActive: filtersData.recentActive || false,
-          verifiedOnly: filtersData.verifiedOnly || false
       };
       
       setFilters(loadedFilters);
@@ -901,7 +926,7 @@ const DiscoveryPage = () => {
   const EmptyState = ({ filters, defaultFilters, isPremium, userProfile, onClearFilters, onExpandAge, onIncreaseDistance, onRemovePremiumFilters, onCompleteProfile }) => {
     const hasActiveFilters = filters.city || filters.faith || filters.smoking || filters.drinking || filters.maritalStatus || filters.hasChildren || 
                             filters.ageRange[0] !== defaultFilters.ageRange[0] || filters.ageRange[1] !== defaultFilters.ageRange[1] ||
-                            filters.distance !== defaultFilters.distance || filters.verifiedOnly || filters.recentActive ||
+                            filters.distance !== defaultFilters.distance || filters.recentActive ||
                             (isPremium && (filters.minPhotos > 0 || filters.income));
 
     const suggestions = [];
@@ -951,16 +976,6 @@ const DiscoveryPage = () => {
         icon: X,
         title: 'Remove Premium-Only Filters',
         description: 'These filters are limiting your results. Remove them to see more profiles.',
-        action: onRemovePremiumFilters,
-        color: 'text-orange-600',
-        bg: 'bg-orange-50'
-      });
-    }
-    if (filters.verifiedOnly) {
-      suggestions.push({
-        icon: X,
-        title: 'Show all profiles',
-        description: 'Turn off ID-verified only to include members who have not completed identity verification yet.',
         action: onRemovePremiumFilters,
         color: 'text-orange-600',
         bg: 'bg-orange-50'
@@ -1148,9 +1163,6 @@ const DiscoveryPage = () => {
                             <Button variant="ghost" size="sm" className="whitespace-nowrap bg-white border border-[#E6DCD2] hover:bg-[#FAF7F2]" onClick={() => setFilters({...defaultFilters, recentActive: true})}>
                                 <Clock className="w-3 h-3 mr-1" /> Recently Active
                             </Button>
-                            <Button variant="ghost" size="sm" className="whitespace-nowrap bg-white border border-[#E6DCD2] hover:bg-[#FAF7F2]" onClick={() => setFilters({...defaultFilters, verifiedOnly: true})}>
-                                <Shield className="w-3 h-3 mr-1" /> ID verified
-                            </Button>
 
                             {/* Saved Prefs Dropdown - Premium Only */}
                             {currentUser?.is_premium && (
@@ -1187,13 +1199,12 @@ const DiscoveryPage = () => {
                     </div>
 
                     {/* Filter Summary Tags ... only render when any filter is active */}
-                    {(filters.faith || filters.city || filters.recentActive || filters.verifiedOnly) && (
+                    {(filters.faith || filters.city || filters.recentActive) && (
                       <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
                           {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
                           {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
                           {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
-                          {filters.verifiedOnly && <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">ID verified <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, verifiedOnly: false})}/></Badge>}
                           {/* Undo Button - Premium Only */}
                           {lastAction && currentUser?.is_premium && (
                               <Button 
@@ -1264,7 +1275,6 @@ const DiscoveryPage = () => {
                             const newFilters = {
                                 ...filters,
                                 recentActive: false,
-                                verifiedOnly: false,
                                 minPhotos: 0,
                                 income: ''
                             };
@@ -1389,6 +1399,16 @@ const DiscoveryPage = () => {
             isOpen={premiumModalOpen}
             onClose={() => setPremiumModalOpen(false)}
             feature={premiumModalFeature}
+        />
+
+        {/* B-Plus (May 2026): Identity verification CTA — fires when an
+            unverified user attempts to LIKE. See handleInteraction gate above. */}
+        <VerificationCTAModal
+            open={!!verifyCTA}
+            onClose={() => setVerifyCTA(null)}
+            targetProfile={verifyCTA?.profile}
+            action="like"
+            status={verifyCTA?.status || 'unverified'}
         />
     </div>
   );
