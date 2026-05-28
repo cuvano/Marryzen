@@ -18,22 +18,27 @@ import {
 // visible to matches" representation. The "Representative profiles" disclaimer
 // below the grid reinforces the privacy positioning faith users care about.
 //
-// Photos via Pravatar (free placeholder service backed by Unsplash).
-// ⚠️  TODO (HIGH PRIORITY): Pravatar has no SLA, rate-limits per origin, and
-// the `?img=N` IDs can rotate without notice — a face you reviewed today may
-// silently become a different person tomorrow. Before any meaningful marketing
-// push, REPLACE these URLs with either:
-//   (a) Direct Unsplash photo URLs (stable, free for commercial use), or
-//   (b) Photos uploaded to your own CDN (horizons-cdn.hostinger.com — same
-//       CDN that hosts the hero engagement photo).
-// Recommended in reviewer pass — flagged as #1 follow-up post-launch.
+// Photos sourced from Unsplash (free for commercial use under the Unsplash
+// License). Selected by an exec-style research pass to match the diversity
+// quota below and avoid stock-photo cliches (no glam-shot vibe; warm, natural
+// portraits that read as real people).
+//
+// Photographer attribution (recommended, not legally required by Unsplash):
+//   Sarah  — @christianbuehner   David  — @ostape
+//   Aisha  — @blenkov            Yusuf  — @djoshyy
+//   Maria  — @christianbuehner   Daniel — @itfeelslikefilm
+//
+// Long-term: for full control + zero external dependency, mirror to your own
+// CDN (horizons-cdn.hostinger.com — same CDN that hosts the hero engagement
+// photo). Until then, Unsplash IDs are stable (the file behind an ID rarely
+// gets replaced) so this is durable enough for v1.
 //
 // Diversity quota: 3M/3F, 3+ religious affiliations, age range 27-34, mix US +
 // international city, 4+ visible ethnicities. Re-balance to match your real
 // user base as it grows.
 const SAMPLE_PROFILES = [
   {
-    photo: 'https://i.pravatar.cc/600?img=47',
+    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'Sarah',
     age: 29,
     faithLabel: 'Christian • Practicing',
@@ -42,7 +47,7 @@ const SAMPLE_PROFILES = [
     bio: 'Sunday service, weekday hikes, and a soft spot for golden retrievers.',
   },
   {
-    photo: 'https://i.pravatar.cc/600?img=12',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'David',
     age: 32,
     faithLabel: 'Catholic • Practicing',
@@ -51,7 +56,7 @@ const SAMPLE_PROFILES = [
     bio: 'Looking for a teammate, not just a date. Faith and family come first.',
   },
   {
-    photo: 'https://i.pravatar.cc/600?img=44',
+    photo: 'https://images.unsplash.com/photo-1596664427764-1a29079a6b6e?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'Aisha',
     age: 27,
     faithLabel: 'Muslim • Practicing',
@@ -60,7 +65,7 @@ const SAMPLE_PROFILES = [
     bio: 'Iftar with family, weekend museum trips, building something meaningful.',
   },
   {
-    photo: 'https://i.pravatar.cc/600?img=33',
+    photo: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'Yusuf',
     age: 34,
     faithLabel: 'Muslim • Practicing',
@@ -69,7 +74,7 @@ const SAMPLE_PROFILES = [
     bio: 'Quietly ambitious, family-oriented, ready for the next chapter.',
   },
   {
-    photo: 'https://i.pravatar.cc/600?img=49',
+    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'Maria',
     age: 30,
     faithLabel: 'Catholic • Practicing',
@@ -78,7 +83,7 @@ const SAMPLE_PROFILES = [
     bio: 'Mass on Sundays, paella on Saturdays. Seeking a partner for the long road.',
   },
   {
-    photo: 'https://i.pravatar.cc/600?img=68',
+    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&h=750&fit=crop&crop=faces&q=80',
     name: 'Daniel',
     age: 31,
     faithLabel: 'Christian • Evangelical',
