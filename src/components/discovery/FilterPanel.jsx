@@ -73,7 +73,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
       zodiacSign: '',
       countries: [],
       recentActive: false,
-      verifiedOnly: false,
+      // verifiedOnly removed in B-Plus (May 2026) — see DiscoveryPage query.
       distance: null,
     };
     setFilters(defaultFilters);
@@ -207,12 +207,10 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                     </div>
                 </PremiumLock>
                 
-                <PremiumLock label="Verification" feature="advanced_filters">
-                    <div className="flex items-center justify-between space-x-2">
-                        <Label className="leading-snug">ID-verified only</Label>
-                        <Switch checked={filters.verifiedOnly || false} onCheckedChange={(v) => handleChange('verifiedOnly', v)} />
-                    </div>
-                </PremiumLock>
+                {/* B-Plus (May 2026): "ID-verified only" toggle removed.
+                    Unverified profiles are now hard-excluded from Discovery for
+                    every user; the toggle was redundant and confusing. See
+                    DiscoveryPage.jsx fetchProfiles query for the enforcement. */}
 
                 <PremiumLock label="Distance" feature="advanced_filters">
                   <div className="space-y-3">
