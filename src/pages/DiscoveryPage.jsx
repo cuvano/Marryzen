@@ -55,8 +55,8 @@ const DiscoveryPage = () => {
   // Usage tracking
   const [dailyLikeCount, setDailyLikeCount] = useState(0);
   const [dailyPassCount, setDailyPassCount] = useState(0);
-  const LIKE_LIMIT_FREE = 10;
-  const PASS_LIMIT_FREE = 10;
+  const LIKE_LIMIT_FREE = 25;
+  // PASS_LIMIT_FREE removed 2026-05-27 — passes don't grief anyone, no upside to capping
   
   // Throttling state
   const [lastActionTime, setLastActionTime] = useState(0);
@@ -430,18 +430,9 @@ const DiscoveryPage = () => {
       }
     }
 
-    // Check daily pass limit (free users only; premium unlimited)
-    if (type === 'pass') {
-      if (!currentUser?.is_premium && dailyPassCount >= PASS_LIMIT_FREE) {
-        toast({
-          title: "Daily pass limit reached",
-          description: `You've reached the daily limit of ${PASS_LIMIT_FREE} passes. Try again tomorrow or upgrade to Premium for unlimited passes.`,
-          variant: "destructive",
-        });
-        openPremiumModal && openPremiumModal();
-        return;
-      }
-    }
+    // Daily pass limit removed 2026-05-27 — passes are private (no notification,
+    // no grief), so capping them just blocks free users from reaching profiles
+    // that might convert them to premium. Net negative for conversion.
 
 // Server-side rate limit on LIKEs only — passes don't grief anyone.
     // Defense-in-depth on top of: 500ms debounce, rapid-like counter,
@@ -1119,15 +1110,8 @@ const DiscoveryPage = () => {
                               )}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-[#1F1F1F]">
-                            <span className="opacity-70">Passes today:</span>
-                            <span className="font-bold">{dailyPassCount}/{PASS_LIMIT_FREE}</span>
-                            {dailyPassCount >= PASS_LIMIT_FREE - 3 && dailyPassCount < PASS_LIMIT_FREE && (
-                              <span className="text-yellow-600">... Limit soon</span>
-                            )}
-                          </div>
                         </div>
-                        {(dailyLikeCount >= LIKE_LIMIT_FREE || dailyPassCount >= PASS_LIMIT_FREE) && (
+                        {dailyLikeCount >= LIKE_LIMIT_FREE && (
                           <Button 
                             size="sm" 
                             onClick={() => openPremiumModal && openPremiumModal()}
