@@ -13,6 +13,7 @@ import BlockUserModal from '@/components/BlockUserModal';
 import { Helmet } from 'react-helmet';
 import { funnel } from '@/lib/analytics';
 import { checkRateLimit } from '@/lib/rateLimit';
+import VerificationCTAModal from '@/components/VerificationCTAModal';
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -22,6 +23,10 @@ const ChatPage = () => {
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [partnerPremiumStatus, setPartnerPremiumStatus] = useState(false);
+  // B-Plus (May 2026): identity verification gate. { status } stored when an
+  // unverified user attempts to send a message — null means closed. The
+  // partner profile is sourced from activeConversation.partner inside the modal.
+  const [verifyCTAStatus, setVerifyCTAStatus] = useState(null); // null | 'unverified' | 'pending' | 'rejected' | 'name_mismatch'
   const [messages, setMessages] = useState([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
@@ -352,6 +357,24 @@ if (currentUser.status === 'suspended') {
           }
       }
 
+      // B-Plus (May 2026): Identity verification gate. Unverified users
+      // cannot send messages — opens a context-rich modal pointing them at the
+      // verification flow. Matches the hard-exclusion enforced in Discovery
+      // (unverified users can't appear in search) so this fires for legacy
+      // conversations created before the gate, or if is_verified flipped.
+      // Branches on identity_verification_status so pending / rejected /
+      // name_mismatch users get the right copy and don't burn extra Didit
+      // sessions unnecessarily.
+      if (!currentUser.is_verified) {
+          const ivs = (currentUser.identity_verification_status || '').toLowerCase();
+          let s = 'unverified';
+          if (ivs === 'pending') s = 'pending';
+          else if (ivs === 'rejected') s = 'rejected';
+          else if (currentUser.identity_verification_status === 'name_mismatch') s = 'name_mismatch';
+          setVerifyCTAStatus(s);
+          return;
+      }
+
       // Server-side rate limit (defense-in-depth: client already has a 500ms
       // debounce + 10/min repeated-message cap). 60/min for logged-in users.
       // Helper shows its own destructive toast on 429, so we just early-return.
@@ -638,6 +661,16 @@ if (currentUser.status === 'suspended') {
           blockedUserName={activeConversation.partner.full_name}
           blockedUserId={activeConversation.partner.id}
           onBlocked={() => navigate('/matches')}
+        />
+        {/* B-Plus (May 2026): Identity verification CTA — fires when an
+            unverified user attempts to send a message. See gate inside
+            handleSendMessage above. */}
+        <VerificationCTAModal
+          open={!!verifyCTAStatus}
+          onClose={() => setVerifyCTAStatus(null)}
+          targetProfile={activeConversation.partner}
+          action="message"
+          status={verifyCTAStatus || 'unverified'}
         />
       </>
     )}
