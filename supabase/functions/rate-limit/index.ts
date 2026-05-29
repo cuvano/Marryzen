@@ -1,10 +1,14 @@
 // @ts-nocheck
-// Supabase Edge Function: Rate Limiting (v2 — Postgres-backed)
+// Supabase Edge Function: Rate Limiting (v5 — JWT signature verify)
 //
-// SECURITY MODEL
-// --------------
-// - Verifies caller identity via JWT.sub (cribbed from notify-admin-report).
-//   Falls back to client IP when no JWT (login/signup pre-auth flows).
+// SECURITY MODEL (v5 hardening — B4)
+// ----------------------------------
+// - Verifies caller identity via cryptographic JWT signature check (jose +
+//   SUPABASE_JWT_SECRET, HS256). Replaces the prior atob-decode-only helper
+//   which could be spoofed by any client crafting a JWT with a forged sub.
+// - Forged/expired/missing JWT → falls back to client IP (login/signup
+//   pre-auth flows). Same fallback behavior as v4, just with a verified
+//   identity when one is present.
 // - Uses SUPABASE_SERVICE_ROLE_KEY to call the atomic check_rate_limit RPC,
 //   which is RLS-protected (no policies → only service role can read/write
 //   the rate_limits table).
@@ -13,18 +17,16 @@
 // -------
 // Postgres-backed via public.check_rate_limit() defined in
 // supabase/migrations/20260527120000_create_rate_limits_table.sql.
-// Replaces the prior in-memory Map<> which was per-isolate (broken).
 //
 // FAIL MODE
 // ---------
 // Fail-OPEN on RPC errors: if the rate-limit infrastructure is down, allow
 // the request through. Trade-off: brief abuse window during DB outages.
 // For a dating app, locking legitimate users out during an incident is
-// worse than a few minutes of unlimited login attempts. Logged so we can
-// alert on it separately.
+// worse than a few minutes of unlimited login attempts.
 //
-// CALL CONTRACT (for client wiring — Phase 2)
-// -------------------------------------------
+// CALL CONTRACT
+// -------------
 //   POST /functions/v1/rate-limit
 //   Authorization: Bearer <user-jwt>   (optional — falls back to IP)
 //   Body: { "action": "LOGIN_ATTEMPTS" | "SIGNUP_ATTEMPTS" | ... }
@@ -34,9 +36,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jwtVerify } from "https://deno.land/x/jose@v5.9.6/index.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SUPABASE_JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
 
 const ALLOWED_ORIGINS = new Set([
   "https://www.marryzen.com",
@@ -56,24 +60,24 @@ function buildCors(origin: string | null) {
   };
 }
 
-// NOTE: this decodes the JWT payload WITHOUT verifying the signature.
-// Risk for the rate-limit context is low: a forged `sub` only lets an
-// attacker fill *their chosen* user-bucket (not bypass it), and we're
-// fail-open anyway. If you ever switch to fail-closed, swap to a
-// jose-based verify against SUPABASE_JWT_SECRET. Same convention as
-// notify-admin-report.v2.ts.
-function jwtSub(authHeader: string | null): string | null {
+// Cryptographically verifies the JWT signature against SUPABASE_JWT_SECRET
+// (HS256). Returns the verified sub claim, or null on any failure. We then
+// fall back to client IP for rate-limit bucketing — same UX as v4, but the
+// user-bucket is only used when we've actually proved the user identity.
+async function verifyJwtSub(authHeader: string | null): Promise<string | null> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  if (!SUPABASE_JWT_SECRET) {
+    console.error("rate-limit: SUPABASE_JWT_SECRET env var not set — treating all callers as anonymous");
+    return null;
+  }
   const token = authHeader.slice(7);
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
   try {
-    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const pad = b64.length % 4;
-    if (pad) b64 = b64.padEnd(b64.length + (4 - pad), "=");
-    const payload = JSON.parse(atob(b64));
+    const secret = new TextEncoder().encode(SUPABASE_JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
     return typeof payload.sub === "string" ? payload.sub : null;
-  } catch {
+  } catch (e) {
+    // Covers: signature mismatch, expired token, malformed JWT, wrong alg.
+    console.warn("rate-limit: JWT verify failed:", (e as Error).message);
     return null;
   }
 }
@@ -147,10 +151,10 @@ serve(async (req) => {
     return Response.json({ error: `Unknown action: ${action}` }, { status: 400, headers: CORS });
   }
 
-  // Identify caller — prefer JWT.sub, fall back to trusted client IP.
-  // Note: clientIp() trusts platform headers and the LAST hop of XFF;
+  // Identify caller — prefer verified JWT.sub, fall back to trusted client IP.
+  // clientIp() trusts platform headers and the LAST hop of XFF;
   // see its docblock above for why.
-  const userId = jwtSub(req.headers.get("authorization"));
+  const userId = await verifyJwtSub(req.headers.get("authorization"));
   const ip = clientIp(req);
   const identifier = userId ?? `ip:${ip}`;
   const [limit, windowSec] = userId ? LIMITS[action].user : LIMITS[action].ip;
