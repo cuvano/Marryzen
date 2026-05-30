@@ -4,7 +4,7 @@
 // SECURITY MODEL (v5 hardening — B4)
 // ----------------------------------
 // - Verifies caller identity via cryptographic JWT signature check (jose +
-//   SUPABASE_JWT_SECRET, HS256). Replaces the prior atob-decode-only helper
+//   JWT_SECRET, HS256). Replaces the prior atob-decode-only helper
 //   which could be spoofed by any client crafting a JWT with a forged sub.
 // - Forged/expired/missing JWT → falls back to client IP (login/signup
 //   pre-auth flows). Same fallback behavior as v4, just with a verified
@@ -40,7 +40,7 @@ import { jwtVerify } from "https://deno.land/x/jose@v5.9.6/index.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const SUPABASE_JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "";
 
 const ALLOWED_ORIGINS = new Set([
   "https://www.marryzen.com",
@@ -60,19 +60,19 @@ function buildCors(origin: string | null) {
   };
 }
 
-// Cryptographically verifies the JWT signature against SUPABASE_JWT_SECRET
+// Cryptographically verifies the JWT signature against JWT_SECRET
 // (HS256). Returns the verified sub claim, or null on any failure. We then
 // fall back to client IP for rate-limit bucketing — same UX as v4, but the
 // user-bucket is only used when we've actually proved the user identity.
 async function verifyJwtSub(authHeader: string | null): Promise<string | null> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-  if (!SUPABASE_JWT_SECRET) {
-    console.error("rate-limit: SUPABASE_JWT_SECRET env var not set — treating all callers as anonymous");
+  if (!JWT_SECRET) {
+    console.error("rate-limit: JWT_SECRET env var not set — treating all callers as anonymous");
     return null;
   }
   const token = authHeader.slice(7);
   try {
-    const secret = new TextEncoder().encode(SUPABASE_JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
     const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
     return typeof payload.sub === "string" ? payload.sub : null;
   } catch (e) {
