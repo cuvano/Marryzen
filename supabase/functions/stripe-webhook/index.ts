@@ -51,10 +51,16 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' })
+    // Deno/Supabase Edge uses Web Crypto (SubtleCrypto), which is async-only.
+    // The synchronous constructEvent throws "SubtleCryptoProvider cannot be used
+    // in a synchronous context" here, so signature verification would fail for
+    // EVERY event and paying users would never be upgraded. Use the async
+    // verifier with an explicit SubtleCrypto provider (documented Supabase pattern).
+    const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
     let event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret, undefined, cryptoProvider)
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message)
       return new Response(
