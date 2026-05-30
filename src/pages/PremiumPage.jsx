@@ -253,8 +253,8 @@ const PremiumPage = () => {
       id: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_monthly_mock', // Replace with your Stripe Price ID
       name: 'Monthly Plan',
       duration: '1 month',
-      price: '$29.99',
-      perMonth: '$29.99 / month',
+      price: '$24.99',
+      perMonth: '$24.99 / month',
       description: 'Flexible commitment',
       buttonText: isPremium ? 'Extend by 1 Month' : 'Start Monthly Premium',
       isPopular: false
@@ -265,18 +265,18 @@ const PremiumPage = () => {
       duration: '3 months',
       price: '$59.97',
       perMonth: '$19.99 / month',
-      description: 'Good value ... save 33% vs monthly',
+      description: 'Good value ... save 20% vs monthly',
       buttonText: isPremium ? 'Add 3 Months' : 'Choose Quarterly',
       isPopular: false,
-      badge: 'Save 33%'
+      badge: 'Save 20%'
     },
     {
       id: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_annual_mock', // Replace with your Stripe Price ID
       name: 'Annual Plan',
       duration: '12 months',
-      price: '$155.88',
-      perMonth: '$12.99 / month',
-      description: 'Best value ... save 57% vs monthly',
+      price: '$179.88',
+      perMonth: '$14.99 / month',
+      description: 'Best value ... save 40% vs monthly',
       buttonText: isPremium ? 'Add 12 Months' : 'Choose Annual',
       isPopular: true,
       badge: 'Best Value'
