@@ -227,6 +227,14 @@ const SafetyPanel = () => {
   const [conversationOpen, setConversationOpen] = useState(false);
   const [conversationContext, setConversationContext] = useState(null); // { reporter, reported }
   const [selectedTemplate, setSelectedTemplate] = useState('custom');
+  // For suspend/ban: short user-facing reason that goes into the auto-email.
+  // Separate from `resolutionNotes` (admin-only). Optional — defaults to a
+  // generic "Violation of Community Guidelines" line in the Edge Function
+  // if left blank.
+  const [userFacingReason, setUserFacingReason] = useState('');
+  // Suppress the auto-email entirely (use for CSAM / threats / doxxing where
+  // tipping off the offender is harmful — see T&S guidance).
+  const [suppressNotification, setSuppressNotification] = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -306,6 +314,8 @@ const SafetyPanel = () => {
   const openActionDialog = (report) => {
     setSelectedReport(report);
     setResolutionNotes('');
+    setUserFacingReason('');
+    setSuppressNotification(false);
     // Auto-pick the template that best matches the report's category, and
     // prefill the warning message with that template's text. Admin can
     // change the dropdown selection (or edit the text directly) before
@@ -344,6 +354,15 @@ const SafetyPanel = () => {
     setActionInFlight(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: 'Not signed in',
+          description: 'Your admin session has expired. Refresh and sign in again.',
+          variant: 'destructive',
+        });
+        setActionInFlight(false);
+        return;
+      }
 
       // 1. For 'warn', send email FIRST. If it fails, don't write the report update.
       if (action === 'warn') {
@@ -414,7 +433,41 @@ const SafetyPanel = () => {
         }
       }
 
-      // 6. Done
+      // 6. Notify the user (DSA Art. 17 "statement of reasons").
+      // Runs AFTER profile.status is updated so a partial failure can't
+      // result in a "you are banned" email to a user who isn't banned.
+      // Skipped when suppressNotification is checked (CSAM/threats/doxxing
+      // — see T&S guidance). Email failure does NOT roll back the
+      // moderation action; surface a toast so admin can resend manually.
+      if ((action === 'suspend' || action === 'ban') &&
+          !suppressNotification &&
+          selectedReport.reported?.id) {
+        const invokeBody = action === 'suspend'
+          ? {
+              user_id: selectedReport.reported.id,
+              action_type: 'suspension',
+              suspend_days: suspendDays,
+              user_facing_reason: userFacingReason.trim() || null,
+            }
+          : {
+              user_id: selectedReport.reported.id,
+              action_type: 'ban',
+              user_facing_reason: userFacingReason.trim() || null,
+            };
+        const { error: notifyErr } = await supabase.functions.invoke('send-user-warning', {
+          body: invokeBody,
+        });
+        if (notifyErr) {
+          console.error(`send-user-warning (${action}) failed:`, notifyErr);
+          toast({
+            title: `${action === 'suspend' ? 'Suspension' : 'Ban'} applied — email failed`,
+            description: 'Moderation action took effect but the notification email did not send. Resend manually from admin@marryzen.com.',
+            variant: 'destructive',
+          });
+        }
+      }
+
+      // 7. Done
       const actionLabel = {
         dismiss: 'Dismissed',
         warn: 'Warning sent',
@@ -426,6 +479,8 @@ const SafetyPanel = () => {
       setResolutionNotes('');
       setWarningMessage('');
       setSelectedTemplate('custom');
+      setUserFacingReason('');
+      setSuppressNotification(false);
       fetchReports();
     } catch (e) {
       console.error('takeAction error:', e);
@@ -536,6 +591,8 @@ const SafetyPanel = () => {
                         setResolutionNotes('');
                         setWarningMessage('');
                         setSelectedTemplate('custom');
+                        setUserFacingReason('');
+                        setSuppressNotification(false);
                       }
                     }}
                   >
@@ -588,6 +645,37 @@ const SafetyPanel = () => {
                           <div className="text-[10px] text-slate-500 mt-1">
                             Picking a template overwrites the text above. You can still edit before sending.
                           </div>
+                        </div>
+
+                        <div className="border-t border-slate-800 pt-3 space-y-3">
+                          <div>
+                            <Label className="text-xs uppercase tracking-wider text-slate-400">
+                              Reason for user email (suspend / ban only)
+                            </Label>
+                            <input
+                              type="text"
+                              maxLength={500}
+                              className="w-full h-10 bg-slate-950 border border-slate-700 rounded p-2 text-sm mt-1 focus:outline-none focus:ring-1 focus:ring-slate-600"
+                              placeholder="One-line summary the user will see. E.g. 'You sent unsolicited messages asking for money.' Leave blank for a generic line."
+                              value={userFacingReason}
+                              onChange={(e) => setUserFacingReason(e.target.value)}
+                            />
+                            <div className="text-[10px] text-slate-500 mt-1">
+                              Used in the suspension / ban email. Distinct from admin notes above. Optional — defaults to "Violation of our Community Guidelines."
+                            </div>
+                          </div>
+
+                          <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={suppressNotification}
+                              onChange={(e) => setSuppressNotification(e.target.checked)}
+                              className="mt-0.5"
+                            />
+                            <span>
+                              <span className="font-semibold text-red-400">Suppress notification email</span> — use for CSAM, threats, or doxxing where tipping off the offender is harmful (before law-enforcement referral). Otherwise leave unchecked.
+                            </span>
+                          </label>
                         </div>
 
                         <div className="border-t border-slate-800 pt-3 space-y-2">
