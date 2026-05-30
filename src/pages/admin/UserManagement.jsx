@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, MoreHorizontal, ShieldAlert, Ban, CheckCircle, RefreshCcw, Eye, Image as ImageIcon, XCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from '@/components/ui/switch';
@@ -24,6 +24,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [currentAdminRole, setCurrentAdminRole] = useState(null);
   const [page, setPage] = useState(1);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   const totalCount = allUsers.length;
   const users = allUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -148,6 +149,40 @@ const UserManagement = () => {
       toast({ title: "Updated Successfully", description: "User record modified." });
       setAllUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
       if (selectedUser?.id === id) setSelectedUser({ ...selectedUser, ...updates });
+    }
+  };
+
+  const deleteUser = async (user) => {
+    if (currentAdminRole !== 'super_admin') {
+      toast({ title: "Permission Denied", description: "Only super admins can delete users.", variant: "destructive" });
+      return;
+    }
+    const r = (user.role || '').toLowerCase();
+    if (r === 'admin' || r === 'super_admin') {
+      toast({ title: "Not allowed", description: "Admin / super admin accounts cannot be deleted here.", variant: "destructive" });
+      return;
+    }
+    if (!window.confirm(`Permanently delete ${user.full_name || user.email}? This removes their account, profile, and login and cannot be undone.`)) return;
+    setDeletingUser(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', { body: { user_id: user.id } });
+      if (error || data?.error) {
+        toast({ title: "Delete failed", description: (error?.message || data?.error || "See console for details."), variant: "destructive" });
+        return;
+      }
+      toast({ title: "User deleted", description: `${user.full_name || user.email} was permanently removed.` });
+      setAllUsers(prev => prev.filter(u => u.id !== user.id));
+      setSelectedUser(null);
+    } catch (e) {
+      console.error('deleteUser error:', e);
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -416,6 +451,17 @@ const UserManagement = () => {
                                       {(!selectedUser.photos || selectedUser.photos.length === 0) && <p className="text-slate-500 italic">No photos.</p>}
                                    </div>
                                 </div>
+                                {currentAdminRole === 'super_admin' &&
+                                 (selectedUser.role || '').toLowerCase() !== 'admin' &&
+                                 (selectedUser.role || '').toLowerCase() !== 'super_admin' && (
+                                  <div className="md:col-span-2 mt-2 border-t border-red-900/50 pt-4">
+                                    <h4 className="font-semibold text-red-400 flex items-center gap-2 mb-1"><Trash2 className="w-4 h-4"/> Danger Zone</h4>
+                                    <p className="text-xs text-slate-500 mb-3">Permanently deletes this user's account, profile, and login. This cannot be undone and is recorded in the admin audit log.</p>
+                                    <Button variant="destructive" disabled={deletingUser} onClick={() => deleteUser(selectedUser)}>
+                                      <Trash2 className="w-4 h-4 mr-2" /> {deletingUser ? 'Deleting...' : 'Delete User Permanently'}
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </DialogContent>
