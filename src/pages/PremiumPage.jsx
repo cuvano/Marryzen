@@ -250,7 +250,7 @@ const PremiumPage = () => {
   // VITE_STRIPE_PRICE_ANNUAL=price_xxxxxxxxxxxxx
   const plans = [
     {
-      id: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_monthly_mock', // Replace with your Stripe Price ID
+      id: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_1TcdMBRaV11Av9z7PSIa8e3s', // Replace with your Stripe Price ID
       name: 'Monthly Plan',
       duration: '1 month',
       price: '$24.99',
@@ -260,7 +260,7 @@ const PremiumPage = () => {
       isPopular: false
     },
     {
-      id: import.meta.env.VITE_STRIPE_PRICE_QUARTERLY || import.meta.env.VITE_STRIPE_PRICE_6MONTH || 'price_quarterly_mock', // Replace with your Stripe Price ID
+      id: import.meta.env.VITE_STRIPE_PRICE_QUARTERLY || import.meta.env.VITE_STRIPE_PRICE_6MONTH || 'price_1TcdMCRaV11Av9z75LHY57o3', // Replace with your Stripe Price ID
       name: 'Quarterly Plan',
       duration: '3 months',
       price: '$59.97',
@@ -271,7 +271,7 @@ const PremiumPage = () => {
       badge: 'Save 20%'
     },
     {
-      id: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_annual_mock', // Replace with your Stripe Price ID
+      id: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || import.meta.env.VITE_STRIPE_PRICE_12MONTH || 'price_1TcdMDRaV11Av9z7hrHopVQE', // Replace with your Stripe Price ID
       name: 'Annual Plan',
       duration: '12 months',
       price: '$179.88',
