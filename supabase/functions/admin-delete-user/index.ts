@@ -96,17 +96,13 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Could not record the action in the audit log; deletion aborted." }, { status: 500, headers: CORS });
   }
 
-  // FK-safe delete: profile row first (profiles.id -> auth.users is RESTRICT), then the auth login.
-  const { error: profDelErr } = await admin.from("profiles").delete().eq("id", targetId);
-  if (profDelErr) {
-    console.error("admin-delete-user: profile delete failed:", profDelErr.message);
-    return Response.json({ error: "Failed to delete profile: " + profDelErr.message }, { status: 500, headers: CORS });
-  }
-  const { error: authDelErr } = await admin.auth.admin.deleteUser(targetId);
-  if (authDelErr) {
-    console.error("admin-delete-user: auth delete failed:", authDelErr.message);
-    // Profile already gone + action already audited; surface partial failure.
-    return Response.json({ error: "Profile deleted, but auth login removal failed: " + authDelErr.message + " (action is recorded in the audit log).", partial: true }, { status: 500, headers: CORS });
+  // Cascade hard-delete via SECURITY DEFINER RPC: clears every table referencing
+  // the user (messages / likes / reports / conversations / etc.), then the profile,
+  // then the auth login. The bare profile delete was blocked by those foreign keys.
+  const { error: rpcErr } = await admin.rpc("admin_hard_delete_user", { p_user_id: targetId });
+  if (rpcErr) {
+    console.error("admin-delete-user: cascade delete failed:", rpcErr.message);
+    return Response.json({ error: "Failed to delete user: " + rpcErr.message }, { status: 500, headers: CORS });
   }
 
   return Response.json({ ok: true, deleted: targetId }, { status: 200, headers: CORS });
