@@ -437,16 +437,30 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
         }
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const finalValue = user?.id
-        ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
-        : croppedBase64;
-      const newPhotos = [...currentPhotos];
-      newPhotos[pendingIndex] = finalValue;
-      updateFormData('photos', newPhotos);
-      setCropModalOpen(false);
-      setTempImage(null);
-      setPendingIndex(null);
+      // Upload can fail (storage RLS, network, or an unsupported image such as
+      // iOS HEIC). Previously this was unguarded, so a failure silently dropped
+      // the photo with no feedback ... the user thought "upload didn't work" and
+      // moved on. Surface the error so they can retry or pick another photo.
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const finalValue = user?.id
+          ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
+          : croppedBase64;
+        const newPhotos = [...currentPhotos];
+        newPhotos[pendingIndex] = finalValue;
+        updateFormData('photos', newPhotos);
+      } catch (e) {
+        console.error('Photo upload failed:', e);
+        toast({
+          title: "Upload failed",
+          description: e?.message || "We couldn't upload that photo. Please try again, or pick a different JPG/PNG image.",
+          variant: "destructive",
+        });
+      } finally {
+        setCropModalOpen(false);
+        setTempImage(null);
+        setPendingIndex(null);
+      }
   };
 
   const handleRemovePhoto = (index) => {

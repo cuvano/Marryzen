@@ -129,12 +129,18 @@ const OnboardingPage = () => {
                 const step =
                     stepNum != null && !Number.isNaN(stepNum) ? stepNum : null;
                 // Edit flow: finished onboarding, explicit ?edit=1, or live member with inconsistent step (e.g. step 2...4 but already approved)
+                // Edit-mode "data repair" should apply ONLY to users who have
+                // already FINISHED onboarding (approved members) but have an
+                // inconsistent step. A 'pending_review' user is simply mid-
+                // onboarding (status is set at step 1), so they must be RESUMED
+                // at their step and forced through the remaining required steps
+                // (e.g. photos) instead of being dropped into edit mode at step 1.
                 const isLiveMemberBadStep =
                     !isReferralLink &&
                     step != null &&
                     step > 1 &&
                     step < totalSteps &&
-                    (profile.status === 'approved' || profile.status === 'pending_review');
+                    profile.status === 'approved';
                 const isEditModeProfile =
                     step === totalSteps ||
                     (wantsProfileEdit && !isReferralLink) ||

@@ -24,19 +24,22 @@ const LoginPage = () => {
         // User is already logged in, check onboarding status
         const { data: profile } = await supabase
           .from('profiles')
-          .select('onboarding_step')
+          .select('onboarding_step, status, role')
           .eq('id', session.user.id)
           .maybeSingle();
         
-        // Only redirect to onboarding if onboarding_step is explicitly set and less than 5
-        // If null/undefined or >= 5, go to dashboard
+        // Onboarding is complete ONLY when onboarding_step has reached 5 (the
+        // final step sets it to 5) or the user is already an approved member.
+        // Anything else (null, 0, 1..4) means onboarding is unfinished, so we
+        // send them back to finish it instead of leaking them into the dashboard.
         if (profile) {
-          const onboardingStep = profile.onboarding_step;
-          if (onboardingStep !== null && onboardingStep !== undefined && onboardingStep < 5) {
-            navigate('/onboarding', { replace: true });
-          } else {
-            // onboarding_step is null, undefined, or >= 5, go to dashboard
+          const step = profile.onboarding_step;
+          const isAdmin = profile.role === 'admin' || profile.role === 'super_admin';
+          const isComplete = isAdmin || (typeof step === 'number' && step >= 5) || profile.status === 'approved';
+          if (isComplete) {
             navigate('/dashboard', { replace: true });
+          } else {
+            navigate('/onboarding', { replace: true });
           }
         } else {
           // Profile doesn't exist yet, allow user to stay on login or go to onboarding
@@ -77,7 +80,7 @@ const LoginPage = () => {
         // Check if profile exists and onboarding status + moderation status
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('onboarding_step, status, suspended_until')
+          .select('onboarding_step, status, suspended_until, role')
           .eq('id', data.session.user.id)
           .maybeSingle();
 
@@ -138,11 +141,17 @@ const LoginPage = () => {
           return;
         }
         
-        // If profile is incomplete (e.g. step < 5), redirect to onboarding
-        if (profile && profile.onboarding_step && profile.onboarding_step < 5) {
-             navigate('/onboarding', { replace: true });
-        } else {
+        // Route by real onboarding completion. onboarding_step reaches 5 only at
+        // the final step; null/0/1..4 means unfinished. Approved members count as
+        // complete regardless of step. This stops incomplete users (e.g. a failed
+        // photo upload at step 2) from landing on the dashboard.
+        const step = profile?.onboarding_step;
+        const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+        const isComplete = isAdmin || (typeof step === 'number' && step >= 5) || profile?.status === 'approved';
+        if (isComplete) {
              navigate('/dashboard', { replace: true });
+        } else {
+             navigate('/onboarding', { replace: true });
         }
       }
     } catch (error) {

@@ -1010,8 +1010,16 @@ const MatchesPage = () => {
                     )}
                   </div>
                             
+                            <div className="flex flex-col gap-2 mt-auto">
+                            <Button
+                              variant="outline"
+                              className="w-full border-[#E6DCD2] text-[#1F1F1F] hover:bg-[#FAF7F2] font-bold"
+                              onClick={() => navigate(`/profile/${match.id}`)}
+                            >
+                                <User className="w-4 h-4 mr-2" /> View Profile
+                            </Button>
                             <Button 
-                    className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                    className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
                                 onClick={async () => {
                                   let cid = match.conversationId;
                                   if (!cid) {
@@ -1031,6 +1039,7 @@ const MatchesPage = () => {
                             >
                                 <MessageSquare className="w-4 h-4 mr-2" /> Message
                             </Button>
+                            </div>
                         </div>
                     </div>
                 ))}
