@@ -6,7 +6,7 @@
 // ----------------------------------
 // - verify_jwt=true at the gateway is preserved.
 // - The function ALSO verifies the JWT signature locally using jose against
-//   SUPABASE_JWT_SECRET. Defense-in-depth: closes the "forged JWT" vector
+//   JWT_SECRET. Defense-in-depth: closes the "forged JWT" vector
 //   even if the gateway config is ever changed by mistake.
 // - reporter_id is derived from VERIFIED JWT.sub only (never trusted from
 //   client body).
@@ -17,7 +17,7 @@ import { jwtVerify } from "https://deno.land/x/jose@v5.9.6/index.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const ADMIN_REPORT_EMAIL = Deno.env.get("ADMIN_REPORT_EMAIL") ?? "safety@marryzen.com";
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "Marryzen Safety <alerts@marryzen.com>";
-const SUPABASE_JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "";
 
 const ALLOWED_ORIGINS = new Set([
   "https://www.marryzen.com",
@@ -46,7 +46,7 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Cryptographically verifies the JWT signature against SUPABASE_JWT_SECRET
+// Cryptographically verifies the JWT signature against JWT_SECRET
 // (HS256). Returns the verified sub claim, or null on any failure:
 // missing/malformed header, bad signature, expired token, wrong algorithm,
 // JWT secret not configured.
@@ -55,13 +55,13 @@ function escapeHtml(s: string): string {
 // JWTs without checking the signature — see B4 in ROADMAP_NEXT.md.
 async function verifyJwtSub(authHeader: string | null): Promise<string | null> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-  if (!SUPABASE_JWT_SECRET) {
-    console.error("notify-admin-report: SUPABASE_JWT_SECRET env var not set — rejecting all requests");
+  if (!JWT_SECRET) {
+    console.error("notify-admin-report: JWT_SECRET env var not set — rejecting all requests");
     return null;
   }
   const token = authHeader.slice(7);
   try {
-    const secret = new TextEncoder().encode(SUPABASE_JWT_SECRET);
+    const secret = new TextEncoder().encode(JWT_SECRET);
     const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
     return typeof payload.sub === "string" ? payload.sub : null;
   } catch (e) {
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: "ADMIN_REPORT_EMAIL has no valid recipients" }, { status: 500, headers: CORS });
   }
 
-  const safetyPanelUrl = "https://www.marryzen.com/admin/safety";
+  const safetyPanelUrl = "https://www.marryzen.com/admin/reports";
   const subject = "[Marryzen Safety] New report: " + category;
   const html =
     "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;\">" +
