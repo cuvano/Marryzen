@@ -11,7 +11,8 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 import Step1 from '@/components/onboarding/Step1';
 import Step2 from '@/components/onboarding/Step2';
-import Step3 from '@/components/onboarding/Step3';
+import Step3a from '@/components/onboarding/Step3a';
+import Step3b from '@/components/onboarding/Step3b';
 import Step4 from '@/components/onboarding/Step4';
 import Step5 from '@/components/onboarding/Step5';
 import PremiumTeaserModal from '@/components/onboarding/PremiumTeaserModal';
@@ -80,7 +81,7 @@ const OnboardingPage = () => {
     zodiacSign: '',
   });
 
-  const totalSteps = 5;
+  const totalSteps = 6;  // Phase 2E: Step 3 split into 3a (Identity/Faith) + 3b (Lifestyle). Steps 4/5 became 5/6.
 
   // Initialize and check for existing session/profile
   useEffect(() => {
@@ -195,10 +196,23 @@ const OnboardingPage = () => {
 
                 // Resume at correct step (only for incomplete profiles, not edit mode)
                 if (!isEditModeProfile) {
-                    if (step === totalSteps) {
+                    // Phase 2E: legacy step values had range 1..5. New flow uses
+                    // 1..6 because Step 3 split into 3a/3b. SQL migration bumps
+                    // existing rows 4->5 and 5->6; this in-memory mapping is the
+                    // safety net for any straggler row not yet migrated.
+                    // Phase 2E shim — only fires for pre-SQL stragglers at value 4.
+                    // SQL migration bumps 4->5 and 5->6 server-side. After SQL
+                    // runs no row has value 4, so this becomes dead code and is
+                    // safe to remove in a future cleanup. Critical that the shim
+                    // is NOT >=4 && <=5 — that would double-bump migrated rows.
+                    let resolvedStep = step;
+                    if (typeof step === 'number' && step === 4) {
+                        resolvedStep = 5;
+                    }
+                    if (resolvedStep === totalSteps) {
                         navigate('/dashboard');
-                    } else if (step != null && step > 1 && step < totalSteps) {
-                        setCurrentStep(step);
+                    } else if (resolvedStep != null && resolvedStep > 1 && resolvedStep < totalSteps) {
+                        setCurrentStep(resolvedStep);
                     } else {
                         // Step null, 1, or unknown ... stay on step 1 (do not skip to photos)
                         setCurrentStep(1);
@@ -670,55 +684,52 @@ const OnboardingPage = () => {
             setCurrentStep(3);
         }
 
-        // STEP 3: Culture & Values
+        // STEP 3a: Identity & Faith (Phase 2E split)
+        // Saves cultures + faith lifestyle + religion. Lifestyle saves at 3b.
         else if (currentStep === 3) {
-            // Build update object - only include fields that exist in the database
             const updateData = {
                 cultures: formData.cultures || [],
                 other_culture_text: formData.otherCultureText || null,
                 faith_lifestyle: formData.faithLifestyle || null,
                 religious_affiliation: formData.religiousAffiliation || null,
                 other_religious_affiliation: formData.otherReligiousAffiliation || null,
-                core_values: formData.coreValues || [],
+                onboarding_step: 4
+            };
+            const { error } = await supabase.from('profiles').update(updateData).eq('id', session.user.id);
+            if (error) throw error;
+            setCurrentStep(4);
+        }
+
+        // STEP 3b: Lifestyle & Values (Phase 2E split)
+        // Saves habits, family, education/job, zodiac, core values.
+        else if (currentStep === 4) {
+            const updateData = {
                 smoking: formData.smoking || null,
                 drinking: formData.drinking || null,
                 marital_status: formData.maritalHistory || null,
                 has_children: formData.hasChildren || false,
-                children_live_with_you: formData.hasChildren === true ? (formData.childrenLiveWithYou !== undefined ? formData.childrenLiveWithYou : null) : null,
-                onboarding_step: 4
+                children_live_with_you: formData.hasChildren === true
+                    ? (formData.childrenLiveWithYou !== undefined ? formData.childrenLiveWithYou : null)
+                    : null,
+                core_values: formData.coreValues || [],
+                onboarding_step: 5
             };
-            
-            // Phase 2C: education column collision fixed via DB migration.
-            // Education LEVEL (enum) writes to `education` column.
-            // Free-text field of study writes to NEW `field_of_study` column.
-            // (Previously both fought over the single `education` column, with
-            //  free-text silently winning — see board verdict session 11.)
-            // Education level is enum-select — only update if user picked one.
-            // Field of study is free-text — always update (so clearing the
-            // input nulls the column rather than silently preserving stale data).
+            // Phase 2C education column collision fix:
+            // education LEVEL writes to profiles.education; free-text writes to profiles.field_of_study.
             if (formData.educationLevel) {
                 updateData.education = formData.educationLevel;
             }
             updateData.field_of_study = formData.education || null;
-            
-            // Include job/occupation field
-            if (formData.job) {
-                updateData.occupation = formData.job;
-            }
-            
-            // Include zodiac_sign field
-            if (formData.zodiacSign) {
-                updateData.zodiac_sign = formData.zodiacSign;
-            }
-            
-            const { error } = await supabase.from('profiles').update(updateData).eq('id', session.user.id);
+            if (formData.job) updateData.occupation = formData.job;
+            if (formData.zodiacSign) updateData.zodiac_sign = formData.zodiacSign;
 
+            const { error } = await supabase.from('profiles').update(updateData).eq('id', session.user.id);
             if (error) throw error;
-            setCurrentStep(4);
+            setCurrentStep(5);
         }
         
-        // STEP 4: Bio & Goals
-        else if (currentStep === 4) {
+        // STEP 5: Bio & Goals (Phase 2E: was Step 4 pre-split)
+        else if (currentStep === 5) {
             const validation = validateStep4();
             if (!validation.isValid) {
                  toast({ title: "Missing Information", description: validation.message, variant: "destructive" });
@@ -733,19 +744,19 @@ const OnboardingPage = () => {
                 willing_to_relocate: formData.willingToRelocate,
                 family_goals: formData.familyGoals,
                 communication_preference: formData.communicationPreference,
-                onboarding_step: 5
+                onboarding_step: 6
             }).eq('id', session.user.id);
 
             if (error) throw error;
-            setCurrentStep(5);
+            setCurrentStep(6);
         }
 
-        // STEP 5: Finalize
+        // STEP 6: Finalize (Marriage Intent — Phase 2E renumbered)
         else if (currentStep === totalSteps) {
              const { error } = await supabase.from('profiles').update({
                  relationship_goal: formData.relationshipGoal,
                  // We could set a 'status' field here like 'active'
-                 onboarding_step: 5 
+                 onboarding_step: 6
              }).eq('id', session.user.id);
 
              if (error) throw error;
@@ -826,9 +837,10 @@ const OnboardingPage = () => {
         />
       );
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
-      case 3: return <Step3 formData={formData} updateFormData={updateFormData} cultures={cultures} coreValues={coreValues} />;
-      case 4: return <Step4 formData={formData} updateFormData={updateFormData} languages={languages} />;
-      case 5: return <Step5 formData={formData} updateFormData={updateFormData} isEditMode={isEditMode} />;
+      case 3: return <Step3a formData={formData} updateFormData={updateFormData} cultures={cultures} />;
+      case 4: return <Step3b formData={formData} updateFormData={updateFormData} coreValues={coreValues} />;
+      case 5: return <Step4 formData={formData} updateFormData={updateFormData} languages={languages} />;
+      case 6: return <Step5 formData={formData} updateFormData={updateFormData} isEditMode={isEditMode} />;
       default: return null;
     }
   };
@@ -854,7 +866,10 @@ const OnboardingPage = () => {
     return !!baseFields;
   };
   const isStep2Complete = formData.photos && formData.photos.length > 0;
-  const isStep3Complete = formData.cultures?.length > 0 && formData.coreValues?.length > 0 && formData.faithLifestyle;
+  // Phase 2E split: Step 3a requires identity (cultures + faith lifestyle).
+  // Step 3b requires core values (the only field we currently soft-gate on).
+  const isStep3aComplete = formData.cultures?.length > 0 && formData.faithLifestyle;
+  const isStep3bComplete = formData.coreValues?.length > 0;
   const isStep4Complete = formData.bio?.length >= 50 && formData.willingToRelocate && formData.familyGoals;
 
   const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && (isEditMode || formData.agreeToTermsV2);
@@ -940,10 +955,11 @@ const OnboardingPage = () => {
                   className="bg-[#E6B450] hover:bg-[#D0A23D] text-white rounded-full px-10 py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={
                     isLoading ||
-                    (currentStep === 1 && !isStep1Valid()) || 
+                    (currentStep === 1 && !isStep1Valid()) ||
                     (currentStep === 2 && !isStep2Complete) ||
-                    (currentStep === 3 && !isStep3Complete) ||
-                    (currentStep === 4 && !isStep4Complete) ||
+                    (currentStep === 3 && !isStep3aComplete) ||
+                    (currentStep === 4 && !isStep3bComplete) ||
+                    (currentStep === 5 && !isStep4Complete) ||
                     (currentStep === totalSteps && !isStep5Complete)
                   }
                 >
