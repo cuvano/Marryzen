@@ -5,18 +5,32 @@ import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
+  // Marriage intent — reframed per session-11 board verdict.
+  // IMPORTANT: `value` is the DB-stored string (back-compat with existing
+  // profiles). `label` is the warmer display string (new). Reviewer caught
+  // the breaking-rename risk — we use the display-label pattern instead.
+  // The 4th option ('Family-Supervised Courtship') is genuinely new but its
+  // value string is stable from launch.
   const marriageIntents = [
     {
       value: 'Traditional Marriage Mindset',
-      description: 'I am only interested in communicating for marriage.'
+      label: 'Marriage First — No Dating Period',
+      description: 'I am only interested in communication that leads directly to marriage.'
     },
     {
       value: 'Marriage Within 1–2 Years',
-      description: 'I am actively preparing for marriage within the next 1–2 years.'
+      label: 'Marriage Within 1 to 2 Years',
+      description: 'I am actively preparing for marriage within the next 1 to 2 years.'
+    },
+    {
+      value: 'Family-Supervised Courtship',
+      label: 'Family-Supervised Courtship',
+      description: 'I want my family involved during a longer courtship that leads to marriage.'
     },
     {
       value: 'Serious Relationship → Marriage',
-      description: 'I want to build a serious relationship that leads to marriage.'
+      label: 'Serious Relationship Leading to Marriage',
+      description: 'I want to build a serious relationship that leads to marriage at the right time.'
     }
   ];
 
@@ -24,8 +38,12 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
     <>
       <div className="space-y-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Marriage Intent</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Your Marriage Promise</h2>
           <p className="text-[#706B67] text-lg font-medium">Marryzen is strictly for people seeking serious marriage and lifelong partnership.</p>
+          <p className="text-[#1F1F1F] text-sm mt-3 inline-flex items-center justify-center gap-2 font-semibold bg-[#FAF7F2] border border-[#E6DCD2] rounded-full px-4 py-1.5">
+            <Shield size={14} className="text-[#C85A72]"/>
+            Verified Safe Space. Zero tolerance for harassment.
+          </p>
         </div>
         
         <div>
@@ -48,7 +66,7 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
                         {isSelected && <div className="w-2.5 h-2.5 bg-[#1F1F1F] rounded-full" />}
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-base mb-1">{goal.value}</div>
+                      <div className="font-bold text-base mb-1">{goal.label}</div>
                       <div className="text-sm text-[#706B67]">{goal.description}</div>
                     </div>
                   </div>
@@ -80,17 +98,14 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
                 className="border-[#C85A72] data-[state=checked]:bg-[#E6B450] data-[state=checked]:border-[#E6B450] w-5 h-5 mt-0.5"
               />
               <Label htmlFor="agreeToTermsV2" className="text-[#1F1F1F] text-sm font-normal cursor-pointer leading-relaxed">
-                 <span className="font-bold text-[#C85A72]">Community Pledge:</span> I agree to the <Link to="/terms" className="text-[#E6B450] hover:underline" target="_blank">Terms of Service</Link>, <Link to="/privacy" className="text-[#E6B450] hover:underline" target="_blank">Privacy Policy</Link>, and <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link>. I understand Marryzen is not a casual dating app and misuse may result in permanent removal.
+                 <span className="font-bold text-[#C85A72]">Community Pledge:</span> I will treat every member with respect and honor the spirit of the <Link to="/community-guidelines" className="text-[#E6B450] hover:underline" target="_blank">Community Guidelines</Link>. I understand that violations may result in temporary suspension or permanent removal, with written notice and a right to appeal.
               </Label>
             </div>
           )}
         </div>
 
       </div>
-      <p className="text-[#706B67] text-xs text-center mt-8 flex items-center justify-center gap-2 font-medium">
-        <Shield size={14} className="text-[#C85A72]"/>
-        Verified Safe Space. Zero Tolerance for Harassment.
-      </p>
+      
     </>
   );
 };
