@@ -29,6 +29,24 @@ const UserManagement = () => {
   const totalCount = allUsers.length;
   const users = allUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Session 14 finding #2 — admin list showed "Suspended" for users whose
+  // suspension had already expired. The clear_expired_suspension() RPC only
+  // fires on the suspended user's next login (it uses auth.uid()), so the DB
+  // row stays stale until they log in. Compute the effective status here so
+  // admins see the truth instantly. Also surface a tiny "(expired)" hint
+  // so it's obvious why the user can still log in.
+  const getEffectiveStatus = (u) => {
+    if (u?.status === 'suspended' && u?.suspended_until) {
+      const t = new Date(u.suspended_until).getTime();
+      if (!Number.isNaN(t) && t < Date.now()) return null; // effectively cleared
+    }
+    return u?.status ?? null;
+  };
+  const isSuspensionExpired = (u) =>
+    u?.status === 'suspended' && u?.suspended_until &&
+    new Date(u.suspended_until).getTime() < Date.now();
+
+
   const buildBaseQuery = (cursorId = null) => {
     let q = supabase.from('profiles').select('*');
     if (filterStatus !== 'all') {
@@ -248,14 +266,27 @@ const UserManagement = () => {
                       <div className="text-xs text-slate-500">{user.email}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="outline" className={`
-                        ${user.status === 'approved' ? 'text-green-400 border-green-900 bg-green-900/10' : 
-                          user.status === 'banned' ? 'text-red-400 border-red-900 bg-red-900/10' :
-                          user.status === 'suspended' ? 'text-orange-400 border-orange-900 bg-orange-900/10' :
-                          user.status === 'pending_review' ? 'text-yellow-400 border-yellow-900 bg-yellow-900/10' :
-                          'text-gray-400 border-gray-900 bg-gray-900/10'} capitalize`}>
-                        {user.status ? user.status.replace('_', ' ') : 'No Status'}
-                      </Badge>
+                      {(() => {
+                        const eff = getEffectiveStatus(user);
+                        const expired = isSuspensionExpired(user);
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className={`
+                              ${eff === 'approved' ? 'text-green-400 border-green-900 bg-green-900/10' :
+                                eff === 'banned' ? 'text-red-400 border-red-900 bg-red-900/10' :
+                                eff === 'suspended' ? 'text-orange-400 border-orange-900 bg-orange-900/10' :
+                                eff === 'pending_review' ? 'text-yellow-400 border-yellow-900 bg-yellow-900/10' :
+                                'text-gray-400 border-gray-900 bg-gray-900/10'} capitalize`}>
+                              {eff ? eff.replace('_', ' ') : 'No Status'}
+                            </Badge>
+                            {expired && (
+                              <span className="text-[10px] text-slate-500 italic" title="Suspension auto-clears on the user's next login">
+                                (expired - auto-clears on next login)
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
