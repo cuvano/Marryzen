@@ -441,8 +441,12 @@ const PremiumPage = () => {
                     transition={{ delay: index * 0.1 }}
                     className={`relative rounded-2xl p-6 flex flex-col ${plan.isPopular ? 'bg-white border-2 border-[#E6B450] shadow-lg' : 'bg-white border border-[#E6DCD2] shadow-sm'}`}
                 >
-                    {plan.isPopular && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#E6B450] text-[#1F1F1F] text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                    {plan.badge && (
+                        <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full shadow-sm ${
+                          plan.isPopular
+                            ? 'bg-[#E6B450] text-[#1F1F1F]'
+                            : 'bg-[#1F1F1F] text-white'
+                        }`}>
                             {plan.badge}
                         </div>
                     )}
@@ -468,20 +472,34 @@ const PremiumPage = () => {
                             </p>
                           </div>
                         ) : (
-                          <Button 
-                            disabled={loading && loadingPlanId === plan.id}
-                            onClick={() => handleSubscribe(plan.id)} 
-                            className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#FAF7F2] border border-[#E6DCD2] hover:bg-[#E6DCD2] text-[#333333]'}`}
-                          >
-                            {loading && loadingPlanId === plan.id ? (
-                              <>
-                                <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                                Processing...
-                              </>
-                            ) : (
-                              plan.buttonText
-                            )}
-                          </Button>
+                          <>
+                            <Button 
+                              disabled={loading && loadingPlanId === plan.id}
+                              onClick={() => handleSubscribe(plan.id)} 
+                              className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#1F1F1F] hover:bg-[#333] text-white'}`}
+                            >
+                              {loading && loadingPlanId === plan.id ? (
+                                <>
+                                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                plan.buttonText
+                              )}
+                            </Button>
+                            {/* Sprint A — FTC Negative Option Rule (B14): auto-renewal must
+                                be disclosed adjacent to the purchase button, before checkout.
+                                Not in a tiny footer. Use the actual price + period. */}
+                            <p className="mt-3 text-xs text-[#333] leading-snug text-center">
+                              {plan.name === 'Annual Plan'
+                                ? `Auto-renews at ${plan.price} every 12 months until canceled.`
+                                : plan.name === 'Quarterly Plan'
+                                ? `Auto-renews at ${plan.price} every 3 months until canceled.`
+                                : `Auto-renews at ${plan.price} every month until canceled.`}
+                              {' '}
+                              <Link to="/billing" className="underline text-[#C85A72]">Cancel anytime</Link>.
+                            </p>
+                          </>
                         )}
                     </div>
                 </motion.div>
@@ -492,7 +510,7 @@ const PremiumPage = () => {
         <div className="text-center text-[#706B67] text-xs max-w-xl mx-auto font-medium mb-12">
             <div className="flex justify-center gap-4 mb-4">
                 <span className="flex items-center gap-1"><Lock className="w-3 h-3"/> Secure Payment via Stripe</span>
-                <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> Cancel Anytime</span>
+                <Link to="/billing" className="flex items-center gap-1 hover:text-[#C85A72] hover:underline transition-colors"><ShieldCheck className="w-3 h-3"/> Cancel Anytime</Link>
             </div>
             <p>By subscribing, you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/billing-terms" className="underline">Billing Policy</Link>.</p>
         </div>
