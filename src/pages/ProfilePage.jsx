@@ -18,7 +18,7 @@ import { recordProfileView } from '@/lib/profileViews';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
   CheckCircle, XCircle, Eye, Camera, Upload, Trash2, Crop, Loader2,
-  Mail, Lock, Award, Languages, Users, Target, Home, Sparkles, FileText, ArrowLeft, Flag, BadgeCheck, ExternalLink
+  Mail, Lock, Award, Languages, Users, Target, Sparkles, FileText, ArrowLeft, Flag, BadgeCheck, ExternalLink
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import ReportUserModal from '@/components/ReportUserModal';
@@ -507,17 +507,23 @@ const ProfilePage = () => {
   const completeness = calculateCompleteness();
   const checklist = getCompletenessChecklist();
 
-  // Trait chips for hero (scannable like Hinge/Bumble)
+  // Trait chips for hero (scannable, max 3 — family_goals belongs in
+  // the Goals card below, not the scan layer. See session-11 board verdict.)
+  const formatLanguagesLabel = (langs) => {
+    if (!langs || langs.length === 0) return '';
+    const shown = langs.slice(0, 2).join(' · ');
+    const rest = langs.length - 2;
+    return rest > 0 ? `${shown} +${rest}` : shown;
+  };
   const traitChips = [
     ...(profile.religious_affiliation ? [{ label: displayReligion(profile.religious_affiliation), icon: Heart }] : []),
-    ...(profile.relationship_goal ? [{ label: profile.relationship_goal, icon: Target }] : []),
-    ...(profile.family_goals ? [{ label: profile.family_goals, icon: Home }] : []),
-    ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' ... '), icon: Languages }] : []),
-  ].slice(0, 4);
+    ...(profile.relationship_goal ? [{ label: displayRelationshipGoal(profile.relationship_goal), icon: Target }] : []),
+    ...(profile.languages?.length ? [{ label: formatLanguagesLabel(profile.languages), icon: Languages }] : []),
+  ].slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[#F5F5F3]">
-      <Helmet><title>Profile ... Marryzen</title></Helmet>
+      <Helmet><title>{profile.full_name ? `${profile.full_name} · Marryzen` : 'Profile · Marryzen'}</title></Helmet>
       {/* Top bar ... full width, content aligned */}
       <div className="w-full border-b border-[#E8E6E4] bg-white/95 backdrop-blur-sm sticky top-0 z-20">
         <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-4 flex items-center justify-between">
@@ -552,16 +558,20 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Full-width hero ... edge to edge cover, content in wide container */}
-      <div className="w-full bg-[#E8E6E4]">
-        <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[160px] sm:h-[180px]'}`}>
+      {/* Full-width cover photo. NO text lives here anymore — see identity
+          band below. Session-11 board fix: white text on cream beige below the
+          cover was failing WCAG, and the avatar border ring was cutting
+          through the location row. Solved by moving all typography onto a
+          solid white band below the cover. */}
+      <div className="w-full">
+        <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[200px] sm:h-[220px]'}`}>
           {profile.cover_photo ? (
             <img src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#E6B450] via-[#D0A23D] to-[#1F1F1F]" />
           )}
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-black/90 via-black/45 via-30% to-transparent" />
-          <div className="pointer-events-none absolute left-0 right-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
+          {/* Subtle bottom shade — keeps cover controls legible without scorching the photo */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/40 to-transparent" />
           {isOwnProfile && !isPreviewMode && (
             <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
               <span className="bg-white text-[#111] px-5 py-2.5 rounded-lg text-sm font-medium shadow-lg">
@@ -576,44 +586,58 @@ const ProfilePage = () => {
             </button>
           )}
         </div>
-        {/* Hero content ... avatar + name in wide container */}
-        <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
-          <div className="relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row sm:items-end gap-6 pb-8">
-            <div className="relative shrink-0">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl bg-[#E8E6E4] overflow-hidden">
-                {mainPhoto ? (
-                  <img src={mainPhoto} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.remove('hidden'); }} />
-                ) : null}
-                {!mainPhoto && <User className="w-full h-full p-10 text-[#AAA]" />}
+
+        {/* Identity band — solid white, avatar straddles the top edge.
+            All typography is dark on light here, no contrast ambiguity. */}
+        <div className="w-full bg-white border-b border-[#E8E6E4]">
+          <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
+            <div className="relative flex flex-col sm:flex-row sm:items-end gap-5 pb-6">
+              {/* Avatar — straddles the cover/band boundary */}
+              <div className="relative shrink-0 -mt-16 sm:-mt-20">
+                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl bg-[#E8E6E4] overflow-hidden">
+                  {mainPhoto ? (
+                    <img src={mainPhoto} alt={profile.full_name ? `${profile.full_name}'s profile photo` : 'Profile photo'} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.remove('hidden'); }} />
+                  ) : null}
+                  {!mainPhoto && <User className="w-full h-full p-10 text-[#AAA]" />}
+                </div>
+                {/* Verified shield: top-right, larger (safety > vanity per VP T&S) */}
+                {profile.is_verified && (
+                  <div className="absolute top-1 right-1 z-10 bg-emerald-500 text-white p-2 rounded-full border-2 border-white shadow-lg" title="Identity verified">
+                    <ShieldCheck size={16} />
+                  </div>
+                )}
+                {/* Premium crown: bottom-right, smaller, hidden from other viewers */}
+                {profile.is_premium && isOwnProfile && (
+                  <div className="absolute bottom-0 right-0 z-10 bg-amber-500 text-white p-1.5 rounded-full border-2 border-white shadow-md" title="Premium member">
+                    <Crown size={12} />
+                  </div>
+                )}
               </div>
-              {profile.is_premium && (
-                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white p-2 rounded-full border-2 border-white shadow-lg">
-                  <Crown size={16} />
-                </div>
-              )}
-              {profile.is_verified && (
-                <div className="absolute top-0 right-0 bg-emerald-500 text-white p-2 rounded-full border-2 border-white shadow-lg">
-                  <ShieldCheck size={14} />
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 max-w-full sm:max-w-2xl px-1">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,.88)]">
-                {[profile.full_name, age].filter(Boolean).join(', ') || 'Member'}
-              </h1>
-              <p className="mt-1 flex items-center gap-2 text-base text-white sm:text-lg [text-shadow:0_1px_3px_rgba(0,0,0,1)]">
-                <MapPin size={18} className="shrink-0 opacity-95" />
-                {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
-              </p>
-              {traitChips.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
-                  {traitChips.map((t, i) => (
-                    <span key={i} className="inline-block px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm text-white text-sm font-medium border border-white/30">
-                      {t.label}
-                    </span>
-                  ))}
-                </div>
-              )}
+
+              {/* Text column — charcoal on white, no contrast issues */}
+              <div className="min-w-0 flex-1 pt-3 sm:pt-0 sm:pb-1">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1F1F1F]">
+                  {profile.full_name || 'Member'}
+                  {age && <span className="ml-2 text-lg sm:text-xl font-normal text-[#888]">{age}</span>}
+                </h1>
+                <p className="mt-1.5 flex items-center gap-1.5 text-sm sm:text-base text-[#555]">
+                  <MapPin size={15} className="shrink-0 text-[#C85A72]" />
+                  {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
+                </p>
+                {traitChips.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {traitChips.map((t, i) => {
+                      const Icon = t.icon;
+                      return (
+                        <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F5F5F3] border border-[#E0DDD9] text-[#1F1F1F] text-xs sm:text-sm font-medium">
+                          {Icon && <Icon size={13} className="text-[#C85A72] shrink-0" />}
+                          {t.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
