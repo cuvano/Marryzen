@@ -42,6 +42,7 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
+import FoundingMemberTerms from '@/pages/legal/FoundingMemberTerms';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
@@ -109,6 +110,7 @@ function App() {
                       <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
                       <Route path="/investor-legal" element={<InvestorLegalSummary />} />
                       <Route path="/referral-terms" element={<ReferralTerms />} />
+                      <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
                       {/* Admin Routes - Protected by AdminLayout logic */}
                       <Route path="/admin" element={<AdminLayout />}>
