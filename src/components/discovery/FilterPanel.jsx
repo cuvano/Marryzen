@@ -143,14 +143,16 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                 >
                     <option value="">Any</option>
                     <option value="Islam">Islam</option>
-                    {/* Christianity (parent) — DiscoveryPage expands via getReligionFilterValues
-                        to include all sub-denominations. Sub-options below let users be specific. */}
-                    <option value="Christianity">Christianity (all)</option>
-                    <option value="Christianity (Eastern Orthodox)">&nbsp;&nbsp;&nbsp;Eastern Orthodox</option>
-                    <option value="Christianity (Catholic)">&nbsp;&nbsp;&nbsp;Catholic</option>
-                    <option value="Christianity (Protestant)">&nbsp;&nbsp;&nbsp;Protestant</option>
-                    <option value="Christianity (LDS / Mormon)">&nbsp;&nbsp;&nbsp;LDS / Mormon</option>
-                    <option value="Christianity (Jehovah's Witness)">&nbsp;&nbsp;&nbsp;Jehovah's Witness</option>
+                    {/* Phase 2F: native <optgroup> renders as iOS picker section + announces
+                        as a labelled group to screen readers. Better than &nbsp; indentation. */}
+                    <optgroup label="Christianity">
+                      <option value="Christianity">Christianity (all)</option>
+                      <option value="Christianity (Eastern Orthodox)">Eastern Orthodox</option>
+                      <option value="Christianity (Catholic)">Catholic</option>
+                      <option value="Christianity (Protestant)">Protestant</option>
+                      <option value="Christianity (LDS / Mormon)">LDS / Mormon</option>
+                      <option value="Christianity (Jehovah's Witness)">Jehovah's Witness</option>
+                    </optgroup>
                     <option value="Judaism">Judaism</option>
                     <option value="Hinduism">Hinduism</option>
                     <option value="Sikhism">Sikhism</option>
