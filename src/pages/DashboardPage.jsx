@@ -731,30 +731,75 @@ const DashboardPage = () => {
           transition={{ delay: 0.2 }} 
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
         >
-          <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm">
+          {/* Sprint A — all 4 stat squares now clickable with correct destinations.
+              Empty-state copy is motivational, not "0 X = failure" framing.
+              The Profile Interest stat blurs for non-premium users + nudges upgrade. */}
+          <button
+            type="button"
+            onClick={() => navigate('/discovery')}
+            className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#C85A72] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#C85A72]/40"
+          >
             <Heart className="w-8 h-8 text-[#C85A72] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.potentialMatches}</div>
-            <div className="text-[#706B67] text-sm font-medium">Profiles for you</div>
-            <div className="text-[#9CA3AF] text-xs mt-0.5">Compatible profiles to discover</div>
-          </div>
-          <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm">
+            <div className="text-[#706B67] text-sm font-medium">
+              {stats.potentialMatches === 0 ? 'Find profiles' : 'Profiles for you'}
+            </div>
+            <div className="text-[#C85A72] text-xs font-semibold mt-1">
+              {stats.potentialMatches === 0 ? 'Get started →' : 'Browse now →'}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/chat')}
+            className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#3B82F6] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/40"
+          >
             <MessageCircle className="w-8 h-8 text-[#3B82F6] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.conversations}</div>
-            <div className="text-[#706B67] text-sm font-medium">Conversations</div>
-          </div>
-          <div className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm">
+            <div className="text-[#706B67] text-sm font-medium">
+              {stats.conversations === 0 ? 'Start chatting' : 'Conversations'}
+            </div>
+            <div className="text-[#3B82F6] text-xs font-semibold mt-1">
+              {stats.conversations === 0 ? 'Find someone →' : 'Open inbox →'}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/discovery')}
+            className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#EC4899] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#EC4899]/40"
+          >
             <Send className="w-8 h-8 text-[#EC4899] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.introductionsSent}</div>
-            <div className="text-[#706B67] text-sm font-medium">Introductions Sent</div>
-          </div>
-          <div 
-            className="bg-white border border-[#E6DCD2] rounded-2xl p-6 text-center shadow-sm cursor-pointer hover:border-[#E6B450] transition-colors"
+            <div className="text-[#706B67] text-sm font-medium">
+              {stats.introductionsSent === 0 ? 'Send your first' : 'Introductions'}
+            </div>
+            <div className="text-[#EC4899] text-xs font-semibold mt-1">
+              {stats.introductionsSent === 0 ? 'Get started →' : 'Send another →'}
+            </div>
+          </button>
+          <button
+            type="button"
             onClick={() => userProfile?.is_premium ? navigate('/matches') : openPremiumModal()}
+            className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#E6B450] hover:shadow-md transition-all relative focus:outline-none focus:ring-2 focus:ring-[#E6B450]/40"
           >
             <Star className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
-            <div className="text-3xl font-bold text-[#1F1F1F]">{stats.profileInterest}</div>
-            <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
-          </div>
+            {userProfile?.is_premium ? (
+              <>
+                <div className="text-3xl font-bold text-[#1F1F1F]">{stats.profileInterest}</div>
+                <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
+                <div className="text-[#E6B450] text-xs font-semibold mt-1">View matches →</div>
+              </>
+            ) : (
+              <>
+                {/* Non-premium: blur the count + show unlock nudge — Hinge/Tinder pattern */}
+                <div className="text-3xl font-bold text-[#1F1F1F] blur-sm select-none">{stats.profileInterest || '?'}</div>
+                <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
+                <div className="text-[#E6B450] text-xs font-semibold mt-1 flex items-center justify-center gap-1">
+                  <Crown size={11} className="fill-[#E6B450]" />
+                  Unlock with Premium
+                </div>
+              </>
+            )}
+          </button>
         </motion.div>
 
         {/* Two Column Layout: Next Steps + Marriage Tools */}
