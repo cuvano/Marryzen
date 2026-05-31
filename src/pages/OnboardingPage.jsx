@@ -14,6 +14,7 @@ import Step2 from '@/components/onboarding/Step2';
 import Step3 from '@/components/onboarding/Step3';
 import Step4 from '@/components/onboarding/Step4';
 import Step5 from '@/components/onboarding/Step5';
+import PremiumTeaserModal from '@/components/onboarding/PremiumTeaserModal';
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ const OnboardingPage = () => {
     rawEditParam === '1' || rawEditParam?.toLowerCase() === 'true';
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [showPremiumTeaser, setShowPremiumTeaser] = useState(false);
+  const [postOnboardingNav, setPostOnboardingNav] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   /** Logged-in user already has a profiles row ... never show "create password" on step 1 (use Account settings). */
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
@@ -742,7 +745,7 @@ const OnboardingPage = () => {
              if (error) throw error;
 
              // Store basic profile in local storage for quick access if needed, but primary is now Supabase
-             localStorage.setItem('userProfile', JSON.stringify({ ...formData, id: session.user.id }));
+             try { localStorage.setItem('userProfile', JSON.stringify({ ...formData, id: session.user.id })); } catch {}
              
              // Show different messages for new signup vs editing
              if (isEditMode) {
@@ -756,7 +759,26 @@ const OnboardingPage = () => {
                     description: "Welcome to Marryzen!",
                  });
              }
-             navigate('/dashboard');
+
+             // Per session-11 board verdict (VP Growth — Riley):
+             // The post-onboarding moment is the highest-intent conversion
+             // window. Show PremiumTeaserModal to new (non-premium, non-edit)
+             // users — once per account (localStorage flag). Suppressed for
+             // premium members and edit-mode runs.
+             const teaserSeen = (() => {
+                 try { return localStorage.getItem('premium_teaser_seen') === '1'; }
+                 catch { return false; }
+             })();
+             const shouldShowTeaser = !isEditMode
+                 && !formData.isPremium
+                 && !teaserSeen;
+
+             if (shouldShowTeaser) {
+                 setPostOnboardingNav('/dashboard');
+                 setShowPremiumTeaser(true);
+             } else {
+                 navigate('/dashboard');
+             }
         }
 
     } catch (error) {
@@ -882,7 +904,7 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   className="text-[#C85A72] hover:bg-[#F9E7EB] hover:text-[#C85A72] font-semibold px-6"
                 >
-                  ... Back
+                  ← Back
                 </Button>
               )}
               {isEditMode && (
@@ -931,7 +953,21 @@ const OnboardingPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    
+      <PremiumTeaserModal
+        open={showPremiumTeaser}
+        onUpgrade={() => {
+          try { localStorage.setItem('premium_teaser_seen', '1'); } catch {}
+          setShowPremiumTeaser(false);
+          navigate('/premium');
+        }}
+        onSkip={() => {
+          try { localStorage.setItem('premium_teaser_seen', '1'); } catch {}
+          setShowPremiumTeaser(false);
+          navigate(postOnboardingNav || '/dashboard');
+        }}
+      />
+</div>
   );
 };
 
