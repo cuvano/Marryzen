@@ -38,6 +38,10 @@ const UserManagement = () => {
     if (searchTerm) {
       q = q.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
     }
+    // NB: keep DB sort by id DESC only. The id-based cursor (lt('id', cursorId))
+    // requires that the primary sort match the cursor; any secondary sort breaks
+    // pagination and silently drops rows. Serial-offender ordering happens in JS
+    // after all pages are accumulated (see fetchAllUsers).
     q = q.order('id', { ascending: false });
     if (cursorId != null) q = q.lt('id', cursorId);
     return q.limit(FETCH_BATCH);
@@ -74,6 +78,9 @@ const UserManagement = () => {
       } while (chunk.length > 0);
 
       const accumulated = Array.from(byId.values()).sort((a, b) => {
+        // Sprint C B5: serial offenders first. Then newest-account-first as tiebreaker.
+        const rc = (b.unresolved_report_count ?? 0) - (a.unresolved_report_count ?? 0);
+        if (rc !== 0) return rc;
         const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
         const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
         return tb - ta;
@@ -224,14 +231,15 @@ const UserManagement = () => {
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Attributes</th>
                 <th className="px-6 py-4">Location</th>
+                <th className="px-6 py-4 text-center">Reports</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="5" className="px-6 py-8 text-center">Loading users...</td></tr>
+                <tr><td colSpan="6" className="px-6 py-8 text-center">Loading users...</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan="5" className="px-6 py-8 text-center">No users found.</td></tr>
+                <tr><td colSpan="6" className="px-6 py-8 text-center">No users found.</td></tr>
               ) : (
                 users.map(user => (
                   <tr key={user.id} className="border-b border-slate-800 hover:bg-slate-800/50">
@@ -256,6 +264,22 @@ const UserManagement = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">{user.location_city}, {user.location_country}</td>
+                    {/* Sprint C B5 — surfaces serial offenders inline in the user list.
+                        Yellow=1-2 / orange=3-4 / red=5+. Click the badge to open the user
+                        modal (handled by the existing eye button — no separate action). */}
+                    <td className="px-6 py-4 text-center">
+                      {user.unresolved_report_count > 0 ? (
+                        <Badge className={`${
+                          user.unresolved_report_count >= 5 ? 'bg-red-600' :
+                          user.unresolved_report_count >= 3 ? 'bg-orange-600' :
+                          'bg-yellow-600'
+                        } text-white`}>
+                          {user.unresolved_report_count}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-600 text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                        <Dialog>
                           <DialogTrigger asChild>
