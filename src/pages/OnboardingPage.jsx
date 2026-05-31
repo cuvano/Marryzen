@@ -182,8 +182,11 @@ const OnboardingPage = () => {
                     maritalHistory: profile.marital_status || '',
                     hasChildren: profile.has_children || false,
                     childrenLiveWithYou: profile.children_live_with_you,
-                    education: profile.education || '',
-                    educationLevel: profile.education || '', // Both map to the same "education" column
+                    // Phase 2C: education column collision fixed via DB migration.
+                    // `profiles.education` now stores ONLY the level enum.
+                    // `profiles.field_of_study` (new column) stores the free-text field of study.
+                    education: profile.field_of_study || '',  // free-text (e.g. 'Computer Science')
+                    educationLevel: profile.education || '',  // enum level (e.g. "Bachelor's Degree")
                     job: profile.occupation || profile.job || '', // Try occupation first, fallback to job
                     zodiacSign: profile.zodiac_sign || '',
                     countryOfOrigin: profile.country_of_origin || '',
@@ -685,15 +688,18 @@ const OnboardingPage = () => {
                 onboarding_step: 4
             };
             
-            // Only include education field if it has a value (column exists as "education")
-            if (formData.education) {
-                updateData.education = formData.education;
-            }
-            // Note: educationLevel is stored in the same "education" column
-            // If educationLevel is provided but education is not, use educationLevel
-            if (formData.educationLevel && !formData.education) {
+            // Phase 2C: education column collision fixed via DB migration.
+            // Education LEVEL (enum) writes to `education` column.
+            // Free-text field of study writes to NEW `field_of_study` column.
+            // (Previously both fought over the single `education` column, with
+            //  free-text silently winning — see board verdict session 11.)
+            // Education level is enum-select — only update if user picked one.
+            // Field of study is free-text — always update (so clearing the
+            // input nulls the column rather than silently preserving stale data).
+            if (formData.educationLevel) {
                 updateData.education = formData.educationLevel;
             }
+            updateData.field_of_study = formData.education || null;
             
             // Include job/occupation field
             if (formData.job) {
