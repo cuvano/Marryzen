@@ -41,6 +41,10 @@ const Step4 = ({ formData, updateFormData, languages }) => {
   
   const relocationOptions = ['Yes', 'No', 'Maybe'];
   
+  // Family goal options — kept as-is for DB back-compat. Display-warming
+  // (e.g. mapping '(5+)' to a softer label) can be added in
+  // profileDisplayLabels.js where it affects view-only contexts, without
+  // breaking edit-mode re-entry for existing profiles.
   const familyGoalOptions = [
       'Want children (1-2)',
       'Want children (2-3)',
@@ -65,16 +69,16 @@ const Step4 = ({ formData, updateFormData, languages }) => {
             id="bio"
             value={formData.bio}
             onChange={(e) => updateFormData('bio', e.target.value)}
-            className={`bg-white border text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl min-h-[160px] p-4 text-base leading-relaxed ${formData.bio && formData.bio.length < 50 ? 'border-red-400' : 'border-[#CFC6BA]'}`}
+            className={`bg-white border text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl min-h-[160px] p-4 text-base leading-relaxed ${formData.bio && formData.bio.length >= 10 && formData.bio.length < 50 ? 'border-red-400' : 'border-[#CFC6BA]'}`}
             placeholder="Share a little about your personality, lifestyle, values, family outlook, and what you are hoping to find in a life partner..."
           />
           <div className="flex justify-between text-sm mt-1">
-             {formData.bio && formData.bio.length < 50 ? (
-                 <p className="text-red-500 font-medium">Please enter at least 50 characters.</p>
+             {formData.bio && formData.bio.length >= 10 && formData.bio.length < 50 ? (
+                 <p className="text-red-500 font-medium">A bit more — please share at least 50 characters total.</p>
              ) : (
                  <div />
              )}
-             <p className="text-[#706B67]">{formData.bio ? formData.bio.length : 0} / 50 min</p>
+             <p className="text-[#706B67]">{formData.bio ? formData.bio.length : 0} / 50 characters</p>
           </div>
         </div>
         
