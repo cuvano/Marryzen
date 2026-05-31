@@ -92,5 +92,35 @@ export function isCanonicalReligion(value) {
   return value == null || Object.prototype.hasOwnProperty.call(RELIGION_DISPLAY, value);
 }
 
+// Filter-grouping map — when a user filters Discovery by a parent denomination
+// like "Christianity", they likely want to see anyone Christian regardless of
+// sub-denomination. Maps each canonical filter value to the full set of DB
+// values that should match. Sub-options match themselves only.
+// Includes the Atheist → Non-religious back-compat shim.
+const RELIGION_FILTER_GROUPS = {
+  'Christianity': [
+    'Christianity',
+    'Christianity (Eastern Orthodox)',
+    'Christianity (Catholic)',
+    'Christianity (Protestant)',
+    'Christianity (LDS / Mormon)',
+    "Christianity (Jehovah's Witness)",
+  ],
+  // Filtering for "Non-religious" should also surface legacy 'Atheist' rows.
+  'Non-religious': ['Non-religious', 'Atheist'],
+};
+
+/**
+ * Expand a religion filter value to the array of DB values it should match.
+ * For parent denominations (Christianity), returns all sub-options. For
+ * specific sub-options or single-value religions, returns just that value
+ * in a one-element array. Null/undefined returns []. Useful for Supabase
+ * `.in()` queries.
+ */
+export function getReligionFilterValues(value) {
+  if (!value) return [];
+  return RELIGION_FILTER_GROUPS[value] || [value];
+}
+
 export const CANONICAL_RELIGIONS = Object.keys(RELIGION_DISPLAY);
 export const CANONICAL_FAITH_LIFESTYLES = Object.keys(FAITH_LIFESTYLE_DISPLAY);
