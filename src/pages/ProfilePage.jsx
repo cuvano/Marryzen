@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
+import { displayReligion, displayFaithLifestyle } from '@/lib/religionLabels';
 import { recordProfileView } from '@/lib/profileViews';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
@@ -506,7 +507,7 @@ const ProfilePage = () => {
 
   // Trait chips for hero (scannable like Hinge/Bumble)
   const traitChips = [
-    ...(profile.religious_affiliation ? [{ label: profile.religious_affiliation, icon: Heart }] : []),
+    ...(profile.religious_affiliation ? [{ label: displayReligion(profile.religious_affiliation), icon: Heart }] : []),
     ...(profile.relationship_goal ? [{ label: profile.relationship_goal, icon: Target }] : []),
     ...(profile.family_goals ? [{ label: profile.family_goals, icon: Home }] : []),
     ...(profile.languages?.length ? [{ label: profile.languages.slice(0, 2).join(' ... '), icon: Languages }] : []),
@@ -774,8 +775,8 @@ const ProfilePage = () => {
                   <h2 className="text-base font-semibold text-[#111]">Faith & lifestyle</h2>
                 </div>
                 <div className="p-6 space-y-3">
-                  {profile.religious_affiliation && <Row label="Religion" value={profile.religious_affiliation} />}
-                  {profile.faith_lifestyle && <Row label="Practice" value={profile.faith_lifestyle} />}
+                  {profile.religious_affiliation && <Row label="Religion" value={displayReligion(profile.religious_affiliation)} />}
+                  {profile.faith_lifestyle && <Row label="Practice" value={displayFaithLifestyle(profile.faith_lifestyle)} />}
                 </div>
               </section>
             )}
