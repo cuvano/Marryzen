@@ -41,12 +41,15 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
     <>
       <div className="space-y-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Select your Background</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Cultural Heritage & Ethnicity</h2>
           <p className="text-[#706B67] text-lg">Match with someone who truly shares your values and lifestyle.</p>
         </div>
         
         <div>
-          <Label className="text-[#333333] font-semibold text-base mb-4 block">Select your background:</Label>
+          <Label className="text-[#333333] font-semibold text-base mb-2 block">Which best describes your heritage?</Label>
+          <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
+            <span className="font-semibold">Privacy:</span> Cultural heritage and ethnic background are sensitive personal data under data-protection law (GDPR Article 9). We process this solely to suggest more compatible matches, never share it with third parties, and you may choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
+          </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cultures.map((culture) => {
               const isSelected = formData.cultures?.[0] === culture;
@@ -295,7 +298,7 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
              <Label htmlFor="religiousAffiliation" className="text-[#333333] font-semibold text-base mb-2 block">Religious Affiliation (Optional)</Label>
              <p className="text-[#706B67] text-sm mb-2">This helps us suggest more compatible matches.</p>
              <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
-               <span className="font-semibold">Privacy:</span> Religious affiliation is sensitive personal data under data-protection law (GDPR Article 9). We process it solely for matching, never share it with third parties, and you may leave this blank or choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a> for details.
+               <span className="font-semibold">Privacy:</span> Religious affiliation and your level of religious practice (selected above) are sensitive personal data under data-protection law (GDPR Article 9). We process this solely for matching, never share it with third parties, and you may leave this blank or choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a> for details.
              </p>
              <select
                 id="religiousAffiliation"
