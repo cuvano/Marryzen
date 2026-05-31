@@ -18,6 +18,7 @@ import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
 import FilterPanel from '@/components/discovery/FilterPanel';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { displayReligion } from '@/lib/religionLabels';
 import ProfileCard from '@/components/discovery/ProfileCard';
 import {
   DropdownMenu,
@@ -800,7 +801,7 @@ const DiscoveryPage = () => {
                 )}
                 {profile.religious_affiliation && (
                   <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                    {profile.religious_affiliation}
+                    {displayReligion(profile.religious_affiliation)}
                   </Badge>
                 )}
                 {profile.occupation && (
