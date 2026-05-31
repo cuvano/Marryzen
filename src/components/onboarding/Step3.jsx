@@ -50,24 +50,27 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
           <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
             <span className="font-semibold">Privacy:</span> Cultural heritage and ethnic background are sensitive personal data under data-protection law (GDPR Article 9). We process this solely to suggest more compatible matches, never share it with third parties, and you may choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div role="radiogroup" aria-label="Cultural heritage and ethnicity" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cultures.map((culture) => {
               const isSelected = formData.cultures?.[0] === culture;
               return (
-                <div
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
                   key={culture}
-                  className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 ${
+                  className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:ring-offset-1 ${
                     isSelected
                       ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md'
                       : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72]'
                   }`}
                   onClick={() => handleCultureToggle(culture)}
                 >
-                  <div className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
+                  <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
                     {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
-                  <span className="text-left">{culture}</span>
-                </div>
+                  <span>{culture}</span>
+                </button>
               );
             })}
           </div>
@@ -270,24 +273,27 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
         {/* Faith & Lifestyle */}
         <div>
             <Label className="text-[#333333] font-semibold text-base mb-4 block">Faith & Lifestyle</Label>
-            <div className="grid grid-cols-1 gap-3">
+            <div role="radiogroup" aria-label="Faith lifestyle" className="grid grid-cols-1 gap-3">
                 {faithLifestyles.map((option) => {
                     const isSelected = formData.faithLifestyle === option;
                     return (
-                        <div 
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
                             key={option}
-                            className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 ${
+                            className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:ring-offset-1 ${
                                 isSelected
                                 ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md'
                                 : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72]'
                             }`}
                             onClick={() => updateFormData('faithLifestyle', option)}
                         >
-                            <div className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
+                            <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
                                 {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                             </div>
-                            <span className="text-left">{option}</span>
-                        </div>
+                            <span>{option}</span>
+                        </button>
                     )
                 })}
             </div>
