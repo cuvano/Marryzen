@@ -12,7 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
 import { displayReligion, displayFaithLifestyle } from '@/lib/religionLabels';
-import { displayRelationshipGoal, displayRelocate, displayMarriageTimeline, displayFamilyGoals } from '@/lib/profileDisplayLabels';
+import { displayRelationshipGoal, displayRelocate, displayMarriageTimeline, displayFamilyGoals, displaySmoking, displayDrinking, displayMaritalStatus, displayHasChildren } from '@/lib/profileDisplayLabels';
 import { Calendar as CalendarIcon, Baby, Plane } from 'lucide-react';
 import { recordProfileView } from '@/lib/profileViews';
 import { 
@@ -852,17 +852,22 @@ const ProfilePage = () => {
               </section>
             )}
 
-            {(profile.smoking || profile.drinking || profile.marital_status || profile.has_children !== undefined || profile.education || profile.occupation || profile.zodiac_sign || profile.country_of_origin) && (
+            {(profile.smoking || profile.drinking || profile.marital_status || (profile.has_children !== null && profile.has_children !== undefined) || profile.education || profile.occupation || profile.zodiac_sign || profile.country_of_origin || profile.field_of_study) && (
               <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-[#E8E6E4]">
-                  <h2 className="text-base font-semibold text-[#111]">Lifestyle & background</h2>
+                  <h2 className="text-base font-semibold text-[#111]">Lifestyle &amp; background</h2>
                 </div>
                 <div className="p-6 space-y-3">
-                  {profile.smoking && <Row label="Smoking" value={profile.smoking} />}
-                  {profile.drinking && <Row label="Drinking" value={profile.drinking} />}
-                  {profile.marital_status && <Row label="Marital status" value={profile.marital_status} />}
-                  {profile.has_children !== undefined && <Row label="Children" value={profile.has_children ? 'Yes' : 'No'} />}
+                  {profile.smoking && <Row label="Smoking" value={displaySmoking(profile.smoking)} />}
+                  {profile.drinking && <Row label="Drinking" value={displayDrinking(profile.drinking)} />}
+                  {profile.marital_status && <Row label="Marital status" value={displayMaritalStatus(profile.marital_status)} />}
+                  {/* Sprint A null-guard fix: DB null !== undefined was rendering "No" for
+                      every user who never answered. Helper returns '' for null/undefined. */}
+                  {displayHasChildren(profile.has_children, profile.children_live_with_you) && (
+                    <Row label="Children" value={displayHasChildren(profile.has_children, profile.children_live_with_you)} />
+                  )}
                   {profile.education && <Row label="Education" value={profile.education} />}
+                  {profile.field_of_study && <Row label="Field of study" value={profile.field_of_study} />}
                   {profile.occupation && <Row label="Occupation" value={profile.occupation} />}
                   {profile.zodiac_sign && <Row label="Zodiac" value={profile.zodiac_sign} />}
                   {profile.country_of_origin && <Row label="Origin" value={profile.country_of_origin} />}
@@ -1055,23 +1060,38 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
   const containerRef = React.useRef(null);
   const imageRef = React.useRef(null);
 
-  const handleMouseDown = (e) => {
+  // Sprint A: extract pointer position so mouse + touch share one path.
+  // Mobile crop was completely broken before — only mouse events were bound,
+  // so touch devices couldn't drag-reposition during crop.
+  const getPointerXY = (e) => {
+    if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  };
+
+  const handleDragStart = (e) => {
     if (uploading) return;
+    if (e.cancelable && e.touches) e.preventDefault();  // stop page scroll while dragging
+    const p = getPointerXY(e);
     setIsDragging(true);
-    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    setDragStart({ x: p.x - offset.x, y: p.y - offset.y });
   };
 
-  const handleMouseMove = (e) => {
+  const handleDragMove = (e) => {
     if (!isDragging || uploading) return;
-    setOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
+    if (e.cancelable && e.touches) e.preventDefault();
+    const p = getPointerXY(e);
+    setOffset({ x: p.x - dragStart.x, y: p.y - dragStart.y });
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = () => {
     setIsDragging(false);
   };
+
+  // Back-compat aliases — kept so the JSX onMouseDown/Move/Up don't need new names.
+  const handleMouseDown = handleDragStart;
+  const handleMouseMove = handleDragMove;
+  const handleMouseUp = handleDragEnd;
 
   const calculateCoverImageDisplaySize = (img, containerWidth, containerHeight) => {
     const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -1195,11 +1215,15 @@ const CoverPhotoCropDialog = ({ open, imageSrc, onCropComplete, onCancel, upload
           <div
             ref={containerRef}
             className="relative w-full bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300"
-            style={{ height: '300px', maxWidth: '800px', margin: '0 auto', aspectRatio: '16/5' }}
+            style={{ height: '300px', maxWidth: '800px', margin: '0 auto', aspectRatio: '16/5', touchAction: 'none' }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleDragStart}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+            onTouchCancel={handleDragEnd}
           >
             {imageSrc && (
               <img
@@ -1293,22 +1317,36 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
   const containerRef = React.useRef(null);
   const imageRef = React.useRef(null);
 
-  const handleMouseDown = (e) => {
+  // Sprint A: pointer extraction for mouse + touch.
+  // Mobile photo crop was completely broken before — only mouse events were bound.
+  const getPointerXY = (e) => {
+    if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  };
+
+  const handleDragStart = (e) => {
+    if (e.cancelable && e.touches) e.preventDefault();
+    const p = getPointerXY(e);
     setIsDragging(true);
-    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    setDragStart({ x: p.x - offset.x, y: p.y - offset.y });
   };
 
-  const handleMouseMove = (e) => {
+  const handleDragMove = (e) => {
     if (!isDragging) return;
-    setOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
+    if (e.cancelable && e.touches) e.preventDefault();
+    const p = getPointerXY(e);
+    setOffset({ x: p.x - dragStart.x, y: p.y - dragStart.y });
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = () => {
     setIsDragging(false);
   };
+
+  // Back-compat aliases for the JSX bindings below.
+  const handleMouseDown = handleDragStart;
+  const handleMouseMove = handleDragMove;
+  const handleMouseUp = handleDragEnd;
 
   const calculateImageDisplaySize = (img, containerSize) => {
     if (!img || !containerSize) return { width: 0, height: 0 };
@@ -1383,11 +1421,15 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
           <div
             ref={containerRef}
             className="relative bg-gray-200 rounded-lg overflow-hidden mb-4 border-2 border-gray-300 mx-auto"
-            style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE }}
+            style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE, touchAction: 'none' }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleDragStart}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+            onTouchCancel={handleDragEnd}
           >
             {imageSrc && (
               <img
