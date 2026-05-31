@@ -10,9 +10,13 @@
 // self-identify as Muslim, not as an Islam — the card copy must reflect
 // that or it reads like a Wikipedia infobox.'
 //
-// CANONICAL VALUES (source: src/components/onboarding/Step3.jsx line 37)
-//   religiousAffiliations = ['Islam', 'Christianity', 'Judaism',
-//     'Hinduism', 'Buddhism', 'Sikhism', 'Atheist',
+// CANONICAL VALUES (Phase 2C expansion — see migration 2c_migration.sql)
+//   religiousAffiliations = ['Islam', 'Christianity',
+//     'Christianity (Eastern Orthodox)', 'Christianity (Catholic)',
+//     'Christianity (Protestant)', 'Christianity (LDS / Mormon)',
+//     'Christianity (Jehovah\'s Witness)', 'Judaism', 'Hinduism',
+//     'Buddhism', 'Sikhism', 'Baha\'i', 'Zoroastrian / Parsi',
+//     'Atheist' (legacy, back-compat only), 'Non-religious',
 //     'Spiritual but not religious', 'Other', 'Prefer not to say']
 //
 // CANONICAL FAITH LIFESTYLES (Step3.jsx line 38)
@@ -20,14 +24,26 @@
 //     'Cultural faith only', 'Spiritual but not religious',
 //     'Not religious / Not practicing', 'Prefer not to say']
 
+// Display map — session-11 Phase 2C: expanded for the larger religion list.
+// Pattern: noun (DB) → adjective/short form (UI). For Christianity sub-options
+// we use the parent adjective ('Christian') with the tradition in parens so
+// the chip strip stays readable while still surfacing the specificity.
 const RELIGION_DISPLAY = {
   'Islam': 'Muslim',
   'Christianity': 'Christian',
+  'Christianity (Eastern Orthodox)': 'Christian (Orthodox)',
+  'Christianity (Catholic)': 'Catholic',
+  'Christianity (Protestant)': 'Protestant',
+  'Christianity (LDS / Mormon)': 'LDS',
+  "Christianity (Jehovah's Witness)": "Jehovah's Witness",
   'Judaism': 'Jewish',
   'Hinduism': 'Hindu',
   'Buddhism': 'Buddhist',
   'Sikhism': 'Sikh',
-  'Atheist': 'Atheist',
+  "Baha'i": "Baha'i",
+  'Zoroastrian / Parsi': 'Zoroastrian',
+  'Atheist': 'Non-religious',          // legacy DB value, display as new label
+  'Non-religious': 'Non-religious',
   'Spiritual but not religious': 'Spiritual',
   'Other': 'Other',
   'Prefer not to say': 'Prefer not to say',
