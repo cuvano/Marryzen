@@ -2,14 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
-// Editorial step labels per session-11 board verdict (Maya):
-// drop the "Step N:" prefix — the segment dots already convey position.
+// Phase 2E: Step 3 split into 3a (Identity & Faith) + 3b (Lifestyle).
+// Onboarding is now 6 steps.
 const stepDetails = {
   1: { text: "Basic Details" },
   2: { text: "Profile Photos" },
-  3: { text: "Culture & Values" },
-  4: { text: "Story & Communication" },
-  5: { text: "Marriage Intent" },
+  3: { text: "Identity & Faith" },
+  4: { text: "Lifestyle & Values" },
+  5: { text: "Story & Communication" },
+  6: { text: "Marriage Intent" },
 };
 
 const ProgressIndicator = ({ currentStep, totalSteps }) => {
@@ -18,10 +19,8 @@ const ProgressIndicator = ({ currentStep, totalSteps }) => {
 
   return (
     <div className="mb-8 max-w-3xl mx-auto px-2">
-      {/* Segment dots — give the user a sense of where they are in the
-          full flow, not just a percentage. Pattern matches Hinge/Bumble.
-          The display:contents wrapper makes the keyed div transparent to
-          the parent flex layout, so dots and connector lines line up. */}
+      {/* Segment dots — Hinge/Bumble pattern. display:contents wrapper keeps
+          the keyed React fragment transparent to parent flex layout. */}
       <div className="flex items-center justify-between mb-3" aria-hidden="true">
         {Array.from({ length: totalSteps }, (_, i) => {
           const stepNum = i + 1;
