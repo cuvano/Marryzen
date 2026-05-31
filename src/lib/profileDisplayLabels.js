@@ -77,3 +77,71 @@ export function displayFamilyGoals(value) {
   if (!v) return '';
   return FAMILY_GOALS_DISPLAY[v] || v;
 }
+
+// Lifestyle display helpers — Sprint A.
+// Per VP Design board audit: smoking/drinking/marital_status/zodiac/has_children
+// were rendering raw DB strings on ProfilePage (e.g. 'Never Married', 'No'),
+// which is fine when stored values are already warm — but it's brittle and
+// inconsistent with the rest of the page (religion/cultures/goals all use
+// display helpers). Centralize so the display layer never sees raw enums.
+
+const SMOKING_DISPLAY = {
+  'No': "Doesn't smoke",
+  'Socially': 'Socially',
+  'Regularly': 'Regularly',
+};
+const DRINKING_DISPLAY = {
+  'No': "Doesn't drink",
+  'Socially': 'Socially',
+  'Regularly': 'Regularly',
+};
+const MARITAL_DISPLAY = {
+  'Never Married': 'Never married',
+  'Divorced': 'Divorced',
+  'Widowed': 'Widowed',
+  'Annulled': 'Annulled',
+};
+
+/**
+ * Smoking lifestyle display label. Falls back to raw value if unmapped.
+ */
+export function displaySmoking(value) {
+  if (!value) return '';
+  return SMOKING_DISPLAY[value] || value;
+}
+
+/**
+ * Drinking lifestyle display label.
+ */
+export function displayDrinking(value) {
+  if (!value) return '';
+  return DRINKING_DISPLAY[value] || value;
+}
+
+/**
+ * Marital history display label.
+ */
+export function displayMaritalStatus(value) {
+  if (!value) return '';
+  return MARITAL_DISPLAY[value] || value;
+}
+
+/**
+ * Has-children display — handles null/undefined safely so callers don't
+ * accidentally render "No" for users who simply haven't answered the
+ * question (DB null vs explicit boolean false).
+ *
+ * Returns '' for null/undefined → caller should not render the row.
+ * Returns 'Yes' / 'No' for explicit boolean true / false.
+ *
+ * @param {boolean|null|undefined} value
+ * @param {boolean|null|undefined} livesWithYou Optional second value:
+ *   when true → "Yes — they live with me"; when false → "Yes — separately"
+ */
+export function displayHasChildren(value, livesWithYou) {
+  if (value === null || value === undefined) return '';
+  if (value === false) return 'No';
+  if (livesWithYou === true) return 'Yes — they live with me';
+  if (livesWithYou === false) return 'Yes — they live separately';
+  return 'Yes';
+}
