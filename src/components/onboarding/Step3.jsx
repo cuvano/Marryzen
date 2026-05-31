@@ -210,8 +210,8 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
                         <option value="">Select...</option>
                         <option value="High School">High School</option>
                         <option value="Some College">Some College</option>
-                        <option value="Bachelor'� Degree">Bachelor's Degree</option>
-                        <option value="Master"s Degree">Master's Degree</option>
+                        <option value="Bachelor's Degree">Bachelor's Degree</option>
+                        <option value="Master's Degree">Master's Degree</option>
                         <option value="Doctorate">Doctorate</option>
                         <option value="Professional Degree">Professional Degree</option>
                     </select>
