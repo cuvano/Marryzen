@@ -12,26 +12,43 @@ import { Label } from '@/components/ui/label';
  * the visual real estate they deserve.
  *
  * Fields:
- *   - Cultural Heritage & Ethnicity (single-select, with Art.9 disclosure)
+ *   - Cultural Heritage & Ethnicity (multi-select up to MAX_CULTURES, with Art.9 disclosure)
  *   - Faith & Lifestyle (single-select level-of-practice radio group)
  *   - Religious Affiliation (optional dropdown, with Art.9 disclosure)
  */
+
+// Phase 2G: cap on simultaneous culture selections. Module-scope const so
+// it's not recreated on every render, and easy to find / tune.
+const MAX_CULTURES = 3;
 const Step3a = ({ formData, updateFormData, cultures }) => {
 
+  // Cultures multi-select with cap of MAX_CULTURES (module const).
+  // Per VP DEI (Priya) board verdict: single-select with 'Mixed Heritage'
+  // catch-all is inadequate for users who actually live a mixed identity
+  // (e.g. half South Asian + half Middle Eastern). Cap at 3 to keep the
+  // primary self-identification meaningful and the matching signal clear.
+  const selectedCultures = formData.cultures || [];
+
   const handleCultureToggle = (culture) => {
-    const currentCulture = formData.cultures?.[0];
-    if (currentCulture === culture) {
-      updateFormData('cultures', []);
-      updateFormData('otherCultureText', '');
-    } else {
-      updateFormData('cultures', [culture]);
-      if (culture !== 'Other') {
+    const isSelected = selectedCultures.includes(culture);
+    if (isSelected) {
+      // Deselect
+      const next = selectedCultures.filter((c) => c !== culture);
+      updateFormData('cultures', next);
+      // If we just removed 'Other', clear its free-text companion.
+      if (culture === 'Other') {
         updateFormData('otherCultureText', '');
       }
+    } else {
+      // Select — but enforce the cap. If already at max, do nothing
+      // (the UI also disables un-selected options at the cap, so this is a backstop).
+      if (selectedCultures.length >= MAX_CULTURES) return;
+      const next = [...selectedCultures, culture];
+      updateFormData('cultures', next);
     }
   };
 
-  const isOtherCultureSelected = formData.cultures?.[0] === 'Other';
+  const isOtherCultureSelected = selectedCultures.includes('Other');
   const isOtherReligionSelected = formData.religiousAffiliation === 'Other';
 
   // Religion list — Phase 2C expansion (DB CHECK constraint relaxed to match).
@@ -70,24 +87,42 @@ const Step3a = ({ formData, updateFormData, cultures }) => {
           <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
             <span className="font-semibold">Privacy:</span> Cultural heritage and ethnic background are sensitive personal data under data-protection law (GDPR Article 9). We process this solely to suggest more compatible matches, never share it with third parties, and you may choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
           </p>
-          <div role="radiogroup" aria-label="Cultural heritage and ethnicity" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {/* Phase 2G: counter shows progress against the 3-cap. */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[#706B67] text-xs font-medium">Select up to {MAX_CULTURES}. Mix &amp; match if you identify with several.</p>
+            <span className={`text-xs font-semibold tabular-nums ${selectedCultures.length === MAX_CULTURES ? 'text-[#C85A72]' : 'text-[#706B67]'}`} aria-live="polite">
+              {selectedCultures.length} / {MAX_CULTURES}
+            </span>
+          </div>
+          {/* role=group (not radiogroup) since this is now multi-select. Each item
+              behaves like a checkbox — aria-checked + aria-disabled at the cap. */}
+          <div role="group" aria-label="Cultural heritage and ethnicity (multi-select)" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cultures.map((culture) => {
-              const isSelected = formData.cultures?.[0] === culture;
+              const isSelected = selectedCultures.includes(culture);
+              const isAtCap = !isSelected && selectedCultures.length >= MAX_CULTURES;
               return (
                 <button
                   type="button"
-                  role="radio"
+                  role="checkbox"
                   aria-checked={isSelected}
+                  aria-disabled={isAtCap}
+                  disabled={isAtCap}
                   key={culture}
-                  className={`p-4 rounded-xl cursor-pointer transition-all border text-sm font-medium flex items-center gap-3 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:ring-offset-1 ${
+                  className={`p-4 rounded-xl transition-all border text-sm font-medium flex items-center gap-3 text-left w-full focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:ring-offset-1 ${
                     isSelected
-                      ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md'
-                      : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72]'
+                      ? 'bg-[#E6B450] text-white border-[#E6B450] shadow-md cursor-pointer'
+                      : isAtCap
+                        ? 'bg-[#FAF7F2] text-[#8A857D] border-[#E6DCD2] cursor-not-allowed opacity-60'
+                        : 'bg-white text-[#333333] border-[#E6DCD2] hover:border-[#C85A72] cursor-pointer'
                   }`}
                   onClick={() => handleCultureToggle(culture)}
                 >
-                  <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${isSelected ? 'border-white' : 'border-[#CFC6BA]'}`}>
-                    {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                  <div aria-hidden="true" className={`w-4 h-4 shrink-0 rounded border flex items-center justify-center ${isSelected ? 'bg-white border-white' : 'border-[#CFC6BA]'}`}>
+                    {isSelected && (
+                      <svg viewBox="0 0 12 12" className="w-3 h-3 text-[#E6B450]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M2 6.5 L5 9.5 L10 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </div>
                   <span>{culture}</span>
                 </button>
