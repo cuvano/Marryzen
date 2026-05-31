@@ -293,11 +293,13 @@ const Step1 = ({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="identifyAs" className="text-[#333333] font-bold text-base">I am a</Label>
+          <Label id="identifyAs" htmlFor="identifyAs" className="text-[#333333] font-bold text-base">I am a</Label>
           <p id="gender-disclosure" className="text-[#706B67] text-xs font-medium -mt-1">Marryzen connects men and women for marriage. We do not currently support same-sex matching.</p>
           <div role="radiogroup" aria-labelledby="identifyAs" aria-describedby="gender-disclosure" className="grid grid-cols-2 gap-4">
             <button
               type="button"
+              role="radio"
+              aria-checked={formData.identifyAs === 'Man'}
               onClick={() => handleGenderChange('Man')}
               className={`h-12 rounded-xl border text-base font-medium transition-all ${
                 formData.identifyAs === 'Man'
@@ -309,6 +311,8 @@ const Step1 = ({
             </button>
             <button
               type="button"
+              role="radio"
+              aria-checked={formData.identifyAs === 'Woman'}
               onClick={() => handleGenderChange('Woman')}
               className={`h-12 rounded-xl border text-base font-medium transition-all ${
                 formData.identifyAs === 'Woman'
