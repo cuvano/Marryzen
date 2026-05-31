@@ -12,6 +12,8 @@ import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
 import { displayReligion, displayFaithLifestyle } from '@/lib/religionLabels';
+import { displayRelationshipGoal, displayRelocate, displayMarriageTimeline, displayFamilyGoals } from '@/lib/profileDisplayLabels';
+import { Calendar as CalendarIcon, Baby, Plane } from 'lucide-react';
 import { recordProfileView } from '@/lib/profileViews';
 import { 
   MapPin, User, Heart, Star, ShieldCheck, Edit, Crown, AlertCircle, 
@@ -844,32 +846,45 @@ const ProfilePage = () => {
               </section>
             )}
 
-            {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate) && (
+            {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate || profile.marriage_timeline) && (
               <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-[#E8E6E4]">
-                  <h2 className="text-base font-semibold text-[#111]">Goals</h2>
+                  <h2 className="text-base font-semibold text-[#111]">What they're looking for</h2>
                 </div>
                 <div className="p-6 space-y-3">
-                  {profile.relationship_goal && <Row label="Relationship" value={profile.relationship_goal} />}
-                  {profile.family_goals && <Row label="Family" value={profile.family_goals} />}
-                  {profile.willing_to_relocate && <Row label="Relocate" value={profile.willing_to_relocate} />}
+                  {profile.marriage_timeline && (
+                    <div className="flex items-start gap-3 border-l-4 border-[#E6B450] bg-[#FFFBEB] -mx-2 px-3 py-2 rounded-r">
+                      <CalendarIcon className="w-5 h-5 mt-0.5 text-[#E6B450] shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-[#706B67] mb-0.5">Their goal</div>
+                        <div className="text-sm font-semibold text-[#1F1F1F]">{displayMarriageTimeline(profile.marriage_timeline)}</div>
+                      </div>
+                    </div>
+                  )}
+                  {profile.relationship_goal && (
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Relationship" value={displayRelationshipGoal(profile.relationship_goal)} />
+                    </div>
+                  )}
+                  {profile.family_goals && (
+                    <div className="flex items-center gap-3">
+                      <Baby className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Family" value={displayFamilyGoals(profile.family_goals)} />
+                    </div>
+                  )}
+                  {(profile.willing_to_relocate !== null && profile.willing_to_relocate !== undefined) && (
+                    <div className="flex items-center gap-3">
+                      <Plane className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Relocate" value={displayRelocate(profile.willing_to_relocate)} />
+                    </div>
+                  )}
                 </div>
               </section>
             )}
           </div>
         </div>
       </div>
-
-{profile.marriage_timeline && (
-        <div className="max-w-3xl mx-auto px-4 pt-4">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFFBEB] border border-[#E6B450] text-sm font-semibold text-[#1F1F1F]">
-            {profile.marriage_timeline === 'within_6mo' && 'Looking to marry within 6 months'}
-            {profile.marriage_timeline === 'within_1y' && 'Looking to marry within 1 year'}
-            {profile.marriage_timeline === 'within_2y' && 'Looking to marry within 2 years'}
-            {profile.marriage_timeline === 'open' && 'Open to the right person'}
-          </span>
-        </div>
-      )}
             {Array.isArray(profile.prompts) && profile.prompts.length > 0 && (
         <div className="max-w-3xl mx-auto px-4 py-6">
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-4">In their own words</h2>
