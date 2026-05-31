@@ -211,25 +211,84 @@ const OnboardingPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
+  // Cultural Heritage & Ethnicity — comprehensive global list per VP DEI
+  // (Priya Narayanan) board audit. Single-select for now (multi-select
+  // deferred to Phase 2 pending DB column-type review and matching-logic
+  // changes). The list is roughly alphabetical with diaspora groupings
+  // adjacent. GDPR Article 9 explicit-consent disclosure is rendered in
+  // Step3 above this control.
   const cultures = [
-    'African American / Black', 'East Asian', 'South Asian', 'Southeast Asian', 'Australian / Oceanian', 'Central & Southern African',
-    'Eastern European / Slavic', 'European / White', 'Hispanic / Latino', 'Middle Eastern',
-    'Native American', 'North African', 'Pacific Islander', 'Mixed Heritage', 'Other'
+    'Arab / Middle Eastern',
+    'Black / African Diaspora (Caribbean, Americas, Europe)',
+    'Caribbean (non-Hispanic)',
+    'Caucasus (Armenian, Georgian, Azerbaijani)',
+    'Central African',
+    'Central Asian (Kazakh, Uzbek, Tajik, Kyrgyz, Turkmen)',
+    'East African',
+    'East Asian (Chinese, Japanese, Korean, Mongolian)',
+    'Eastern European / Slavic',
+    'European',
+    'Hispanic / Latino (Latin America)',
+    'Indigenous / First Nations',
+    'Iranian / Persian',
+    'Jewish Heritage (Ashkenazi, Sephardi, Mizrahi)',
+    'Kurdish',
+    'North African / Amazigh (Berber)',
+    'Pakistani / Afghan',
+    'Pacific Islander / Maori',
+    'Roma / Romani',
+    'South Asian (Indian, Sri Lankan, Bangladeshi, Nepali)',
+    'Southeast Asian (Indonesian, Malaysian, Filipino, Vietnamese, Thai)',
+    'Southern African',
+    'Turkish / Turkic',
+    'West African',
+    'Mixed Heritage',
+    'Prefer not to say',
+    'Other'
   ];
   
+  // Core Values — board verdict (session 11):
+  // - removed redundant 'Serious Marriage Intent' (already captured in Step1
+  //   required checkbox + Step5 marriage timeline).
+  // - renamed 'Traditional Gender Roles' to 'Defined Family Roles' (less
+  //   loaded for progressive Muslim/Reform Jewish/Christian-egalitarian users).
+  // - renamed 'Community Reputation' to 'Family & Community Standing' (more
+  //   neutral globally; "reputation" can read as social anxiety in Western
+  //   English).
+  // - added Faith Community Involvement, Charitable Service, Hospitality,
+  //   Educational Ambition (per Priya audit — missing values that core
+  //   user base actively wants).
   const coreValues = [
-    'Religious Practices', 'Family-Centered Lifestyle', 'Serious Marriage Intent (Not Casual Dating)', 
-    'Modest Living', 'Traditional Gender Roles', 'Family Involvement in Marriage', 
-    'Cultural Festivals', 'Traditional Cuisine', 'Music & Dance', 'Language Preservation', 
-    'Community Reputation', 'Raising Children in the Same Culture'
+    'Religious Practices',
+    'Faith Community Involvement',
+    'Family-Centered Lifestyle',
+    'Family Involvement in Marriage',
+    'Defined Family Roles',
+    'Modest Living',
+    'Charitable Service / Giving',
+    'Hospitality & Generosity',
+    'Educational Ambition',
+    'Cultural Festivals',
+    'Traditional Cuisine',
+    'Music & Dance',
+    'Language Preservation',
+    'Family & Community Standing',
+    'Raising Children in the Same Culture'
   ];
 
+  // Languages — expanded per VP DEI board audit to cover gaps for the
+  // app's core demographics: Pashto/Dari (Afghanistan), Somali (East African
+  // Muslim diaspora), Amharic/Tigrinya (Ethiopian/Eritrean), Hausa/Yoruba
+  // (West African), Cantonese (separate from Mandarin), Tagalog (clarified),
+  // Greek/Romanian (Orthodox/Eastern Europe).
   const languages = [
-    'English', 'Spanish', 'French', 'Arabic', 'Turkish', 'Hindi', 'Portuguese', 
-    'Russian', 'Mandarin (Chinese)', 'Japanese', 'Korean', 'Urdu', 'German', 
-    'Italian', 'Persian (Farsi)', 'Bengali', 'Polish', 'Dutch', 'Swahili', 
-    'Indonesian', 'Ukrainian', 'Punjabi', 'Filipino', 'Vietnamese', 'Thai', 
-    'Tamil', 'Telugu', 'Hebrew', 'Malay', 'Nepali', 'Kazakh', 'Uzbek', 'Other'
+    'English', 'Spanish', 'French', 'Arabic', 'Turkish', 'Hindi', 'Portuguese',
+    'Russian', 'Mandarin (Chinese)', 'Cantonese (Chinese)', 'Japanese', 'Korean',
+    'Urdu', 'German', 'Italian', 'Persian (Farsi)', 'Dari (Afghan Persian)',
+    'Pashto', 'Bengali', 'Polish', 'Dutch', 'Swahili', 'Somali', 'Amharic',
+    'Tigrinya', 'Hausa', 'Yoruba', 'Indonesian', 'Ukrainian', 'Punjabi',
+    'Tagalog (Filipino)', 'Vietnamese', 'Thai', 'Tamil', 'Telugu', 'Hebrew',
+    'Malay', 'Nepali', 'Greek', 'Romanian', 'Kazakh', 'Uzbek', 'Other'
   ].sort((a, b) => {
     // Sort alphabetically but keep "Other" at the end
     if (a === 'Other') return 1;
