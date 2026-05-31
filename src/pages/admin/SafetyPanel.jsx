@@ -578,7 +578,7 @@ const SafetyPanel = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => openConversation(report)}
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                    className="border-slate-500 text-slate-100 bg-slate-800/40 hover:bg-slate-700 hover:border-slate-400"
                   >
                     <MessageSquare className="w-4 h-4 mr-2" /> View Conversation
                   </Button>
