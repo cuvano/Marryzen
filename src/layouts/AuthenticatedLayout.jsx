@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { supabase } from '@/lib/customSupabaseClient';
 import { touchLastActiveIfDue } from '@/lib/profileActivity';
+import { isOnboardingComplete } from '@/lib/onboardingStatus';
 
 const AuthenticatedLayout = () => {
   const navigate = useNavigate();
@@ -18,7 +19,23 @@ const AuthenticatedLayout = () => {
           navigate('/login');
           return;
         }
-        
+
+        // Phase 2E+ defensive gate: if profile hasn't finished onboarding,
+        // send them back. This catches the case where a user with a stale
+        // session visits /dashboard directly (bookmark, deep link, browser
+        // back button) — without this gate they'd see the app with no photo,
+        // no bio, no values, polluting Discovery and matching signal.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_step')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (!isOnboardingComplete(profile)) {
+          navigate('/onboarding', { replace: true });
+          return;
+        }
+
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Auth check error:', error);
