@@ -48,13 +48,16 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
         
         <div>
           <Label className="text-[#333333] font-bold text-base mb-4 block">What is your marriage timeline? (Required)</Label>
-          <div className="space-y-3">
+          <div role="radiogroup" aria-label="Marriage timeline" className="space-y-3">
             {marriageIntents.map((goal) => {
               const isSelected = formData.relationshipGoal === goal.value;
               return (
-                <div
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
                   key={goal.value}
-                  className={`p-5 rounded-xl cursor-pointer transition-all border text-left ${
+                  className={`p-5 rounded-xl cursor-pointer transition-all border text-left w-full focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:ring-offset-1 ${
                     isSelected
                       ? 'bg-[#E6B450] text-[#1F1F1F] border-[#E6B450] shadow-md'
                       : 'bg-white text-[#1F1F1F] border-[#E6DCD2] hover:border-[#C85A72]'
@@ -62,15 +65,15 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
                   onClick={() => updateFormData('relationshipGoal', goal.value)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'border-[#1F1F1F]' : 'border-[#C85A72]'}`}>
+                    <div aria-hidden="true" className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'border-[#1F1F1F]' : 'border-[#C85A72]'}`}>
                         {isSelected && <div className="w-2.5 h-2.5 bg-[#1F1F1F] rounded-full" />}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-base mb-1">{goal.label}</div>
-                      <div className="text-sm text-[#706B67]">{goal.description}</div>
+                      <div className={`text-sm ${isSelected ? 'text-[#1F1F1F]/80' : 'text-[#706B67]'}`}>{goal.description}</div>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
