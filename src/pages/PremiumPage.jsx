@@ -331,6 +331,46 @@ const PremiumPage = () => {
             </div>
         </div>
 
+        {/* Sprint B — 3-bullet hero matching PremiumTeaserModal voice. Closes the
+            emotional gap between "See Premium" tap and feature-table dump.
+            Hidden for existing premium members (they don't need the pitch). */}
+        {!isPremium && !profileCheckLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
+          >
+            <div className="bg-white border border-[#E6DCD2] rounded-2xl p-5 flex items-start gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-[#E6B450]/15 flex items-center justify-center shrink-0">
+                <Crown size={18} className="text-[#E6B450] fill-[#E6B450]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">See everyone who liked you</h3>
+                <p className="text-xs text-[#706B67] leading-relaxed">No more waiting for a mutual match before you can act.</p>
+              </div>
+            </div>
+            <div className="bg-white border border-[#E6DCD2] rounded-2xl p-5 flex items-start gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-[#E6B450]/15 flex items-center justify-center shrink-0">
+                <Crown size={18} className="text-[#E6B450] fill-[#E6B450]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">Unlimited likes &amp; messaging</h3>
+                <p className="text-xs text-[#706B67] leading-relaxed">Never hit the daily cap. Reach out to anyone, any time.</p>
+              </div>
+            </div>
+            <div className="bg-white border border-[#E6DCD2] rounded-2xl p-5 flex items-start gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-[#E6B450]/15 flex items-center justify-center shrink-0">
+                <Crown size={18} className="text-[#E6B450] fill-[#E6B450]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">Up to 12 photos</h3>
+                <p className="text-xs text-[#706B67] leading-relaxed">Show every side of who you are.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Profile Status Banner - Only show if profile is incomplete OR rejected */}
         {/* Don't show if approved - approved users can subscribe */}
         {/* Don't show for pending profiles - they've completed onboarding, just waiting for approval */}
