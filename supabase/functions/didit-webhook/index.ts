@@ -315,6 +315,44 @@ function extractIdName(payload: Record<string, unknown>): string | null {
   return joined || null;
 }
 
+function extractDocumentDOB(payload: Record<string, unknown>): string | null {
+  // B7 — server-side underage hard-stop. Pull the verified date_of_birth out
+  // of the Didit id_verification node so we can cross-check against the
+  // claimed DOB and reject anyone under 18 at the document-of-record level.
+  // Didit uses date_of_birth (snake) and dateOfBirth (camel); also seen
+  // "birthDate" and "birthday" in some sample payloads — tolerate all.
+  const id = extractIdVerification(payload);
+  if (!id) return null;
+  const raw =
+    (id as { date_of_birth?: unknown }).date_of_birth ??
+    (id as { dateOfBirth?: unknown }).dateOfBirth ??
+    (id as { birthDate?: unknown }).birthDate ??
+    (id as { birthday?: unknown }).birthday ??
+    null;
+  if (!raw) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  // Accept ISO YYYY-MM-DD or full ISO timestamp. Reject anything we can't
+  // parse, since "I couldn't read the DOB" is a soft signal we should not
+  // silently approve through.
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function isUnder18(dobIso: string | null): boolean {
+  if (!dobIso) return false; // unknown DOB — don't reject on this path alone
+  const dob = new Date(dobIso);
+  if (Number.isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getUTCFullYear() - dob.getUTCFullYear();
+  const monthDiff = today.getUTCMonth() - dob.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < dob.getUTCDate())) {
+    age--;
+  }
+  return age < 18;
+}
+
 function extractStatus(payload: Record<string, unknown>): string {
   const s = (payload as { status?: unknown }).status;
   if (typeof s === "string") return s.toLowerCase().trim();
@@ -485,6 +523,31 @@ serve(async (req) => {
     }
 
     // Approved path
+    // B7 — server-side underage hard-stop. Before we honor a Didit "approved"
+    // verification, cross-check the ID-extracted DOB. If the document of
+    // record shows <18, refuse to mark the profile verified regardless of
+    // what the user claimed at signup. The DB CHECK constraint
+    // (profiles_dob_must_be_18_plus, migration b7_underage_hardstop.sql)
+    // handles the claimed-DOB side; this handles the document side.
+    const verifiedDob = extractDocumentDOB(payload);
+    if (isUnder18(verifiedDob)) {
+      console.warn(
+        "didit-webhook: rejecting verification — document DOB shows user is under 18.",
+        { userId, verifiedDob },
+      );
+      await supabase
+        .from("profiles")
+        .update({
+          identity_verification_status: "rejected",
+          is_verified: false,
+        })
+        .eq("id", userId);
+      return new Response(
+        JSON.stringify({ ok: true, status: "rejected", reason: "underage" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const docFields = extractDocumentFields(payload);
     const docHash = await computeDocumentHash(docFields);
     if (!docHash) {
