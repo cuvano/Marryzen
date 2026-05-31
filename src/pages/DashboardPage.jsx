@@ -26,6 +26,14 @@ const DashboardPage = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusBannerDismissed, setStatusBannerDismissed] = useState(false);
+  // Phase polish: dismissible admin safety notice. localStorage flag means once
+  // the admin clicks X, it stays hidden forever for that browser. Must live in
+  // the top-of-component hook cluster (Rules of Hooks — never declare a hook
+  // after the early-return for loading state further down).
+  const [safetyNoticeVisible, setSafetyNoticeVisible] = useState(() => {
+    try { return localStorage.getItem('mrz_safety_notice_dismissed') !== '1'; }
+    catch { return true; }
+  });
   const [showPromptsEditor, setShowPromptsEditor] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [unclaimedCredits, setUnclaimedCredits] = useState([]);
@@ -689,16 +697,29 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* Safety Notice - Only show to admins */}
-          {isAdmin && (
+          {/* Safety Notice — admins only, dismissible once-per-account via localStorage flag */}
+          {isAdmin && safetyNoticeVisible && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.15 }}
-              className="bg-[#F0FDF4] border border-[#BBF7D0] flex items-center p-4 rounded-xl"
+              className="bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-between p-4 rounded-xl"
             >
-              <ShieldCheck className="w-5 h-5 text-[#15803D] mr-3 flex-shrink-0" />
-              <p className="text-sm text-[#166534] font-medium">All members have confirmed serious marriage intentions.</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <ShieldCheck className="w-5 h-5 text-[#15803D] flex-shrink-0" />
+                <p className="text-sm text-[#166534] font-medium">All members have confirmed serious marriage intentions.</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss notice"
+                onClick={() => {
+                  try { localStorage.setItem('mrz_safety_notice_dismissed', '1'); } catch {}
+                  setSafetyNoticeVisible(false);
+                }}
+                className="text-[#15803D] hover:text-[#0F5A2A] p-1 rounded transition-colors flex-shrink-0 ml-3"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </motion.div>
           )}
         </motion.div>
