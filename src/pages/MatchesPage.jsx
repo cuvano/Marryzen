@@ -1010,27 +1010,36 @@ const MatchesPage = () => {
                     )}
                   </div>
                             
-                            <Button 
-                    className="w-full mt-auto bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
-                                onClick={async () => {
-                                  let cid = match.conversationId;
-                                  if (!cid) {
-                                    const { data: { user: u } } = await supabase.auth.getUser();
-                                    if (!u) return;
-                                    const user1_id = u.id < match.id ? u.id : match.id;
-                                    const user2_id = u.id < match.id ? match.id : u.id;
-                                    const ins = await supabase
-                                      .from('conversations')
-                                      .insert({ user1_id, user2_id })
-                                      .select('id')
-                                      .maybeSingle();
-                                    if (!ins.error && ins.data?.id) cid = ins.data.id;
-                                  }
-                                  if (cid) navigate(`/chat/${cid}`);
-                                }}
-                            >
-                                <MessageSquare className="w-4 h-4 mr-2" /> Message
-                            </Button>
+                            <div className="mt-auto flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 border-[#E6DCD2] text-[#1F1F1F] hover:bg-[#FAF7F2] font-semibold"
+                                    onClick={() => navigate(`/profile/${match.id}`)}
+                                >
+                                    <Eye className="w-4 h-4 mr-2" /> View
+                                </Button>
+                                <Button 
+                                    className="flex-1 bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D] font-bold"
+                                    onClick={async () => {
+                                      let cid = match.conversationId;
+                                      if (!cid) {
+                                        const { data: { user: u } } = await supabase.auth.getUser();
+                                        if (!u) return;
+                                        const user1_id = u.id < match.id ? u.id : match.id;
+                                        const user2_id = u.id < match.id ? match.id : u.id;
+                                        const ins = await supabase
+                                          .from('conversations')
+                                          .insert({ user1_id, user2_id })
+                                          .select('id')
+                                          .maybeSingle();
+                                        if (!ins.error && ins.data?.id) cid = ins.data.id;
+                                      }
+                                      if (cid) navigate(`/chat/${cid}`);
+                                    }}
+                                >
+                                    <MessageSquare className="w-4 h-4 mr-2" /> Message
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 ))}
