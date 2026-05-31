@@ -473,45 +473,42 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
           </p>
         </div>
 
+        {/* Slot rendering — session-11 board verdict (Riley):
+            DO NOT render the locked premium slots until the user has uploaded
+            at least photo[0]. Locks on an empty grid prime the user with
+            "this app is paywalled" before they experience any value.
+            After they upload their first photo, surface a SINGLE friendly
+            upsell card (not 8 individual lock icons). */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-           {/* Render slots based on MAX_PREMIUM_PHOTOS (12) to show total capacity */}
-           {[...Array(MAX_PREMIUM_PHOTOS)].map((_, i) => {
-               // Index 0 is Main
-               const isMain = i === 0;
-               const isLocked = i >= maxPhotos; // 0,1,2,3 are free (4 total). 4+ (5th slot) are locked.
-               
-               // Show slot if:
-               // 1. It has a photo
-               // 2. It is the next available empty slot AND not locked
-               // 3. It is locked (show lock icon)
-               // 4. Always show at least first 4 slots for layout
-               
-               const hasPhoto = !!currentPhotos[i];
-               const isNextEmpty = i === currentPhotos.length;
-               
-               // We render all slots up to max limit for layout consistency, 
-               // but hide empty slots that are far ahead unless they are locked or "next"
-               
-               // Simplify: Render all 12. 
-               // If locked -> Lock UI.
-               // If free and empty -> Upload UI (if previous are full or it's one of the initial 4).
-               
-               const shouldRender = isLocked || hasPhoto || i < 4 || isNextEmpty;
-               
-               if (!shouldRender) return null;
-
-               return (
-                   <PhotoUploadBox 
-                        key={i}
-                        index={i}
-                        isMain={isMain}
-                        isLocked={isLocked}
-                        photo={currentPhotos[i]}
-                        onUpload={(file) => handleFileSelect(file, i)}
-                        onRemove={() => handleRemovePhoto(i)}
-                   />
-               )
-           })}
+          {/* Always render the free slots (0..maxPhotos-1) for layout consistency.
+              Empty slots beyond the next-available are hidden until needed. */}
+          {[...Array(maxPhotos)].map((_, i) => {
+            const isMain = i === 0;
+            const hasPhoto = !!currentPhotos[i];
+            const isNextEmpty = i === currentPhotos.length;
+            const shouldRender = hasPhoto || i < MAX_FREE_PHOTOS || isNextEmpty;
+            if (!shouldRender) return null;
+            return (
+              <PhotoUploadBox
+                key={i}
+                index={i}
+                isMain={isMain}
+                isLocked={false}
+                photo={currentPhotos[i]}
+                onUpload={(file) => handleFileSelect(file, i)}
+                onRemove={() => handleRemovePhoto(i)}
+              />
+            );
+          })}
+          {/* Single friendly upsell card — only appears AFTER user has uploaded
+              photo[0] and is on a free plan. No more wall-of-locks. */}
+          {!isPremium && currentPhotos.length >= 1 && currentPhotos.length >= MAX_FREE_PHOTOS && (
+            <div className="aspect-square w-full rounded-2xl flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] to-[#F9E7EB]/40 border-2 border-dashed border-[#E6B450] p-3 text-center">
+              <Crown className="w-8 h-8 text-[#E6B450] fill-[#E6B450] mb-2" />
+              <span className="text-sm font-bold text-[#1F1F1F]">Add up to {MAX_PREMIUM_PHOTOS - MAX_FREE_PHOTOS} more</span>
+              <span className="text-xs text-[#706B67] mt-1">with Premium</span>
+            </div>
+          )}
         </div>
         
         <div className="bg-[#FAF7F2] p-6 rounded-xl border border-[#E6DCD2] mt-8">
