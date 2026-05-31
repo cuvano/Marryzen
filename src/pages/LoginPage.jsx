@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Heart, ArrowRight, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { isOnboardingComplete } from '@/lib/onboardingStatus';
 
 import { Helmet } from 'react-helmet';
 const LoginPage = () => {
@@ -28,14 +29,15 @@ const LoginPage = () => {
           .eq('id', session.user.id)
           .maybeSingle();
         
-        // Only redirect to onboarding if onboarding_step is explicitly set and less than 5
-        // If null/undefined or >= 5, go to dashboard
+        // Phase 2E+ fix: use single-source-of-truth helper.
+        // Previously this branched on `step < 5` with a fallthrough to /dashboard
+        // for null/undefined, which silently let half-finished users land on the
+        // dashboard without photos/bio. After Phase 2E the magic-number 5 was
+        // also wrong (totalSteps is now 6).
         if (profile) {
-          const onboardingStep = profile.onboarding_step;
-          if (onboardingStep !== null && onboardingStep !== undefined && onboardingStep < 5) {
+          if (!isOnboardingComplete(profile)) {
             navigate('/onboarding', { replace: true });
           } else {
-            // onboarding_step is null, undefined, or >= 5, go to dashboard
             navigate('/dashboard', { replace: true });
           }
         } else {
@@ -138,8 +140,11 @@ const LoginPage = () => {
           return;
         }
         
-        // If profile is incomplete (e.g. step < 5), redirect to onboarding
-        if (profile && profile.onboarding_step && profile.onboarding_step < 5) {
+        // Phase 2E+ fix: single source of truth. Old code branched on
+        // `profile.onboarding_step && < 5` — both clauses were broken:
+        // null/0 short-circuited to dashboard, and 5 is no longer the
+        // completion step (it's 6 after Phase 2E split).
+        if (!isOnboardingComplete(profile)) {
              navigate('/onboarding', { replace: true });
         } else {
              navigate('/dashboard', { replace: true });
