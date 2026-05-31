@@ -159,6 +159,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     intent: 20,
     faith: 15,
     values: 15,
+    cultures: 10,    // Phase 2H: shared cultural heritage (multi-select up to 3)
     lifestyle: 15,
     completeness: 5
   };
@@ -275,7 +276,35 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     breakdown['Values'] = Math.round(pts);
   }
 
-  // 6. LIFESTYLE — always attempted (gives a partial signal even when most fields empty)
+  // 6. CULTURES — Phase 2H. Multi-select up to 3 per Phase 2G. Shared
+  // cultural heritage is a meaningful compatibility signal for a faith-first
+  // marriage app (e.g. two users who both selected 'South Asian' or both
+  // chose 'Turkish / Turkic' speak the same cultural language even before
+  // language matching kicks in).
+  //
+  // Scoring: we divide shared.length by the SMALLER of the two arrays so
+  // that a user who self-identified with exactly one culture and matched
+  // on it gets full credit, rather than being penalized by a partner who
+  // happened to list multiple. Two users sharing 1+ culture out of 1 each
+  // = 100%. Sharing 2 out of 3 each = 67%. No overlap = 0% (not penalized;
+  // attempted is added either way so the normalization stays honest).
+  const userCultures = Array.isArray(currentUser.cultures) ? currentUser.cultures : [];
+  const candCultures = Array.isArray(candidate.cultures) ? candidate.cultures : [];
+  if (userCultures.length > 0 && candCultures.length > 0) {
+    attempted += weights.cultures;
+    const shared = userCultures.filter(c => candCultures.includes(c));
+    let pts = 0;
+    if (shared.length > 0) {
+      const minLen = Math.min(userCultures.length, candCultures.length);
+      const overlap = shared.length / minLen;
+      pts = weights.cultures * overlap;
+    }
+    pts = Math.min(pts, weights.cultures);
+    score += pts;
+    breakdown['Cultures'] = Math.round(pts);
+  }
+
+  // 7. LIFESTYLE — always attempted (gives a partial signal even when most fields empty)
   attempted += weights.lifestyle;
   let lifestyleRaw = 0;
   if (currentUser.smoking === candidate.smoking) lifestyleRaw += 4;
@@ -295,7 +324,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   score += lifestylePts;
   breakdown['Lifestyle'] = Math.round(lifestylePts);
 
-  // 7. COMPLETENESS — always attempted
+  // 8. COMPLETENESS — always attempted
   attempted += weights.completeness;
   const candidateCompleteness = calculateProfileCompleteness(candidate);
   const completenessBonus = (candidateCompleteness / 100) * weights.completeness;
