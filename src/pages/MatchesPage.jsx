@@ -639,7 +639,7 @@ const MatchesPage = () => {
                         <>
                           {item.profile.age && <span>•</span>}
                           <MapPin className="w-3 h-3" />
-                          <span>{item.profile.location_city}</span>
+                          <span>{[item.profile.location_city, item.profile.location_country].filter(Boolean).join(', ')}</span>
                         </>
                       )}
                       {!userProfile?.is_premium && (
@@ -719,7 +719,7 @@ const MatchesPage = () => {
                           <>
                             {item.profile.age && <span>•</span>}
                             <MapPin className="w-3 h-3" />
-                            <span>{item.profile.location_city}</span>
+                            <span>{[item.profile.location_city, item.profile.location_country].filter(Boolean).join(', ')}</span>
                           </>
                         )}
                       </div>
@@ -807,7 +807,7 @@ const MatchesPage = () => {
                         <>
                           {item.profile.age && <span>•</span>}
                           <MapPin className="w-3 h-3" />
-                          <span>{item.profile.location_city}</span>
+                          <span>{[item.profile.location_city, item.profile.location_country].filter(Boolean).join(', ')}</span>
                         </>
                       )}
                     </div>
@@ -904,7 +904,7 @@ const MatchesPage = () => {
                           <>
                             {interaction.profile.age && <span>•</span>}
                             <MapPin className="w-3 h-3" />
-                            <span>{interaction.profile.location_city}</span>
+                            <span>{[interaction.profile.location_city, interaction.profile.location_country].filter(Boolean).join(', ')}</span>
                           </>
                         )}
                       </div>
@@ -1005,7 +1005,7 @@ const MatchesPage = () => {
                       <>
                         {match.age && <span>•</span>}
                         <MapPin className="w-3 h-3" />
-                        <span>{match.location_city}</span>
+                        <span>{[match.location_city, match.location_country].filter(Boolean).join(', ')}</span>
                       </>
                     )}
                   </div>
