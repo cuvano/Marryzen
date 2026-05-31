@@ -407,13 +407,13 @@ const UserManagement = () => {
                                    <div className="space-y-2">
                                      <h4 className="font-semibold text-purple-400">Profile Details</h4>
                                      <div className="text-sm grid grid-cols-2 gap-2">
-                                        <p><span className="text-slate-500">Culture:</span> {selectedUser.cultures?.join(', ')}</p>
-                                        <p><span className="text-slate-500">Faith:</span> {selectedUser.religious_affiliation} ({selectedUser.faith_lifestyle})</p>
-                                        <p><span className="text-slate-500">Languages:</span> {selectedUser.languages?.join(', ')}</p>
-                                        <p><span className="text-slate-500">Intent:</span> {selectedUser.relationship_goal}</p>
+                                        <p><span className="text-slate-300 font-medium">Culture:</span> <span className="text-slate-100">{selectedUser.cultures?.join(', ')}</span></p>
+                                        <p><span className="text-slate-300 font-medium">Faith:</span> <span className="text-slate-100">{selectedUser.religious_affiliation} ({selectedUser.faith_lifestyle})</span></p>
+                                        <p><span className="text-slate-300 font-medium">Languages:</span> <span className="text-slate-100">{selectedUser.languages?.join(', ')}</span></p>
+                                        <p><span className="text-slate-300 font-medium">Intent:</span> <span className="text-slate-100">{selectedUser.relationship_goal}</span></p>
                                      </div>
                                      <div className="bg-slate-950 p-3 rounded text-sm mt-2 text-slate-300">
-                                       <span className="text-slate-500 block text-xs mb-1">BIO</span>
+                                       <span className="text-slate-400 block text-xs mb-1 font-semibold uppercase tracking-wide">BIO</span>
                                        {selectedUser.bio || "No bio."}
                                      </div>
                                    </div>
