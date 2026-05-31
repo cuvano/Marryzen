@@ -462,7 +462,17 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
           <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Add Your Photos</h2>
           <p className="text-[#706B67] text-lg">Clear, modest photos help build trust and lead to better matches.</p>
         </div>
-        
+
+        {/* GDPR Article 9 biometric-data consent disclosure. Face detection
+            runs locally on uploaded photos to verify a clearly visible face.
+            This is special-category data under GDPR Article 9; explicit
+            consent is captured by proceeding with upload. */}
+        <div className="bg-[#FAF7F2] p-4 rounded-xl border border-[#E6DCD2] mb-4">
+          <p className="text-[#706B67] text-xs leading-relaxed">
+            <span className="font-semibold text-[#1F1F1F]">Privacy:</span> Marryzen uses automated face detection on uploaded photos to confirm your main photo contains a visible face. This is biometric data under data-protection law (GDPR Article 9). By uploading a photo, you consent to this processing solely for profile verification. Face data is not retained beyond the verification check. See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
            {/* Render slots based on MAX_PREMIUM_PHOTOS (12) to show total capacity */}
            {[...Array(MAX_PREMIUM_PHOTOS)].map((_, i) => {
@@ -504,7 +514,7 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
            })}
         </div>
         
-        <div className="bg-[#EAF2F7] p-6 rounded-xl border border-[#E6DCD2] mt-8">
+        <div className="bg-[#FAF7F2] p-6 rounded-xl border border-[#E6DCD2] mt-8">
             <h3 className="text-[#1F1F1F] font-bold mb-3">Photo Guidelines:</h3>
             <ul className="text-sm text-[#333333] list-disc pl-5 space-y-1 font-medium">
                 <li>Your face should be clearly visible (no heavy filters or sunglasses).</li>
@@ -517,7 +527,7 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
             <div className="mt-4 pt-4 border-t border-[#CFC6BA]/30 flex items-start gap-2 text-xs text-[#706B67]">
                 <Lock className="w-3 h-3 mt-0.5 text-[#C85A72]" />
                 <p className="font-medium">
-                    Your photos are private and only visible to users you are matched with. We never sell or publicly display private profile photos.
+                    Your photos are visible only to other verified Marryzen members during discovery and matching. We never sell your photos or display them publicly outside the platform.
                 </p>
             </div>
         </div>
