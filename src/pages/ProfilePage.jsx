@@ -546,11 +546,24 @@ const ProfilePage = () => {
             </div>
           )}
           {!isOwnProfile && (
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setIsBlockModalOpen(true)} className="text-sm font-semibold text-[#706B67] hover:text-red-700 underline-offset-2 hover:underline">
+            <div className="flex items-center gap-2">
+              {/* Sprint B (Adrian T&S verdict): Report shouldn't be a text-link on a
+                  faith app. Make it a proper button with chrome + Flag icon so
+                  users actually find the safety affordance when they need it. */}
+              <button
+                type="button"
+                onClick={() => setIsBlockModalOpen(true)}
+                className="text-sm font-medium text-[#706B67] hover:text-[#1F1F1F] border border-[#E0DDD9] hover:border-[#CCC] px-3 py-1.5 rounded-lg transition-colors"
+              >
                 Block
               </button>
-              <button type="button" onClick={() => setIsReportModalOpen(true)} className="text-sm font-semibold text-red-600 hover:text-red-700 underline-offset-2 hover:underline">
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-700 bg-white hover:bg-red-50 border border-red-300 hover:border-red-500 px-3 py-1.5 rounded-lg transition-colors"
+                aria-label="Report this profile"
+              >
+                <Flag size={14} aria-hidden="true" />
                 Report
               </button>
             </div>
@@ -650,10 +663,22 @@ const ProfilePage = () => {
           <div className="mb-8 rounded-xl bg-white border border-[#E8E6E4] px-6 py-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-[15px] text-[#333]">
-                Profile strength: <strong>{completeness}%</strong> ... {checklist.filter(c => !c.completed).length} items to complete
+                Profile strength: <strong>{completeness}%</strong> &middot; {checklist.filter(c => !c.completed).length} items to complete
               </p>
               <Progress value={completeness} className="h-2 w-48 rounded-full" />
             </div>
+            {/* Sprint B: render the incomplete items so the user knows what to do.
+                Previously the checklist was computed but never displayed — users saw "3 items to complete" with no list. */}
+            {checklist.filter(c => !c.completed).length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {checklist.filter(c => !c.completed).map((item, i) => (
+                  <li key={i} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1F1F1F] bg-[#FAF7F2] border border-[#E6DCD2] rounded-full px-3 py-1">
+                    <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-[#C85A72]"></span>
+                    {item.label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -793,7 +818,46 @@ const ProfilePage = () => {
                   </div>
                 )}
               </div>
-            </section>
+</section>
+
+            {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate || profile.marriage_timeline) && (
+              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-[#E8E6E4]">
+                  <h2 className="text-base font-semibold text-[#111]">
+                    {isOwnProfile && !isPreviewMode ? "What I'm looking for" : "What they're looking for"}
+                  </h2>
+                </div>
+                <div className="p-6 space-y-3">
+                  {profile.marriage_timeline && (
+                    <div className="flex items-start gap-3 border-l-4 border-[#E6B450] bg-[#FFFBEB] -mx-2 px-3 py-2 rounded-r">
+                      <CalendarIcon className="w-5 h-5 mt-0.5 text-[#E6B450] shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs text-[#706B67] mb-0.5">{isOwnProfile && !isPreviewMode ? 'My goal' : 'Their goal'}</div>
+                        <div className="text-sm font-semibold text-[#1F1F1F]">{displayMarriageTimeline(profile.marriage_timeline)}</div>
+                      </div>
+                    </div>
+                  )}
+                  {profile.relationship_goal && (
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Relationship" value={displayRelationshipGoal(profile.relationship_goal)} />
+                    </div>
+                  )}
+                  {profile.family_goals && (
+                    <div className="flex items-center gap-3">
+                      <Baby className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Family" value={displayFamilyGoals(profile.family_goals)} />
+                    </div>
+                  )}
+                  {(profile.willing_to_relocate !== null && profile.willing_to_relocate !== undefined) && (
+                    <div className="flex items-center gap-3">
+                      <Plane className="w-5 h-5 text-[#8A857D] shrink-0" />
+                      <Row label="Relocate" value={displayRelocate(profile.willing_to_relocate)} />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             {(profile.religious_affiliation || profile.faith_lifestyle) && (
               <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
@@ -875,42 +939,7 @@ const ProfilePage = () => {
               </section>
             )}
 
-            {(profile.relationship_goal || profile.family_goals || profile.willing_to_relocate || profile.marriage_timeline) && (
-              <section className="rounded-xl bg-white border border-[#E8E6E4] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-[#E8E6E4]">
-                  <h2 className="text-base font-semibold text-[#111]">What they're looking for</h2>
-                </div>
-                <div className="p-6 space-y-3">
-                  {profile.marriage_timeline && (
-                    <div className="flex items-start gap-3 border-l-4 border-[#E6B450] bg-[#FFFBEB] -mx-2 px-3 py-2 rounded-r">
-                      <CalendarIcon className="w-5 h-5 mt-0.5 text-[#E6B450] shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-xs text-[#706B67] mb-0.5">Their goal</div>
-                        <div className="text-sm font-semibold text-[#1F1F1F]">{displayMarriageTimeline(profile.marriage_timeline)}</div>
-                      </div>
-                    </div>
-                  )}
-                  {profile.relationship_goal && (
-                    <div className="flex items-center gap-3">
-                      <Heart className="w-5 h-5 text-[#8A857D] shrink-0" />
-                      <Row label="Relationship" value={displayRelationshipGoal(profile.relationship_goal)} />
-                    </div>
-                  )}
-                  {profile.family_goals && (
-                    <div className="flex items-center gap-3">
-                      <Baby className="w-5 h-5 text-[#8A857D] shrink-0" />
-                      <Row label="Family" value={displayFamilyGoals(profile.family_goals)} />
-                    </div>
-                  )}
-                  {(profile.willing_to_relocate !== null && profile.willing_to_relocate !== undefined) && (
-                    <div className="flex items-center gap-3">
-                      <Plane className="w-5 h-5 text-[#8A857D] shrink-0" />
-                      <Row label="Relocate" value={displayRelocate(profile.willing_to_relocate)} />
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
+
           </div>
         </div>
       </div>
