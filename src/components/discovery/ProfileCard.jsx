@@ -5,6 +5,7 @@ import VerificationBadge from '@/components/VerificationBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { isIdVerifiedPublic } from '@/lib/identityVerification';
+import { displayReligion } from '@/lib/religionLabels';
 
 const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick }) => {
   const genderLabel = profile.identify_as === 'Man' || profile.identify_as === 'Male' ? 'Male' : profile.identify_as === 'Woman' || profile.identify_as === 'Female' ? 'Female' : profile.identify_as || null;
@@ -106,7 +107,7 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
 
                 <div className="flex flex-wrap gap-1.5 mb-3">
                      {profile.religious_affiliation && (
-                         <span className="text-xs bg-white/20 px-2 py-0.5 rounded text-white border border-white/10">{profile.religious_affiliation}</span>
+                         <span className="text-xs bg-white/20 px-2 py-0.5 rounded text-white border border-white/10">{displayReligion(profile.religious_affiliation)}</span>
                      )}
                      {profile.occupation && (
                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded text-white border border-white/10">{profile.occupation}</span>
