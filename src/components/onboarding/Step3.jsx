@@ -210,8 +210,8 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
                         <option value="">Select...</option>
                         <option value="High School">High School</option>
                         <option value="Some College">Some College</option>
-                        <option value="Bachelor's Degree">Bachelor's Degree</option>
-                        <option value="Master's Degree">Master's Degree</option>
+                        <option value="Bachelor'� Degree">Bachelor's Degree</option>
+                        <option value="Master"s Degree">Master's Degree</option>
                         <option value="Doctorate">Doctorate</option>
                         <option value="Professional Degree">Professional Degree</option>
                     </select>
@@ -293,7 +293,10 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
         {/* Religious Affiliation */}
         <div>
              <Label htmlFor="religiousAffiliation" className="text-[#333333] font-semibold text-base mb-2 block">Religious Affiliation (Optional)</Label>
-             <p className="text-[#706B67] text-sm mb-3">This helps us suggest more compatible matches.</p>
+             <p className="text-[#706B67] text-sm mb-2">This helps us suggest more compatible matches.</p>
+             <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
+               <span className="font-semibold">Privacy:</span> Religious affiliation is sensitive personal data under data-protection law (GDPR Article 9). We process it solely for matching, never share it with third parties, and you may leave this blank or choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a> for details.
+             </p>
              <select
                 id="religiousAffiliation"
                 value={formData.religiousAffiliation || ''}
