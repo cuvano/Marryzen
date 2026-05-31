@@ -220,6 +220,10 @@ const SafetyPanel = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('open');
+  // Sprint C B5 — surface serial offenders. Top N profiles ranked by
+  // unresolved_report_count (column maintained by trigger in b5_migration.sql).
+  const [topReported, setTopReported] = useState([]);
+  const [reportedUserFilter, setReportedUserFilter] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [warningMessage, setWarningMessage] = useState('');
@@ -266,6 +270,8 @@ const SafetyPanel = () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (filter !== 'all') query = query.eq('status', filter);
+      // Sprint C B5: narrow to a single reported user when admin clicks one in the Top Reported widget.
+      if (reportedUserFilter) query = query.eq('reported_user_id', reportedUserFilter);
       const { data, error } = await query;
 
       if (error) {
@@ -306,8 +312,32 @@ const SafetyPanel = () => {
     }
   };
 
+  // Sprint C B5 — top serial offenders (most open reports against them).
+  const fetchTopReported = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, unresolved_report_count')
+        .gt('unresolved_report_count', 0)
+        .order('unresolved_report_count', { ascending: false })
+        .limit(5);
+      if (error) { console.error('fetchTopReported:', error); return; }
+      setTopReported(data || []);
+    } catch (e) {
+      console.error('fetchTopReported unexpected:', e);
+    }
+  };
+
   useEffect(() => {
     fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, reportedUserFilter]);
+
+  // Top-reported list only changes when an admin acts on a report (handled
+  // inside takeAction) or when the status filter toggles. Don't re-fetch
+  // on every click of a user row in the widget.
+  useEffect(() => {
+    fetchTopReported();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
@@ -481,7 +511,10 @@ const SafetyPanel = () => {
       setSelectedTemplate('custom');
       setUserFacingReason('');
       setSuppressNotification(false);
+      // Sprint C B5: also refresh the Top Reported widget so its counts/order
+      // reflect the action we just took (decrement on resolve/dismiss).
       fetchReports();
+      fetchTopReported();
     } catch (e) {
       console.error('takeAction error:', e);
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -493,7 +526,7 @@ const SafetyPanel = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-white">Reports & Safety Queue</h2>
+        <h2 className="text-3xl font-bold text-white">Reports &amp; Safety Queue</h2>
         <select
           className="h-10 rounded-md border border-slate-700 bg-slate-900 text-white px-3 text-sm"
           value={filter}
@@ -505,6 +538,60 @@ const SafetyPanel = () => {
           <option value="all">All History</option>
         </select>
       </div>
+
+      {/* Sprint C B5 — Top Reported Users widget. Without this, a serial
+          offender accumulates many reports across many admin emails and the
+          pattern is missed. Click a user → filter the report list to just them. */}
+      {topReported.length > 0 && (
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-400" />
+              Most-reported users
+              {reportedUserFilter && (
+                <button
+                  type="button"
+                  onClick={() => setReportedUserFilter(null)}
+                  className="ml-auto text-xs font-normal text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded px-2 py-0.5 transition-colors"
+                >
+                  Clear filter ×
+                </button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid gap-2">
+              {topReported.map((u) => {
+                const isActive = reportedUserFilter === u.id;
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => setReportedUserFilter(isActive ? null : u.id)}
+                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                      isActive
+                        ? 'bg-red-900/30 border border-red-700'
+                        : 'bg-slate-800/50 border border-slate-800 hover:bg-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-white truncate">{u.full_name || '(no name)'}</div>
+                      <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                    </div>
+                    <Badge className={`shrink-0 ${
+                      u.unresolved_report_count >= 5 ? 'bg-red-600' :
+                      u.unresolved_report_count >= 3 ? 'bg-orange-600' :
+                      'bg-yellow-600'
+                    } text-white`}>
+                      {u.unresolved_report_count} open
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {loading ? (
