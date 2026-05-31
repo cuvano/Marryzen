@@ -100,7 +100,7 @@ const Step1 = ({
           {errors.name ? (
             <p id="name-error" className="text-red-500 text-sm">{errors.name}</p>
           ) : (
-            <p id="name-helper" className="text-[#706B67] text-xs mt-1 font-medium">Enter your name exactly as it appears on your government ID — we use this to verify your identity.</p>
+            <p id="name-helper" className="text-[#706B67] text-xs mt-1 font-medium">Enter your full legal name. This will be used when Marryzen verifies your identity as part of our safety process.</p>
           )}
         </div>
 
@@ -294,7 +294,8 @@ const Step1 = ({
 
         <div className="space-y-2">
           <Label htmlFor="identifyAs" className="text-[#333333] font-bold text-base">I am a</Label>
-          <div className="grid grid-cols-2 gap-4">
+          <p id="gender-disclosure" className="text-[#706B67] text-xs font-medium -mt-1">Marryzen connects men and women for marriage. We do not currently support same-sex matching.</p>
+          <div role="radiogroup" aria-labelledby="identifyAs" aria-describedby="gender-disclosure" className="grid grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => handleGenderChange('Man')}
