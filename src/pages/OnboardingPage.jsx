@@ -9,7 +9,9 @@ import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
-import Step1 from '@/components/onboarding/Step1';
+import Step1a from '@/components/onboarding/Step1a';
+import Step1b from '@/components/onboarding/Step1b';
+import Step1c from '@/components/onboarding/Step1c';
 import Step2 from '@/components/onboarding/Step2';
 import Step3a from '@/components/onboarding/Step3a';
 import Step3b from '@/components/onboarding/Step3b';
@@ -27,6 +29,18 @@ const OnboardingPage = () => {
     rawEditParam === '1' || rawEditParam?.toLowerCase() === 'true';
 
   const [currentStep, setCurrentStep] = useState(1);
+  // Phase 2F: Step 1 has 3 internal sub-screens (Step1a Create account,
+  // Step1b About you, Step1c Commitments). Sub-step state is local — it
+  // doesn't change totalSteps or onboarding_step. auth.signUp only fires
+  // at the end of Step1c when subStep transitions from 2 -> next currentStep.
+  const [step1SubStep, setStep1SubStep] = useState(0);  // 0=a, 1=b, 2=c
+
+  // Phase 2F: when leaving Step 1 (forward or back), reset sub-step so the
+  // next time we render Step 1 we start at Step1a, not whatever the user
+  // was last on.
+  useEffect(() => {
+    if (currentStep !== 1) setStep1SubStep(0);
+  }, [currentStep]);
   const [showPremiumTeaser, setShowPremiumTeaser] = useState(false);
   const [postOnboardingNav, setPostOnboardingNav] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -386,8 +400,30 @@ const OnboardingPage = () => {
     setIsLoading(true);
 
     try {
-        // STEP 1: Account Creation
+        // STEP 1: Account Creation (Phase 2F sub-step state machine)
+        // Sub-steps 0 (Step1a Create account) and 1 (Step1b About you) just
+        // advance the sub-step locally. Sub-step 2 (Step1c Commitments)
+        // runs full validateStep1() + reCAPTCHA + auth.signUp.
         if (currentStep === 1) {
+          // Sub-steps 0 and 1 — light gate, just advance.
+          if (step1SubStep < 2) {
+            if (step1SubStep === 0 && !isStep1aComplete) {
+              toast({ title: "Almost there", description: "Please complete the account details before continuing.", variant: "destructive" });
+              setIsLoading(false);
+              return;
+            }
+            if (step1SubStep === 1 && !isStep1bComplete) {
+              toast({ title: "Almost there", description: "Please complete your basic info before continuing.", variant: "destructive" });
+              setIsLoading(false);
+              return;
+            }
+            setStep1SubStep(step1SubStep + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setIsLoading(false);
+            return;
+          }
+
+          // Sub-step 2 — full validation + account creation.
           const validation = validateStep1();
           if (!validation.isValid) {
             toast({ title: "Please fix errors", description: "Check the form for details.", variant: "destructive" });
@@ -811,6 +847,14 @@ const OnboardingPage = () => {
   };
 
   const handleBack = () => {
+    // Phase 2F: if we're on Step 1 with a sub-step in progress, back goes to
+    // the previous sub-screen first. Only after sub-step 0 do we attempt to
+    // navigate to a previous main step (which doesn't exist for Step 1).
+    if (currentStep === 1 && step1SubStep > 0) {
+      setStep1SubStep(step1SubStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -826,16 +870,37 @@ const OnboardingPage = () => {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 1: return (
-        <Step1 
-          formData={formData} 
-          updateFormData={updateFormData} 
-          errors={step1Errors}
-          isEditMode={isEditMode}
-          showPasswordFields={showPasswordFieldsOnStep1}
-          showPasswordSettingsLink={showPasswordSettingsLink}
-        />
-      );
+      case 1: {
+        // Phase 2F: render the right sub-screen based on step1SubStep.
+        if (step1SubStep === 0) {
+          return (
+            <Step1a
+              formData={formData}
+              updateFormData={updateFormData}
+              errors={step1Errors}
+              showPasswordFields={showPasswordFieldsOnStep1}
+              showPasswordSettingsLink={showPasswordSettingsLink}
+            />
+          );
+        }
+        if (step1SubStep === 1) {
+          return (
+            <Step1b
+              formData={formData}
+              updateFormData={updateFormData}
+              errors={step1Errors}
+            />
+          );
+        }
+        return (
+          <Step1c
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={step1Errors}
+            isEditMode={isEditMode}
+          />
+        );
+      }
       case 2: return <Step2 formData={formData} updateFormData={updateFormData} />;
       case 3: return <Step3a formData={formData} updateFormData={updateFormData} cultures={cultures} />;
       case 4: return <Step3b formData={formData} updateFormData={updateFormData} coreValues={coreValues} />;
@@ -865,6 +930,27 @@ const OnboardingPage = () => {
     }
     return !!baseFields;
   };
+  // Phase 2F: per-sub-step completion checks for Continue button gating.
+  // Each sub-step has a soft gate; the FULL validateStep1() runs only on
+  // sub-step 2 (Step1c) when auth.signUp is about to fire.
+  const isStep1aComplete = (() => {
+    const base = formData.name?.trim() && formData.email?.trim();
+    if (showPasswordFieldsOnStep1) {
+      return !!(base && formData.password && formData.confirmPassword);
+    }
+    return !!base;
+  })();
+  const isStep1bComplete = (() => {
+    const locationOk =
+      !!formData.locationCountry &&
+      (formData.locationCountry !== 'United States' || !!formData.locationState) &&
+      (formData.locationCountry === 'United States' || !!formData.locationCity?.trim());
+    return !!(formData.dateOfBirth && locationOk && formData.identifyAs);
+  })();
+  const isStep1cComplete = (() => {
+    return !!(formData.seriousRelationship && (isEditMode || formData.agreeToTerms));
+  })();
+
   const isStep2Complete = formData.photos && formData.photos.length > 0;
   // Phase 2E split: Step 3a requires identity (cultures + faith lifestyle).
   // Step 3b requires core values (the only field we currently soft-gate on).
@@ -874,24 +960,28 @@ const OnboardingPage = () => {
 
   const isStep5Complete = formData.relationshipGoal && formData.confirmMarriageIntent && (isEditMode || formData.agreeToTermsV2);
 
+  // Phase 2F: hint only mentions fields visible on the CURRENT sub-step,
+  // so the user never sees a confusing reference to a field on a later screen.
   const step1ContinueHint = () => {
-    if (currentStep !== 1 || isStep1Valid()) return null;
+    if (currentStep !== 1) return null;
     const parts = [];
-    if (!formData.name?.trim()) parts.push('enter your full name');
-    if (!formData.email?.trim()) parts.push('enter your email');
-    if (!formData.dateOfBirth) parts.push('add your date of birth');
-    if (!formData.locationCountry) parts.push('select your country of residence');
-    if (formData.locationCountry === 'United States' && !formData.locationState) parts.push('select your state');
-    if (formData.locationCountry && formData.locationCountry !== 'United States' && !formData.locationCity?.trim()) {
-      parts.push('enter your city');
-    }
-    if (!formData.identifyAs) parts.push('choose how you identify');
-    if (!formData.seriousRelationship) parts.push('confirm you are seeking marriage');
-    if (!isEditMode) {
-      if (!formData.agreeToTerms) parts.push('accept the terms');
-    }
-    if (showPasswordFieldsOnStep1 && (!formData.password || !formData.confirmPassword)) {
-      parts.push('set a password');
+    if (step1SubStep === 0) {
+      if (!formData.name?.trim()) parts.push('enter your full name');
+      if (!formData.email?.trim()) parts.push('enter your email');
+      if (showPasswordFieldsOnStep1 && (!formData.password || !formData.confirmPassword)) {
+        parts.push('set a password');
+      }
+    } else if (step1SubStep === 1) {
+      if (!formData.dateOfBirth) parts.push('add your date of birth');
+      if (!formData.locationCountry) parts.push('select your country of residence');
+      if (formData.locationCountry === 'United States' && !formData.locationState) parts.push('select your state');
+      if (formData.locationCountry && formData.locationCountry !== 'United States' && !formData.locationCity?.trim()) {
+        parts.push('enter your city');
+      }
+      if (!formData.identifyAs) parts.push('choose how you identify');
+    } else if (step1SubStep === 2) {
+      if (!formData.seriousRelationship) parts.push('confirm you are seeking marriage');
+      if (!isEditMode && !formData.agreeToTerms) parts.push('accept the terms');
     }
     if (parts.length === 0) return null;
     return `To continue: ${parts.slice(0, 4).join('; ')}${parts.length > 4 ? '...' : '.'}`;
@@ -919,7 +1009,7 @@ const OnboardingPage = () => {
 
           <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F3E8D9]">
             <div className="flex gap-3">
-              {currentStep > 1 && (
+              {(currentStep > 1 || step1SubStep > 0) && (
                 <Button
                   variant="ghost"
                   onClick={handleBack}
@@ -955,7 +1045,9 @@ const OnboardingPage = () => {
                   className="bg-[#E6B450] hover:bg-[#D0A23D] text-white rounded-full px-10 py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={
                     isLoading ||
-                    (currentStep === 1 && !isStep1Valid()) ||
+                    (currentStep === 1 && step1SubStep === 0 && !isStep1aComplete) ||
+                    (currentStep === 1 && step1SubStep === 1 && !isStep1bComplete) ||
+                    (currentStep === 1 && step1SubStep === 2 && (!isStep1cComplete || !isStep1Valid())) ||
                     (currentStep === 2 && !isStep2Complete) ||
                     (currentStep === 3 && !isStep3aComplete) ||
                     (currentStep === 4 && !isStep3bComplete) ||
@@ -967,9 +1059,11 @@ const OnboardingPage = () => {
                     ? 'Processing...'
                     : currentStep === totalSteps
                       ? (isEditMode ? 'Save Changes' : 'Activate Profile')
-                      : isEditMode
-                        ? 'Save & continue'
-                        : 'Continue'}
+                      : (currentStep === 1 && step1SubStep === 2 && !isEditMode)
+                        ? 'Create my account'
+                        : isEditMode
+                          ? 'Save & continue'
+                          : 'Continue'}
                 </Button>
             </div>
           </div>
