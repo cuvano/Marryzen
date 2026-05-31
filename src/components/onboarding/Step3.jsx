@@ -34,7 +34,31 @@ const Step3 = ({ formData, updateFormData, cultures, coreValues }) => {
   const isOtherCultureSelected = formData.cultures?.[0] === 'Other';
   const isOtherReligionSelected = formData.religiousAffiliation === 'Other';
 
-  const religiousAffiliations = ['Islam', 'Christianity', 'Judaism', 'Hinduism', 'Buddhism', 'Sikhism', 'Atheist', 'Spiritual but not religious', 'Other', 'Prefer not to say'];
+  // Religion list — session-11 Phase 2C: expanded per VP DEI (Priya) board
+  // verdict. Adds Christianity subdivisions (Eastern Orthodox/Catholic/
+  // Protestant/LDS/JW) for the user-base reality, plus Baha'i and
+  // Zoroastrian/Parsi which were missing entirely. 'Atheist' kept in DB
+  // (back-compat) but UI now offers 'Non-religious' as the warmer alternative.
+  // CHECK constraint relaxed in migration 2c_migration.sql before this ships.
+  const religiousAffiliations = [
+    'Islam',
+    'Christianity',
+    'Christianity (Eastern Orthodox)',
+    'Christianity (Catholic)',
+    'Christianity (Protestant)',
+    'Christianity (LDS / Mormon)',
+    "Christianity (Jehovah's Witness)",
+    'Judaism',
+    'Hinduism',
+    'Buddhism',
+    'Sikhism',
+    "Baha'i",
+    'Zoroastrian / Parsi',
+    'Non-religious',
+    'Spiritual but not religious',
+    'Other',
+    'Prefer not to say'
+  ];
   const faithLifestyles = ['Very religious / practicing', 'Moderately practicing', 'Cultural faith only', 'Spiritual but not religious', 'Not religious / Not practicing', 'Prefer not to say'];
 
   return (
