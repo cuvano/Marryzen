@@ -18,7 +18,7 @@ import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
 import FilterPanel from '@/components/discovery/FilterPanel';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { displayReligion } from '@/lib/religionLabels';
+import { displayReligion, getReligionFilterValues } from '@/lib/religionLabels';
 import ProfileCard from '@/components/discovery/ProfileCard';
 import {
   DropdownMenu,
@@ -282,7 +282,10 @@ const DiscoveryPage = () => {
 
         // Apply Server-Side Filters
         if (filters.city) query = query.ilike('location_city', `%${filters.city}%`);
-        if (filters.faith) query = query.eq('religious_affiliation', filters.faith);
+        // Phase 2D: religion filter now uses in() with sub-denomination expansion.
+        // Filtering for 'Christianity' surfaces Catholic/Protestant/Orthodox/LDS/JW too.
+        // Filtering for 'Non-religious' also surfaces legacy 'Atheist' rows.
+        if (filters.faith) query = query.in('religious_affiliation', getReligionFilterValues(filters.faith));
         if (filters.faithLifestyle) query = query.eq('faith_lifestyle', filters.faithLifestyle);
         if (filters.maritalStatus) query = query.eq('marital_status', filters.maritalStatus);
         // Education level: include selected level and all higher levels
