@@ -114,6 +114,13 @@ const MatchesPage = () => {
 
       const byOtherId = new Map(formatted.map((m) => [m.id, m]));
 
+      // B3 note: after the premium-likes RLS tightening, the second query
+      // (likesToMe) returns ONLY mutual incoming likes because non-mutual ones
+      // are filtered server-side. That's exactly what the mutualIds calc
+      // downstream wants, so the code works unchanged — the RLS just makes
+      // it server-side instead of client-side. Do NOT widen this query to
+      // bypass RLS; route through get_received_likes() RPC if you need
+      // non-mutual incoming likes for a premium feature.
       const [{ data: myLikes }, { data: likesToMe }] = await Promise.all([
         supabase.from('user_interactions').select('target_user_id').eq('user_id', user.id).eq('interaction_type', 'like'),
         supabase.from('user_interactions').select('user_id').eq('target_user_id', user.id).eq('interaction_type', 'like'),
@@ -316,60 +323,52 @@ const MatchesPage = () => {
   };
 
   const fetchLikesReceived = async () => {
+    // B3 — Premium-likes gate. Route through get_received_likes() RPC instead
+    // of a direct user_interactions query. The RPC returns redaction-aware
+    // rows: non-premium viewers get is_locked=true + null liker_id for
+    // non-mutual incoming likes, so the UI's blurred-card state is
+    // genuinely blurred end-to-end (no leak via DevTools network tab).
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: likes, error } = await supabase
-        .from('user_interactions')
-        .select('id, created_at, user_id')
-        .eq('target_user_id', user.id)
-        .eq('interaction_type', 'like')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.rpc('get_received_likes', {
+        p_limit: 50,
+        p_offset: 0,
+      });
 
       if (error) {
-        console.error('Error fetching likes received:', error);
+        console.error('Error fetching likes received via RPC:', error);
         return;
       }
 
-      const likerIds = [...new Set((likes || []).map((l) => l.user_id).filter(Boolean))];
-      const profilesById = {};
-      if (likerIds.length > 0) {
-        const { data: profs, error: pErr } = await supabase
-          .from('profiles')
-          .select('id, full_name, photos, location_city, location_country, date_of_birth, is_premium')
-          .in('id', likerIds);
-        if (pErr) console.error('Error loading liker profiles:', pErr);
-        (profs || []).forEach((p) => {
-          profilesById[p.id] = p;
-        });
-      }
-
-      const formatted = (likes || []).map((like) => {
-        const profile = profilesById[like.user_id];
-        const age = profile?.date_of_birth
-          ? Math.floor((new Date() - new Date(profile.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
+      const formatted = (data || []).map((row, idx) => {
+        const age = row.date_of_birth
+          ? Math.floor((new Date() - new Date(row.date_of_birth)) / (1000 * 60 * 60 * 24 * 365))
           : null;
-
         return {
-          id: like.id,
-          createdAt: like.created_at,
+          // For locked rows we synthesize a stable client-side id including the
+          // array index — two non-mutual locked likes that share the same
+          // liked_at timestamp (rare but possible under bulk insert) would
+          // otherwise collide on React keys. Unlocked rows still use liker_id
+          // which is always unique because (user_id, target_user_id) is the
+          // user_interactions PK.
+          id: row.liker_id || `locked-${row.liked_at}-${idx}`,
+          createdAt: row.liked_at,
+          isLocked: !!row.is_locked,
+          isMutual: !!row.is_mutual,
           profile: {
-            id: profile?.id ?? like.user_id,
-            full_name: profile?.full_name || 'Member',
-            photos: profile?.photos || [],
-            location_city: profile?.location_city,
-            location_country: profile?.location_country,
+            id: row.liker_id ?? null,
+            full_name: row.full_name ?? null,
+            photos: row.photos ?? [],
+            location_city: row.location_city ?? null,
+            location_country: row.location_country ?? null,
             age,
-            is_premium: profile?.is_premium,
+            is_premium: row.is_premium ?? null,
           },
         };
       });
 
       setLikesReceived(formatted);
-    } catch (e) {
-      console.error('Error fetching likes received:', e);
+    } catch (err) {
+      console.error('Unexpected error fetching likes received:', err);
     }
   };
 
