@@ -231,10 +231,25 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     if (currentUser.religious_affiliation === candidate.religious_affiliation) {
       pts = weights.faith;
     } else {
+      // Phase 2D: use canonical DB nouns (matches what onboarding actually saves).
+      // The old map used display-layer adjectives like 'Christian (Catholic)' which
+      // never appeared in the religious_affiliation column — fuzzy faith bonus
+      // was effectively dead code. With Phase 2C adding 5 more Christianity
+      // sub-options, fixing this is essential or sub-denomination users score
+      // zero against each other.
       const faithGroups = {
-        Muslim: ['Muslim (Sunni)', 'Muslim (Shia)', 'Muslim'],
-        Christian: ['Christian (Catholic)', 'Christian (Protestant)', 'Christian', 'Christianity'],
-        Jewish: ['Jewish (Orthodox)', 'Jewish (Conservative)', 'Jewish']
+        Islam: ['Islam'],
+        Christianity: [
+          'Christianity',
+          'Christianity (Eastern Orthodox)',
+          'Christianity (Catholic)',
+          'Christianity (Protestant)',
+          'Christianity (LDS / Mormon)',
+          "Christianity (Jehovah's Witness)",
+        ],
+        Judaism: ['Judaism'],
+        // 'Atheist' kept for back-compat with pre-Phase-2C profiles.
+        NonReligious: ['Atheist', 'Non-religious', 'Spiritual but not religious'],
       };
       const userGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(currentUser.religious_affiliation));
       const candGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(candidate.religious_affiliation));
