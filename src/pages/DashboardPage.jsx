@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders, Camera, FileText, Clock, ArrowRight, X, Gift, ShieldAlert } from 'lucide-react';
+import { Heart, MessageCircle, Star, Send, Settings, Search, Crown, ShieldCheck, AlertCircle, CheckCircle2, XCircle, Upload, User, Mail, Sliders, Camera, FileText, Clock, ArrowRight, X, Gift, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -34,6 +34,21 @@ const DashboardPage = () => {
     try { return localStorage.getItem('mrz_safety_notice_dismissed') !== '1'; }
     catch { return true; }
   });
+
+  // Sprint B — "Profile Health" consolidation. Per board verdict the 6-banner
+  // stack was burying real content. We default to EXPANDED on first visit
+  // (so users see what's pending) but persist the toggle once dismissed.
+  const [profileHealthExpanded, setProfileHealthExpanded] = useState(() => {
+    try { return localStorage.getItem('mrz_profile_health_collapsed') !== '1'; }
+    catch { return true; }
+  });
+  const toggleProfileHealth = () => {
+    setProfileHealthExpanded(prev => {
+      const next = !prev;
+      try { localStorage.setItem('mrz_profile_health_collapsed', next ? '0' : '1'); } catch {}
+      return next;
+    });
+  };
   const [showPromptsEditor, setShowPromptsEditor] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [unclaimedCredits, setUnclaimedCredits] = useState([]);
@@ -544,6 +559,46 @@ const DashboardPage = () => {
             </div>
           </div>
 
+          {/* Sprint B — Profile Health consolidation.
+              Counts how many actionable banners would show; when >1, defaults
+              to a single collapsible card so the dashboard isn't a banner-wall.
+              When the count is 1 we still wrap for visual consistency but
+              start expanded. Each inner banner keeps its own dismiss/action
+              behavior — we only consolidated the visual container. */}
+          {(() => {
+            const showStatusBanner = userProfile && statusConfig && userProfile.status !== 'approved' && !statusBannerDismissed;
+            const showPremiumCredit = unclaimedCredits && unclaimedCredits.length > 0;
+            const showNameMismatch = userProfile && userProfile.identity_verification_status === 'name_mismatch';
+            const showVerifyId = userProfile && !userProfile.is_verified && (userProfile.identity_verification_status || '').toLowerCase() !== 'approved' && userProfile.identity_verification_status !== 'name_mismatch';
+            const showMarriageTimeline = userProfile && !userProfile.marriage_timeline;
+            const showPromptsBanner = userProfile && (!userProfile.prompts || userProfile.prompts.length < 3);
+            const totalActionable = [showStatusBanner, showPremiumCredit, showNameMismatch, showVerifyId, showMarriageTimeline, showPromptsBanner].filter(Boolean).length;
+            if (totalActionable === 0) return null;
+            return (
+              <div className="mb-4 rounded-xl bg-white border border-[#E6DCD2] shadow-sm overflow-hidden">
+                <button
+                  type="button"
+                  onClick={toggleProfileHealth}
+                  className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-[#FAF7F2] transition-colors text-left"
+                  aria-expanded={profileHealthExpanded}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#FFFBEB] border border-[#E6B450]/40 flex items-center justify-center">
+                      <span className="text-sm font-bold text-[#8a6c1e]">{totalActionable}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#1F1F1F]">
+                        {totalActionable === 1 ? '1 thing to take care of' : `${totalActionable} things to take care of`}
+                      </h3>
+                      <p className="text-xs text-[#706B67] mt-0.5">{profileHealthExpanded ? 'Tap to collapse' : 'Tap to see what needs your attention'}</p>
+                    </div>
+                  </div>
+                  {profileHealthExpanded
+                    ? <ChevronUp className="w-5 h-5 text-[#706B67] shrink-0" />
+                    : <ChevronDown className="w-5 h-5 text-[#706B67] shrink-0" />}
+                </button>
+                {profileHealthExpanded && (
+                  <div className="px-4 pb-4 space-y-4 border-t border-[#F0EDE9] pt-4">
           {/* Profile Status Banner - Only show once, dismissible */}
           {userProfile && statusConfig && userProfile.status !== 'approved' && !statusBannerDismissed && (
             <motion.div 
@@ -588,7 +643,7 @@ const DashboardPage = () => {
           {/* ID Verification Banner ... every member must be Didit-verified to start matching */}
           {/* Premium Credit Banner */}
           {unclaimedCredits && unclaimedCredits.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="bg-gradient-to-r from-[#FFFBEB] to-[#FFF7DD] border border-[#E6B450] rounded-xl p-4 mb-4 flex items-start gap-3">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="bg-gradient-to-r from-[#FFFBEB] to-[#FFF7DD] border border-[#E6B450] rounded-xl p-4 flex items-start gap-3">
               <Gift className="w-6 h-6 text-[#8a6c1e] mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">{unclaimedCredits.length === 1 ? '1 free month of Premium is ready' : unclaimedCredits.length + ' free months of Premium ready'}</h3>
@@ -600,7 +655,7 @@ const DashboardPage = () => {
 
           {/* Name mismatch banner */}
           {userProfile && userProfile.identity_verification_status === 'name_mismatch' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-4 mb-4 flex items-start gap-3">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-4 flex items-start gap-3">
               <ShieldAlert className="w-6 h-6 text-[#B91C1C] mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <h3 className="font-bold text-[#7F1D1D] mb-1">ID name doesn't match your profile</h3>
@@ -615,7 +670,7 @@ const DashboardPage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12 }}
-              className="bg-gradient-to-r from-[#FFF7E1] to-[#FFF1CD] border border-[#E6B450] rounded-xl p-4 mb-4 flex items-start gap-3"
+              className="bg-gradient-to-r from-[#FFF7E1] to-[#FFF1CD] border border-[#E6B450] rounded-xl p-4 flex items-start gap-3"
             >
               <ShieldCheck className="w-6 h-6 text-[#8a6c1e] mt-0.5 flex-shrink-0" />
               <div className="flex-1">
@@ -640,7 +695,7 @@ const DashboardPage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.13 }}
-              className="bg-white border border-[#E6DCD2] rounded-xl p-4 mb-4"
+              className="bg-white border border-[#E6DCD2] rounded-xl p-4"
             >
               <h3 className="font-bold text-[#1F1F1F] mb-1">When are you hoping to get married?</h3>
               <p className="text-sm text-[#706B67] mb-3">
@@ -680,7 +735,7 @@ const DashboardPage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.14 }}
-              className="bg-white border border-[#E6DCD2] rounded-xl p-4 mb-4 flex items-center justify-between gap-4"
+              className="bg-white border border-[#E6DCD2] rounded-xl p-4 flex items-center justify-between gap-4"
             >
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Help your future spouse meet you</h3>
@@ -696,6 +751,11 @@ const DashboardPage = () => {
               </Button>
             </motion.div>
           )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Safety Notice — admins only, dismissible once-per-account via localStorage flag */}
           {isAdmin && safetyNoticeVisible && (
