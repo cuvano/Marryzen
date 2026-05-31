@@ -240,13 +240,13 @@ const DashboardPage = () => {
         return count ?? 0;
       }],
       ['profileInterest', async () => {
-        const { count, error } = await supabase
-          .from('user_interactions')
-          .select('*', { count: 'exact', head: true })
-          .eq('target_user_id', userId)
-          .eq('interaction_type', 'like');
+        // B3 — Premium-likes gate. After the RLS tightening, direct count on
+        // incoming likes only returns mutual rows (under-count). The RPC
+        // returns the true total, which is fine to show non-premium users
+        // (the count is the tease — only the LIKER IDENTITY is gated).
+        const { data, error } = await supabase.rpc('get_received_likes_count');
         if (error) throw error;
-        return count ?? 0;
+        return data ?? 0;
       }],
     ];
 
