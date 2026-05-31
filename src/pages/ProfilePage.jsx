@@ -65,11 +65,54 @@ const ProfilePage = () => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  // Session 14 finding #3 — viewing someone else's profile had no way to
+  // favorite/save them. Star toggle in the header writes to the same
+  // `favorites` table that MatchesPage's Favorites tab reads from.
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteId, setFavoriteId] = useState(null);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [referralInfo, setReferralInfo] = useState(null);
   const profilePhotoInputRef = useRef(null);
   const latestPhotosRef = useRef([]);
 
   const isOwnProfile = !userId;
+
+  // Load favorite state for the profile being viewed.
+  useEffect(() => {
+    if (isOwnProfile || !userId) {
+      setIsFavorited(false);
+      setFavoriteId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data, error } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('favorited_user_id', userId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error) {
+          console.error('Error loading favorite state:', error);
+          return;
+        }
+        if (data) {
+          setIsFavorited(true);
+          setFavoriteId(data.id);
+        } else {
+          setIsFavorited(false);
+          setFavoriteId(null);
+        }
+      } catch (err) {
+        console.error('Unexpected error loading favorite:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, isOwnProfile]);
 
   // Keep ref in sync so crop complete always has latest photos (avoids stale closure)
   useEffect(() => {
@@ -497,6 +540,44 @@ const ProfilePage = () => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (isOwnProfile || !userId || favoriteBusy) return;
+    setFavoriteBusy(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: 'Please sign in', variant: 'destructive' });
+        return;
+      }
+      if (isFavorited && favoriteId) {
+        const { error } = await supabase.from('favorites').delete().eq('id', favoriteId);
+        if (error) throw error;
+        setIsFavorited(false);
+        setFavoriteId(null);
+        toast({ title: 'Removed from favorites' });
+      } else {
+        const { data, error } = await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, favorited_user_id: userId })
+          .select('id')
+          .single();
+        if (error) throw error;
+        setIsFavorited(true);
+        setFavoriteId(data.id);
+        toast({ title: 'Added to favorites' });
+      }
+    } catch (err) {
+      console.error('Favorite toggle failed:', err);
+      toast({
+        title: 'Could not update favorite',
+        description: err?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setFavoriteBusy(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#E6B450]" /></div>;
   if (!profile) return null;
 
@@ -547,6 +628,29 @@ const ProfilePage = () => {
           )}
           {!isOwnProfile && (
             <div className="flex items-center gap-2">
+              {/* Session 14 finding #3 — Favorite star, primary save action so it
+                  comes first visually. Writes to the same `favorites` table that
+                  the MatchesPage Favorites tab reads from. */}
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                disabled={favoriteBusy}
+                aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                aria-pressed={isFavorited}
+                className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isFavorited
+                    ? 'text-[#1F1F1F] bg-[#FFF3D1] border-[#E6B450] hover:bg-[#FFE9B0]'
+                    : 'text-[#706B67] bg-white border-[#E0DDD9] hover:text-[#1F1F1F] hover:border-[#CCC]'
+                }`}
+              >
+                <Star
+                  size={14}
+                  aria-hidden="true"
+                  fill={isFavorited ? '#E6B450' : 'none'}
+                  strokeWidth={isFavorited ? 2 : 1.75}
+                />
+                {isFavorited ? 'Favorited' : 'Favorite'}
+              </button>
               {/* Sprint B (Adrian T&S verdict): Report shouldn't be a text-link on a
                   faith app. Make it a proper button with chrome + Flag icon so
                   users actually find the safety affordance when they need it. */}
