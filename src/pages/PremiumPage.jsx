@@ -20,6 +20,10 @@ const PremiumPage = () => {
   const [profileCheckLoading, setProfileCheckLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumExpiresAt, setPremiumExpiresAt] = useState(null);
+  // B14 — FTC Negative Option Rule: explicit consent checkbox gates Subscribe
+  // button. Persists premium_consent_acknowledged_at timestamp on the profile
+  // when user actually subscribes.
+  const [agreedToAutoRenewal, setAgreedToAutoRenewal] = useState(false);
 
   useEffect(() => {
     checkProfileStatus();
@@ -118,6 +122,20 @@ const PremiumPage = () => {
 
       if (profileError && profileError.code !== 'PGRST116') {
         throw profileError;
+      }
+
+      // B14 — record explicit consent timestamp BEFORE proceeding to Stripe.
+      // FTC: the consent must be captured at the same step the purchase
+      // commitment is made.
+      try {
+        await supabase
+          .from('profiles')
+          .update({ premium_consent_acknowledged_at: new Date().toISOString() })
+          .eq('id', user.id);
+      } catch (consentErr) {
+        console.warn('[B14] Could not persist premium consent timestamp:', consentErr);
+        // Non-fatal — checkbox already proves consent at the UI level. Stripe
+        // session metadata will also carry consent: 'auto_renewal_acknowledged'.
       }
 
       // Double-check status before proceeding (case-insensitive)
@@ -471,6 +489,23 @@ const PremiumPage = () => {
             </div>
         </motion.div>
 
+        {/* B14 — Required FTC consent checkbox. Gates all Subscribe buttons. */}
+        <div className="max-w-3xl mx-auto mb-6 bg-[#FFF8EC] border border-[#E6B450]/40 rounded-xl p-5">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToAutoRenewal}
+              onChange={(e) => setAgreedToAutoRenewal(e.target.checked)}
+              className="mt-1 w-5 h-5 rounded border-[#E6B450] text-[#1F1F1F] focus:ring-[#E6B450] cursor-pointer flex-shrink-0"
+              aria-required="true"
+            />
+            <span className="text-sm text-[#1F1F1F] leading-relaxed">
+              <strong>I understand</strong> my Marryzen Premium subscription will automatically renew at the plan price (monthly, quarterly, or annual) until I cancel. I will receive a reminder email 7 days and 24 hours before each renewal. I can cancel at any time in one click from my{' '}
+              <Link to="/billing" className="text-[#C85A72] underline">Billing</Link>{' '}page, with no phone call or retention conversation required.
+            </span>
+          </label>
+        </div>
+
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {plans.map((plan, index) => (
@@ -514,9 +549,10 @@ const PremiumPage = () => {
                         ) : (
                           <>
                             <Button 
-                              disabled={loading && loadingPlanId === plan.id}
+                              disabled={(loading && loadingPlanId === plan.id) || !agreedToAutoRenewal}
                               onClick={() => handleSubscribe(plan.id)} 
-                              className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#1F1F1F] hover:bg-[#333] text-white'}`}
+                              className={`w-full py-6 text-base font-bold ${plan.isPopular ? 'bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]' : 'bg-[#1F1F1F] hover:bg-[#333] text-white'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                              title={!agreedToAutoRenewal ? 'Please acknowledge the auto-renewal terms above to continue' : undefined}
                             >
                               {loading && loadingPlanId === plan.id ? (
                                 <>
