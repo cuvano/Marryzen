@@ -289,7 +289,15 @@ const UserManagement = () => {
                       })()}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {/* Role badges first - so Sandra can spot the staff
+                            accounts in a long user list at a glance. */}
+                        {user.role?.toLowerCase() === 'super_admin' && (
+                          <Badge className="bg-purple-600 text-white text-[10px]">SUPER ADMIN</Badge>
+                        )}
+                        {user.role?.toLowerCase() === 'admin' && (
+                          <Badge className="bg-fuchsia-600 text-white text-[10px]">ADMIN</Badge>
+                        )}
                         {user.is_premium && <Badge className="bg-yellow-600 text-white text-[10px]">PREMIUM</Badge>}
                         {user.is_verified && <Badge className="bg-blue-600 text-white text-[10px]">VERIFIED</Badge>}
                       </div>
