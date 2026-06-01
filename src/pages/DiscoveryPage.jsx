@@ -273,11 +273,32 @@ const DiscoveryPage = () => {
         // opt-in `verifiedOnly` filter + UI toggle were removed.
         query = query.eq('is_verified', true);
 
-        // Match by preferred gender: only show profiles whose gender matches what the current user is looking for (avoids "matching men to men")
-        const preferredGender = currentUser.looking_for_gender?.trim();
-        const preferredGenders = !preferredGender ? [] : preferredGender === 'Man' ? ['Man', 'Male'] : preferredGender === 'Woman' ? ['Woman', 'Female'] : [preferredGender];
-        if (preferredGender) {
+        // Match by preferred gender. Marryzen is straight-marriage only - the
+        // gender filter MUST always apply. If looking_for_gender is missing
+        // (legacy account, half-completed edit), fall back to the OPPOSITE of
+        // the viewer's own identify_as. Never bypass the filter - that would
+        // surface same-gender profiles on a straight-only app.
+        // (Fix for prod bug: male users seeing other males when
+        // looking_for_gender was NULL.)
+        const userOwnGender = (currentUser.identify_as || '').trim();
+        const rawPreferred = (currentUser.looking_for_gender || '').trim();
+        const oppositeOfSelf =
+          userOwnGender === 'Man' || userOwnGender === 'Male' ? 'Woman'
+          : userOwnGender === 'Woman' || userOwnGender === 'Female' ? 'Man'
+          : '';
+        const preferredGender = rawPreferred || oppositeOfSelf;
+        const preferredGenders =
+          preferredGender === 'Man' ? ['Man', 'Male']
+          : preferredGender === 'Woman' ? ['Woman', 'Female']
+          : preferredGender ? [preferredGender]
+          : [];
+        if (preferredGenders.length > 0) {
           query = query.in('identify_as', preferredGenders);
+        } else {
+          // Defensive: if we still can't determine target gender (user has no
+          // identify_as either), return zero results rather than show
+          // unfiltered profiles. Forces the user to complete onboarding.
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
         }
 
         // Apply Server-Side Filters
@@ -504,6 +525,23 @@ const DiscoveryPage = () => {
     if (!error && data) {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
         setUndoTimer(10); // 10 seconds to undo
+
+        // Brief feedback so the user knows the tap registered. Match toast
+        // (below) takes priority and visually replaces this when applicable.
+        const firstName = (target.full_name || '').split(' ')[0] || 'Profile';
+        if (type === 'like') {
+          toast({
+            title: 'Liked',
+            description: firstName + " won't know unless they like you back. Undo within 10s.",
+            duration: 2500,
+          });
+        } else if (type === 'pass') {
+          toast({
+            title: 'Passed',
+            description: 'You can undo within 10 seconds.',
+            duration: 2000,
+          });
+        }
         
         if (type === 'like') {
           setDailyLikeCount(prev => prev + 1);
