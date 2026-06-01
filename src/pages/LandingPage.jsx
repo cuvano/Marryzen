@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -138,6 +138,32 @@ const SampleProfileCard = ({ photo, name, age, faithLabel, city, occupation, bio
 const LandingPage = () => {
   const navigate = useNavigate();
 
+  // B14 - Founding Member counter (calls get_founding_member_count RPC).
+  // Renders in the hero. Refreshes every 60s.
+  const [foundingCount, setFoundingCount] = useState({ current: null, cap: 500, remaining: null });
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_founding_member_count');
+        if (cancelled || error) return;
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row && typeof row.current_count === 'number') {
+          setFoundingCount({
+            current: row.current_count,
+            cap: row.cap_total ?? 500,
+            remaining: row.remaining ?? null,
+          });
+        }
+      } catch (e) {
+        console.warn('[Founding counter] fetch failed:', e);
+      }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   useEffect(() => {
     // Redirect authenticated users to dashboard
     const checkAuth = async () => {
@@ -191,6 +217,16 @@ const LandingPage = () => {
           transition={{ duration: 0.8 }}
           className="text-center max-w-5xl mx-auto"
         >
+          {/* B14 — Founding Member counter. Renders only when count is loaded
+              AND capacity remains. Hidden once cap is hit to avoid "0 spots"
+              discouraging signups. */}
+          {foundingCount.current !== null && foundingCount.remaining > 0 && (
+            <div className="inline-flex items-center gap-2 bg-[#FFF3D1] border border-[#E6B450] text-[#7A5A1A] px-4 py-2 rounded-full text-sm font-bold mb-6 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#E6B450] animate-pulse" />
+              {foundingCount.remaining} of {foundingCount.cap} Founding Member spots remaining - <Link to="/founding-member-terms" className="underline hover:no-underline">see terms</Link>
+            </div>
+          )}
+
           <h1 className="text-3xl sm:text-4xl sm:text-5xl md:text-7xl font-extrabold text-[#1F1F1F] mb-6 tracking-tight leading-tight">
             Marryzen
             <span className="block text-[#C85A72] mt-3 text-3xl md:text-5xl font-serif italic">Where Serious Marriages Begin</span>
