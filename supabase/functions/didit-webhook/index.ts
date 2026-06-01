@@ -353,6 +353,124 @@ function isUnder18(dobIso: string | null): boolean {
   return age < 18;
 }
 
+// B1 — Pull the live selfie image URL from Didit's webhook payload. Didit V3
+// places it under decision.face_verifications[].image_url OR decision.id_verifications[]
+// .face_image_url depending on version. Tolerate both.
+function extractDiditSelfieUrl(payload: Record<string, unknown>): string | null {
+  const dec = getDecisionNode(payload);
+  if (!dec) return null;
+
+  const fvArr = (dec as { face_verifications?: unknown }).face_verifications;
+  if (Array.isArray(fvArr) && fvArr.length > 0) {
+    for (const fv of fvArr) {
+      const v = fv as Record<string, unknown>;
+      const u = v.image_url ?? v.selfie_url ?? v.face_image_url ?? v.live_image_url ?? v.url;
+      if (typeof u === "string" && u.startsWith("http")) return u;
+    }
+  }
+
+  const fmArr = (dec as { face_matches?: unknown }).face_matches;
+  if (Array.isArray(fmArr) && fmArr.length > 0) {
+    for (const fm of fmArr) {
+      const v = fm as Record<string, unknown>;
+      const u = v.selfie_url ?? v.image_url ?? v.face_image_url ?? v.live_image_url;
+      if (typeof u === "string" && u.startsWith("http")) return u;
+    }
+  }
+
+  const idArr = (dec as { id_verifications?: unknown }).id_verifications;
+  if (Array.isArray(idArr) && idArr.length > 0) {
+    for (const idv of idArr) {
+      const v = idv as Record<string, unknown>;
+      const u = v.face_image_url ?? v.selfie_url ?? v.live_image_url;
+      if (typeof u === "string" && u.startsWith("http")) return u;
+    }
+  }
+
+  return null;
+}
+
+// Fetch an image URL and return base64-encoded bytes (no data: prefix).
+// Returns null on any failure.
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) {
+      console.warn("fetchImageAsBase64: HTTP " + r.status + " for " + url);
+      return null;
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    // Chunked btoa to avoid stack overflow on large images
+    let bin = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < buf.length; i += CHUNK) {
+      bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)));
+    }
+    return btoa(bin);
+  } catch (e) {
+    console.warn("fetchImageAsBase64 threw: " + String(e));
+    return null;
+  }
+}
+
+// B1 — AWS Rekognition CompareFaces.
+// Compares two face images. Returns the highest similarity score 0..100 (we
+// divide by 100 to return 0..1) or null on failure. Uses AWS Signature V4
+// via the aws4fetch library.
+async function awsRekognitionCompareFaces(
+  sourceB64: string,
+  targetB64: string,
+): Promise<{ score: number | null; raw: unknown; error?: string }> {
+  const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+  const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+  const region = Deno.env.get("AWS_REGION") ?? "us-east-1";
+  if (!accessKeyId || !secretAccessKey) {
+    return { score: null, raw: null, error: "AWS credentials missing" };
+  }
+
+  try {
+    const { AwsClient } = await import("https://esm.sh/aws4fetch@1.0.18");
+    const aws = new AwsClient({ accessKeyId, secretAccessKey, service: "rekognition", region });
+
+    const body = JSON.stringify({
+      SourceImage: { Bytes: sourceB64 },
+      TargetImage: { Bytes: targetB64 },
+      // Only return faces with > 70% similarity (we still get the top match in
+      // FaceMatches even if below threshold via UnmatchedFaces).
+      SimilarityThreshold: 70,
+    });
+
+    const r = await aws.fetch("https://rekognition." + region + ".amazonaws.com/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-amz-json-1.1",
+        "X-Amz-Target": "RekognitionService.CompareFaces",
+      },
+      body,
+    });
+
+    if (!r.ok) {
+      const errText = (await r.text()).slice(0, 400);
+      return { score: null, raw: { error: errText }, error: "Rekognition HTTP " + r.status };
+    }
+
+    const j = await r.json();
+    // Response: { FaceMatches: [{ Similarity: 95.2, Face: {...} }, ...], UnmatchedFaces: [...] }
+    // Use the highest similarity score among matches, or 0 if no matches.
+    const matches = Array.isArray(j?.FaceMatches) ? j.FaceMatches : [];
+    let topSimilarity = 0;
+    for (const m of matches) {
+      const s = Number(m?.Similarity ?? 0);
+      if (s > topSimilarity) topSimilarity = s;
+    }
+    // Also check unmatched — if we had a source face but no target match was
+    // above the threshold, similarity is effectively 0.
+    return { score: topSimilarity / 100, raw: j };
+  } catch (e) {
+    return { score: null, raw: null, error: "AWS call threw: " + String(e) };
+  }
+}
+
 function extractStatus(payload: Record<string, unknown>): string {
   const s = (payload as { status?: unknown }).status;
   if (typeof s === "string") return s.toLowerCase().trim();
@@ -488,7 +606,7 @@ serve(async (req) => {
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, referred_by, is_verified, identity_verification_status, document_hash",
+        "id, full_name, referred_by, is_verified, identity_verification_status, document_hash, photos",
       )
       .eq("id", userId)
       .maybeSingle();
@@ -523,6 +641,19 @@ serve(async (req) => {
     }
 
     // Approved path
+
+    // B1 — Replay-safety: if user was already verified, skip ALL re-verification
+    // logic (including face-match). Prevents Didit retries from revoking
+    // already-granted verified badges due to lighting/pose differences in a
+    // re-uploaded selfie. Moved earlier (was after the verified-grant block).
+    if (profile.is_verified === true) {
+      console.log("Replay detected (user already verified); skipping credit grants.");
+      return new Response(
+        JSON.stringify({ ok: true, status: "verified", replay: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // B7 — server-side underage hard-stop. Before we honor a Didit "approved"
     // verification, cross-check the ID-extracted DOB. If the document of
     // record shows <18, refuse to mark the profile verified regardless of
@@ -600,9 +731,94 @@ serve(async (req) => {
     };
     if (docHash) update.document_hash = docHash;
 
+    // B1 — Face-match gate. Even if the name matches the document, we require
+    // the live selfie to match the user's primary profile photo before
+    // granting the verified badge. Prevents the "predator uploads stolen
+    // photo + verifies with their own face" attack.
+    //
+    // Thresholds:
+    //   score >= 0.85 -> match  (grant verified)
+    //   0.60 - 0.85   -> review (don't grant; admin reviews)
+    //   score < 0.60  -> mismatch (don't grant; admin reviews)
+    //   missing/error -> review (don't grant; admin reviews) — fail-CLOSED
+    //
+    // ALL outcomes write a row to face_match_attempts for the audit log.
+    // Status enum: face-fail uses 'pending' (existing ProfilePage UI handles)
+    // rather than introducing a new status the UI doesn't render.
+    const FACE_MATCH_THRESHOLD = 0.85;
+    const FACE_MISMATCH_THRESHOLD = 0.60;
+    let faceMatchDecision: "match" | "mismatch" | "review" | "error" = "error";
+    let faceMatchScore: number | null = null;
+    let faceMatchRaw: unknown = null;
+    let faceMatchPassed = false;
+    const profilePhotos = Array.isArray(profile?.photos) ? profile.photos as unknown[] : [];
+    const primaryPhotoUrl = typeof profilePhotos[0] === "string" ? profilePhotos[0] as string : null;
+    const diditSelfieUrl = extractDiditSelfieUrl(payload);
+
     if (nameCheck.match) {
+      if (!primaryPhotoUrl || !diditSelfieUrl) {
+        faceMatchDecision = "review";
+        console.warn(
+          "didit-webhook B1: missing image for face-match; fail-closed to review.",
+          { hasProfile: !!primaryPhotoUrl, hasSelfie: !!diditSelfieUrl },
+        );
+      } else {
+        // Fetch both images, base64-encode, send to AWS Rekognition.
+        const [selfieB64, profileB64] = await Promise.all([
+          fetchImageAsBase64(diditSelfieUrl),
+          fetchImageAsBase64(primaryPhotoUrl),
+        ]);
+        if (!selfieB64 || !profileB64) {
+          faceMatchDecision = "review";
+          console.warn("didit-webhook B1: failed to download one or both images");
+        } else {
+          const cmp = await awsRekognitionCompareFaces(selfieB64, profileB64);
+          faceMatchScore = cmp.score;
+          faceMatchRaw = cmp.raw;
+          if (cmp.error || faceMatchScore === null) {
+            faceMatchDecision = "review";
+            console.error("didit-webhook B1: AWS Rekognition failed:", cmp.error);
+          } else if (faceMatchScore >= FACE_MATCH_THRESHOLD) {
+            faceMatchDecision = "match";
+            faceMatchPassed = true;
+          } else if (faceMatchScore < FACE_MISMATCH_THRESHOLD) {
+            faceMatchDecision = "mismatch";
+          } else {
+            faceMatchDecision = "review";
+          }
+        }
+      }
+
+      // Persist audit row regardless of outcome (best-effort).
+      try {
+        const raw = faceMatchRaw as Record<string, unknown> | null;
+        const vendorReqId = raw && typeof (raw as { ResponseMetadata?: { RequestId?: string } }).ResponseMetadata?.RequestId === "string"
+          ? (raw as { ResponseMetadata: { RequestId: string } }).ResponseMetadata.RequestId
+          : null;
+        await supabase.from("face_match_attempts").insert({
+          user_id: userId,
+          selfie_url: diditSelfieUrl,
+          profile_photo_url: primaryPhotoUrl,
+          similarity_score: faceMatchScore,
+          decision: faceMatchDecision,
+          granted_verified: faceMatchPassed,
+          vendor_response: faceMatchRaw,
+          vendor_request_id: vendorReqId,
+        });
+      } catch (e) {
+        console.error("didit-webhook B1: face_match_attempts insert failed:", e);
+      }
+    }
+
+    if (nameCheck.match && faceMatchPassed) {
       update.identity_verification_status = "verified";
       update.is_verified = true;
+    } else if (nameCheck.match && !faceMatchPassed) {
+      // Name matched but face-match did not. Mark as 'pending' so existing
+      // ProfilePage UI shows "Verification pending" (the user sees a clean
+      // message; admin reviews via face_match_attempts table).
+      update.identity_verification_status = "pending";
+      update.is_verified = false;
     } else {
       update.identity_verification_status = "pending";
       update.is_verified = false;
@@ -635,15 +851,21 @@ serve(async (req) => {
       );
     }
 
-    // Replay-safety fast path: if the user was already verified before this
-    // webhook, credits were considered already. Skip the work.
-    if (profile.is_verified === true) {
-      console.log("Replay detected (user already verified); skipping credit grants.");
+    // B1 — Face-match did not pass even though name matched.
+    if (!faceMatchPassed) {
+      console.log("didit-webhook B1: face-match did not pass; status=" + faceMatchDecision + ", score=" + faceMatchScore);
       return new Response(
-        JSON.stringify({ ok: true, status: "verified", replay: true }),
+        JSON.stringify({
+          ok: true,
+          status: "pending_face_review",
+          face_match_decision: faceMatchDecision,
+          face_match_score: faceMatchScore,
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // (Replay-safety check moved earlier — see below approved-path opening.)
 
     // Referrer credit
     const referredBy = profile.referred_by as string | null;
