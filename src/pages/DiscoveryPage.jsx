@@ -526,20 +526,21 @@ const DiscoveryPage = () => {
         setLastAction({ type, profileId: target.id, interactionId: data.id, timestamp: Date.now() });
         setUndoTimer(10); // 10 seconds to undo
 
-        // Brief feedback so the user knows the tap registered. Match toast
-        // (below) takes priority and visually replaces this when applicable.
+        // Brief feedback so the user knows the tap registered. The persistent
+        // undo bar above the grid is the affordance for actually undoing;
+        // the toast is just a quick confirmation. Match toast (below) takes
+        // priority and visually replaces this when applicable.
         const firstName = (target.full_name || '').split(' ')[0] || 'Profile';
         if (type === 'like') {
           toast({
             title: 'Liked',
-            description: firstName + " won't know unless they like you back. Undo within 10s.",
-            duration: 2500,
+            description: firstName + " won't know unless they like you back.",
+            duration: 2000,
           });
         } else if (type === 'pass') {
           toast({
             title: 'Passed',
-            description: 'You can undo within 10 seconds.',
-            duration: 2000,
+            duration: 1500,
           });
         }
         
@@ -1247,25 +1248,28 @@ const DiscoveryPage = () => {
                           {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
                           {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
                           {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
-                          {/* Undo Button - Premium Only */}
-                          {lastAction && currentUser?.is_premium && (
-                              <Button 
-                                  size="sm" 
-                                  onClick={handleUndo} 
-                                  className="ml-auto bg-[#1F1F1F] text-white animate-in fade-in slide-in-from-top-2"
-                              >
-                                  <Undo2 className="w-4 h-4 mr-1" /> Undo ({undoTimer}s)
-                              </Button>
-                          )}
-                          {lastAction && !currentUser?.is_premium && (
-                              <Button 
-                                  size="sm" 
-                                  onClick={() => openPremiumModal && openPremiumModal()} 
-                                  className="ml-auto bg-[#E6B450] text-[#1F1F1F] animate-in fade-in slide-in-from-top-2"
-                              >
-                                  <Crown className="w-4 h-4 mr-1" /> Premium: Undo ({undoTimer}s)
-                              </Button>
-                          )}
+                      </div>
+                    )}
+
+                    {/* Undo bar - ALWAYS renders when lastAction is set, free for everyone.
+                        Previously was nested inside the filter-tags row (so it only
+                        appeared if filters were active) and gated behind premium (free
+                        users got a "Premium: Undo" upsell instead). Both UX dead ends.
+                        Undo is a small, sympathetic feature that costs nothing to
+                        give away and earns more goodwill than the upsell ever did. */}
+                    {lastAction && undoTimer > 0 && (
+                      <div className="flex items-center justify-between gap-3 bg-[#1F1F1F] text-white rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-2 shadow-md">
+                          <span className="text-sm font-medium">
+                              {lastAction.type === 'like' ? 'Liked' : 'Passed'}
+                              <span className="opacity-70 ml-2 text-xs">{undoTimer}s left to undo</span>
+                          </span>
+                          <Button
+                              size="sm"
+                              onClick={handleUndo}
+                              className="bg-white text-[#1F1F1F] hover:bg-[#FAF7F2] font-semibold h-8 px-3"
+                          >
+                              <Undo2 className="w-4 h-4 mr-1" /> Undo
+                          </Button>
                       </div>
                     )}
                 </div>
