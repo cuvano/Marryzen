@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
+import { PhotoBlockedError } from '@/lib/photoModeration';
 import { displayReligion, displayFaithLifestyle } from '@/lib/religionLabels';
 import { displayRelationshipGoal, displayRelocate, displayMarriageTimeline, displayFamilyGoals, displaySmoking, displayDrinking, displayMaritalStatus, displayHasChildren } from '@/lib/profileDisplayLabels';
 import { Calendar as CalendarIcon, Baby, Plane } from 'lucide-react';
@@ -397,7 +398,23 @@ const ProfilePage = () => {
 
       // Compress the cropped cover photo
       const compressed = await compressImage(croppedBase64, 1920, 0.85);
-      const coverFinal = await uploadPhotoToStorage(compressed, user.id, 'cover');
+      let coverFinal;
+      try {
+        coverFinal = await uploadPhotoToStorage(compressed, user.id, 'cover');
+      } catch (err) {
+        if (err?.code === 'PHOTO_BLOCKED' || err instanceof PhotoBlockedError) {
+          // B6 — NSFW/CSAM/violence scan rejected the photo.
+          toast({
+            title: 'Cover photo not allowed',
+            description: err.message || 'This photo violates our Community Guidelines. Please choose a different photo.',
+            variant: 'destructive',
+            duration: 8000,
+          });
+          setUploadingPhoto(false);
+          return;
+        }
+        throw err;
+      }
       
       const { error } = await supabase
         .from('profiles')
@@ -487,7 +504,23 @@ const ProfilePage = () => {
       }
 
       const compressed = await compressImage(croppedBase64);
-      const uploadedUrl = await uploadPhotoToStorage(compressed, user.id, 'photo');
+      let uploadedUrl;
+      try {
+        uploadedUrl = await uploadPhotoToStorage(compressed, user.id, 'photo');
+      } catch (err) {
+        if (err?.code === 'PHOTO_BLOCKED' || err instanceof PhotoBlockedError) {
+          // B6 — NSFW/CSAM/violence scan rejected the photo.
+          toast({
+            title: 'Photo not allowed',
+            description: err.message || 'This photo violates our Community Guidelines. Please choose a different photo.',
+            variant: 'destructive',
+            duration: 8000,
+          });
+          setUploadingPhoto(false);
+          return;
+        }
+        throw err;
+      }
       // Use ref so we always append to latest photos (avoids stale state when dialog was open)
       const currentPhotos = latestPhotosRef.current ?? [];
       const newPhotos = [...currentPhotos, uploadedUrl];
