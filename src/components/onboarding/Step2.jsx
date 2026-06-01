@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/customSupabaseClient';
 import { uploadPhotoToStorage } from '@/lib/uploadPhoto';
+import { PhotoBlockedError } from '@/lib/photoModeration';
 import { detectFacesInImage, warmUpFaceDetector } from '@/lib/faceDetection';
 
 const MAX_FILE_SIZE_MB = 10;
@@ -438,9 +439,24 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      const finalValue = user?.id
-        ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
-        : croppedBase64;
+      let finalValue;
+      try {
+        finalValue = user?.id
+          ? await uploadPhotoToStorage(croppedBase64, user.id, 'photo')
+          : croppedBase64;
+      } catch (err) {
+        if (err?.code === 'PHOTO_BLOCKED' || err instanceof PhotoBlockedError) {
+          // B6 — NSFW/CSAM/violence scan rejected the photo.
+          toast({
+            title: 'Photo not allowed',
+            description: err.message || 'This photo violates our Community Guidelines. Please choose a different photo.',
+            variant: 'destructive',
+            duration: 8000,
+          });
+          return; // keep crop modal open so user can pick a different photo
+        }
+        throw err; // unexpected error — let outer handler deal with it
+      }
       const newPhotos = [...currentPhotos];
       newPhotos[pendingIndex] = finalValue;
       updateFormData('photos', newPhotos);
