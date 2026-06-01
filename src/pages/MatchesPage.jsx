@@ -21,7 +21,14 @@ const MatchesPage = () => {
   const [profileViews, setProfileViews] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [potentialMatchesCount, setPotentialMatchesCount] = useState(null);
-  const [activeTab, setActiveTab] = useState('matches'); // 'matches' | 'interactions' | 'likes-you' | 'profile-views' | 'favorites'
+  // Initial tab is derived from URL synchronously to avoid a one-frame
+  // flicker showing 'matches' content before we read ?tab=... below.
+  const VALID_TABS = ['matches', 'interactions', 'likes-you', 'profile-views', 'favorites'];
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'matches';
+    const t = new URLSearchParams(window.location.search).get('tab');
+    return VALID_TABS.includes(t) ? t : 'matches';
+  });
   const navigate = useNavigate();
 
   // Re-fetch when auth user changes so a new account in same browser doesn't see previous user's data
@@ -45,19 +52,29 @@ const MatchesPage = () => {
     fetchFavorites();
     fetchPotentialMatchesCount();
 
-    // Check URL for tab parameter
+    // Re-sync activeTab from URL on mount and on auth change. The lazy
+    // initial state above already handled the very first paint, but if the
+    // user navigates around within the same session we want the URL to
+    // remain the source of truth.
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'interactions') {
-      setActiveTab('interactions');
-    } else if (tab === 'likes-you') {
-      setActiveTab('likes-you');
-    } else if (tab === 'profile-views') {
-      setActiveTab('profile-views');
-    } else if (tab === 'favorites') {
-      setActiveTab('favorites');
+    if (VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
     }
   }, [authUser?.id]);
+
+  // Tab <-> URL sync: when the user changes tab, push a new URL so the
+  // browser back button from a /profile/:id detail page returns them to the
+  // tab they were on (not the default 'matches' tab). Skip when the URL
+  // already matches to avoid history spam. (Fix for: clicking Back from a
+  // profile opened from 'Past Interactions' landed on 'My Matches'.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const currentTab = new URLSearchParams(window.location.search).get('tab') || 'matches';
+    if (currentTab === activeTab) return;
+    const newUrl = activeTab === 'matches' ? '/matches' : '/matches?tab=' + activeTab;
+    navigate(newUrl);
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
