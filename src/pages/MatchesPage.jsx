@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -63,17 +63,26 @@ const MatchesPage = () => {
     }
   }, [authUser?.id]);
 
-  // Tab <-> URL sync: when the user changes tab, push a new URL so the
-  // browser back button from a /profile/:id detail page returns them to the
-  // tab they were on (not the default 'matches' tab). Skip when the URL
-  // already matches to avoid history spam. (Fix for: clicking Back from a
-  // profile opened from 'Past Interactions' landed on 'My Matches'.)
+  // Tab <-> URL sync: when the USER changes tab, REPLACE the URL so the
+  // browser back button from /profile/:id returns them to the tab they were
+  // on. Critical details (regression from the v1 of this effect):
+  //   - `{ replace: true }` instead of push -> prevents history pollution +
+  //     the navigation-loop after browser-back that needed a manual refresh.
+  //   - Skip the very first render via a ref guard so we don't fight against
+  //     the synchronous URL -> state hydration in the initial useState.
+  //   - The currentTab read covers the case where state and URL are already
+  //     in sync (no-op).
+  const tabSyncInitialized = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!tabSyncInitialized.current) {
+      tabSyncInitialized.current = true;
+      return; // first render -> trust the lazy initial state
+    }
     const currentTab = new URLSearchParams(window.location.search).get('tab') || 'matches';
     if (currentTab === activeTab) return;
     const newUrl = activeTab === 'matches' ? '/matches' : '/matches?tab=' + activeTab;
-    navigate(newUrl);
+    navigate(newUrl, { replace: true });
   }, [activeTab]);
 
   const fetchData = async () => {
