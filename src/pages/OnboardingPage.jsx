@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
+import { funnel } from '@/lib/analytics';
 import { executeRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
 import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
 import { checkRateLimit } from '@/lib/rateLimit';
@@ -512,6 +513,16 @@ const OnboardingPage = () => {
               
               userId = data.user?.id;
               currentSession = data.session;
+
+              // Meta Pixel Lead event + PostHog signup_completed. Fires once,
+              // regardless of whether email confirmation is still required.
+              // (We consider account creation = "lead generated" for ad attribution.)
+              try {
+                funnel.signupCompleted({
+                  user_id: userId,
+                  has_referral: !!referralCode,
+                });
+              } catch (_) { /* never block onboarding on analytics */ }
               
               // If no session (email confirmation required), wait a moment and check again
               if (!currentSession && userId) {
