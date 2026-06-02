@@ -547,6 +547,20 @@ const ProfilePage = () => {
   const handleRemovePhoto = async (index) => {
     if (!isOwnProfile) return;
 
+    // Guard: never let the user delete the last remaining photo. A 0-photo
+    // profile is invisible in Discovery (no card to show) but the user can
+    // still browse + like others - one-way visibility = bad UX and confusing
+    // for matches who see a blank card after they liked them. Force the user
+    // to upload a replacement BEFORE removing the last one.
+    if ((profile?.photos?.length || 0) <= 1) {
+      toast({
+        title: "Upload a new photo first",
+        description: "You need at least 1 photo on your profile. Add a replacement before removing this one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setDeletingPhotoIndex(index);
     try {
       const { data: { user } } = await supabase.auth.getUser();
