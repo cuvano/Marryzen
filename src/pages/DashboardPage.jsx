@@ -62,6 +62,22 @@ const DashboardPage = () => {
   });
   const [referralInfo, setReferralInfo] = useState(null);
 
+  // Meta Pixel CompleteRegistration: fires ONCE when the user's identity is
+  // verified (Didit returns success and is_verified flips true). Deduped via
+  // localStorage so we don't refire on every dashboard visit after verification.
+  // Best fire point client-side because the didit-webhook is server-side and
+  // doesn't have access to the user's pixel session.
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    if (!userProfile.is_verified) return;
+    try {
+      const key = 'mrz_didit_completed_fired_' + userProfile.id;
+      if (localStorage.getItem(key) === '1') return;
+      funnel.diditCompleted({ user_id: userProfile.id });
+      localStorage.setItem(key, '1');
+    } catch (_) { /* analytics must never crash UI */ }
+  }, [userProfile?.id, userProfile?.is_verified]);
+
   useEffect(() => {
     if (!authUser?.id) {
       setUserProfile(null);
