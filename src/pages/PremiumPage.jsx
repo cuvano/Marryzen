@@ -97,7 +97,15 @@ const PremiumPage = () => {
   };
 
   const handleSubscribe = async (priceId) => {
-    funnel.checkoutStarted({ priceId });
+    // Look up the dollar value of the plan being subscribed to so the
+    // Meta Pixel checkoutStarted event carries `value` + `currency`. This
+    // lets Meta Ads optimize for highest-value subscribers (Annual $179.88)
+    // instead of treating every Subscribe click as worth the same $0.
+    const subscribedPlan = plans?.find(p => p.id === priceId);
+    const subscribedValue = subscribedPlan
+      ? parseFloat(String(subscribedPlan.price).replace(/[^0-9.]/g, '')) || 0
+      : 0;
+    funnel.checkoutStarted({ priceId, value: subscribedValue, currency: 'USD' });
     setLoadingPlanId(priceId);
     setLoading(true);
     try {
