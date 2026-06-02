@@ -96,8 +96,18 @@ const ChatPage = () => {
             (!partner.premium_expires_at || new Date(partner.premium_expires_at) > new Date());
           return { ...c, partner: { ...partner, is_premium_active: isPartnerPremium } };
       }) || [];
-      
-      setConversations(formatted);
+
+      // Filter out phantom conversations - rows that exist in `conversations`
+      // because MatchesPage backfilled them on mutual-match (so a conv ID is
+      // available for the "Start chat" CTA from the Matches tab), but where
+      // no message has been exchanged yet. Without this filter, the chat
+      // sidebar shows users you haven't actually talked to, which reads as
+      // a bug to the user. The activeConversation lookup below (line ~104)
+      // still uses the unfiltered `formatted` list when navigated to via
+      // /chat/<id> directly from Matches "Start chat", so first-message
+      // flows still work end to end.
+      const withMessages = formatted.filter(c => !!c.last_message_at);
+      setConversations(withMessages);
       setLoading(false);
 
       if (conversationId) {
