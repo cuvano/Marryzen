@@ -10,27 +10,19 @@
 //      per-user routes, so we route to /admin/users where admin can
 //      search by name and take action).
 //
-// ROUTING: add `<Route path="welcome" element={<AdminWelcomePage />} />`
-// nested inside the existing `<Route path="/admin" element={<AdminLayout />}>`
-// block in src/App.jsx. URL becomes /admin/welcome.
-//
-// DATA SOURCES (all created by 20260602030000_hybrid_welcome_system.sql):
-//   - RPC get_welcome_stats()         — top-of-page tiles
-//   - RPC get_welcome_queue()          — Welcome Queue tab
-//   - RPC get_risk_flagged_queue()     — Risk-Flagged Queue tab
-//   - Edge Function send-welcome-email — Send Welcome button action
-//
-// All RPCs and the edge function are admin-gated server-side; this page's
-// frontend gating is decorative.
+// DARK THEME: matches the rest of the admin panel (UserManagement,
+// SafetyPanel, etc.). Uses slate-900/950 backgrounds + slate-50/300/400
+// text + purple/rose/amber accents.
 
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
-import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Heart, AlertTriangle, RefreshCcw, Send, ChevronRight } from 'lucide-react';
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -49,59 +41,58 @@ function ageFromDob(dob) {
   }
 }
 
-function hoursAgo(iso) {
-  if (!iso) return null;
-  try {
-    const t = new Date(iso).getTime();
-    if (isNaN(t)) return null;
-    return Math.floor((Date.now() - t) / (1000 * 60 * 60));
-  } catch {
-    return null;
-  }
-}
-
 function formatFlagsHuman(flags) {
-  // Convert {disposable_email: "mailinator.com", short_bio: {length: 12}, ...}
-  // into a short human label list.
-  if (!flags || typeof flags !== "object") return [];
+  if (!flags || typeof flags !== 'object') return [];
   const out = [];
   if (flags.disposable_email) {
-    out.push({ label: `Disposable email (${flags.disposable_email})`, severity: "high" });
+    out.push({ label: `Disposable email (${flags.disposable_email})`, severity: 'high' });
   }
   if (flags.short_bio) {
-    const len = flags.short_bio?.length ?? "?";
-    out.push({ label: `Short bio (${len} chars)`, severity: "med" });
+    const len = flags.short_bio?.length ?? '?';
+    out.push({ label: `Short bio (${len} chars)`, severity: 'med' });
   }
   if (flags.minimal_photos !== undefined) {
-    out.push({ label: `Only ${flags.minimal_photos} photo`, severity: "low" });
+    out.push({ label: `Only ${flags.minimal_photos} photo`, severity: 'low' });
   }
   if (flags.very_young) {
-    out.push({ label: `Age ${flags.very_young}`, severity: "low" });
+    out.push({ label: `Age ${flags.very_young}`, severity: 'low' });
   }
   if (flags.very_old) {
-    out.push({ label: `Age ${flags.very_old}`, severity: "low" });
+    out.push({ label: `Age ${flags.very_old}`, severity: 'low' });
   }
   return out;
 }
 
-function scoreBadgeColor(score) {
-  if (score >= 50) return "bg-rose-100 text-rose-800 border-rose-300";
-  if (score >= 25) return "bg-amber-100 text-amber-800 border-amber-300";
-  if (score > 0)   return "bg-yellow-50 text-yellow-700 border-yellow-200";
-  return "bg-emerald-50 text-emerald-700 border-emerald-200";
+function scoreBadgeClass(score) {
+  if (score >= 50) return 'bg-rose-900/40 text-rose-300 border-rose-800';
+  if (score >= 25) return 'bg-amber-900/40 text-amber-300 border-amber-800';
+  if (score > 0)   return 'bg-yellow-900/40 text-yellow-300 border-yellow-800';
+  return 'bg-emerald-900/40 text-emerald-300 border-emerald-800';
+}
+
+function flagSeverityClass(severity) {
+  if (severity === 'high') return 'text-rose-400';
+  if (severity === 'med')  return 'text-amber-400';
+  return 'text-slate-500';
 }
 
 // ----------------------------------------------------------------------------
 // Stats tile bar
 // ----------------------------------------------------------------------------
-function StatTile({ label, value, sub }) {
+function StatTile({ label, value, sub, accent = 'slate' }) {
+  const accentClass = {
+    slate:   'text-white',
+    purple:  'text-purple-400',
+    rose:    'text-rose-400',
+    amber:   'text-amber-400',
+    emerald: 'text-emerald-400',
+  }[accent] || 'text-white';
+
   return (
-    <Card className="bg-cream/50">
-      <CardContent className="p-4">
-        <div className="text-xs uppercase tracking-wide text-stone-500 mb-1">{label}</div>
-        <div className="text-2xl font-semibold text-stone-900">{value}</div>
-        {sub && <div className="text-xs text-stone-500 mt-1">{sub}</div>}
-      </CardContent>
+    <Card className="bg-slate-900 border border-slate-800 p-4">
+      <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">{label}</div>
+      <div className={`text-2xl font-semibold ${accentClass}`}>{value}</div>
+      {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
     </Card>
   );
 }
@@ -111,11 +102,9 @@ function StatsBar({ stats }) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="bg-cream/50">
-            <CardContent className="p-4">
-              <div className="h-3 bg-stone-200 rounded w-1/2 mb-2 animate-pulse" />
-              <div className="h-7 bg-stone-200 rounded w-1/3 animate-pulse" />
-            </CardContent>
+          <Card key={i} className="bg-slate-900 border border-slate-800 p-4">
+            <div className="h-3 bg-slate-800 rounded w-1/2 mb-2 animate-pulse" />
+            <div className="h-7 bg-slate-800 rounded w-1/3 animate-pulse" />
           </Card>
         ))}
       </div>
@@ -127,20 +116,23 @@ function StatsBar({ stats }) {
         label="Founding members"
         value={`${stats.founding_count} / ${stats.founding_cap}`}
         sub={`${stats.founding_cap - stats.founding_count} spots left`}
+        accent="purple"
       />
       <StatTile
         label="Awaiting welcome"
         value={stats.founding_unwelcomed}
-        sub={stats.founding_unwelcomed === 0 ? "All caught up" : "Welcome these next"}
+        sub={stats.founding_unwelcomed === 0 ? 'All caught up' : 'Welcome these next'}
+        accent={stats.founding_unwelcomed === 0 ? 'emerald' : 'rose'}
       />
       <StatTile
         label="Risk-flagged"
         value={stats.risk_flagged_total}
-        sub={stats.risk_flagged_total === 0 ? "Clean queue" : "Review before they cause issues"}
+        sub={stats.risk_flagged_total === 0 ? 'Clean queue' : 'Review before they cause issues'}
+        accent={stats.risk_flagged_total === 0 ? 'emerald' : 'amber'}
       />
       <StatTile
         label="Median welcome lag"
-        value={stats.median_signup_to_welcome_hours === 0 ? "—" : `${stats.median_signup_to_welcome_hours}h`}
+        value={stats.median_signup_to_welcome_hours === 0 ? '—' : `${stats.median_signup_to_welcome_hours}h`}
         sub="From signup to welcome"
       />
     </div>
@@ -157,63 +149,60 @@ function WelcomeRow({ row, onSend, isSending }) {
   const hours = row.hours_since_signup;
 
   return (
-    <tr className="border-b border-stone-100 hover:bg-cream/30">
-      <td className="py-3 px-3">
+    <tr className="border-b border-slate-800 hover:bg-slate-800/50">
+      <td className="py-3 px-4">
         {row.primary_photo && !imgFailed ? (
           <img
             src={row.primary_photo}
             alt=""
-            className="w-12 h-12 rounded-full object-cover border border-stone-200"
+            className="w-12 h-12 rounded-full object-cover border border-slate-700"
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 text-sm font-medium">
-            {row.full_name?.[0]?.toUpperCase() || "?"}
+          <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-sm font-medium">
+            {row.full_name?.[0]?.toUpperCase() || '?'}
           </div>
         )}
       </td>
-      <td className="py-3 px-3">
-        <div className="font-medium text-stone-900">{row.full_name || "Unnamed"}</div>
-        <div className="text-xs text-stone-500">{row.email}</div>
-        <div className="text-xs text-stone-400 mt-0.5">
-          {[age && `${age}yr`, row.location_city, row.location_country].filter(Boolean).join(" · ")}
+      <td className="py-3 px-4">
+        <div className="font-medium text-white">{row.full_name || 'Unnamed'}</div>
+        <div className="text-xs text-slate-400">{row.email}</div>
+        <div className="text-xs text-slate-500 mt-0.5">
+          {[age && `${age}yr`, row.location_city, row.location_country].filter(Boolean).join(' · ')}
         </div>
       </td>
-      <td className="py-3 px-3 max-w-md">
-        <div className="text-sm text-stone-700 line-clamp-2 italic">
-          {row.bio || <span className="text-stone-400 not-italic">No bio</span>}
+      <td className="py-3 px-4 max-w-md">
+        <div className="text-sm text-slate-300 line-clamp-2 italic">
+          {row.bio || <span className="text-slate-500 not-italic">No bio</span>}
         </div>
       </td>
-      <td className="py-3 px-3">
-        <Badge className={`border ${scoreBadgeColor(row.risk_score)}`}>
+      <td className="py-3 px-4">
+        <Badge variant="outline" className={`border ${scoreBadgeClass(row.risk_score)}`}>
           {row.risk_score}
         </Badge>
         {flags.length > 0 && (
           <div className="mt-1.5 space-y-0.5">
             {flags.map((f, i) => (
-              <div key={i} className={`text-xs ${
-                f.severity === "high" ? "text-rose-700" :
-                f.severity === "med"  ? "text-amber-700" :
-                "text-stone-500"
-              }`}>
+              <div key={i} className={`text-xs ${flagSeverityClass(f.severity)}`}>
                 · {f.label}
               </div>
             ))}
           </div>
         )}
       </td>
-      <td className="py-3 px-3 text-sm text-stone-500 whitespace-nowrap">
-        {hours != null ? `${hours}h ago` : "—"}
-        <div className="text-xs text-stone-400">since signup</div>
+      <td className="py-3 px-4 text-sm text-slate-400 whitespace-nowrap">
+        {hours != null ? `${hours}h ago` : '—'}
+        <div className="text-xs text-slate-500">since signup</div>
       </td>
-      <td className="py-3 px-3 text-right whitespace-nowrap">
+      <td className="py-3 px-4 text-right whitespace-nowrap">
         <Button
           size="sm"
           onClick={() => onSend(row.user_id)}
           disabled={isSending}
-          className="bg-rose-600 hover:bg-rose-700 text-white"
+          className="bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
         >
-          {isSending ? "Sending..." : "Send welcome"}
+          <Send className="w-3.5 h-3.5 mr-1.5" />
+          {isSending ? 'Sending...' : 'Send welcome'}
         </Button>
       </td>
     </tr>
@@ -221,42 +210,48 @@ function WelcomeRow({ row, onSend, isSending }) {
 }
 
 // ----------------------------------------------------------------------------
-// Risk-flagged row (read-only; click opens SafetyPanel for that user)
+// Risk-flagged row
 // ----------------------------------------------------------------------------
 function RiskRow({ row, onOpen }) {
   const flags = formatFlagsHuman(row.risk_flags);
   return (
     <tr
-      className="border-b border-stone-100 hover:bg-cream/30 cursor-pointer"
-      onClick={() => onOpen()}
+      className="border-b border-slate-800 hover:bg-slate-800/50 cursor-pointer"
+      onClick={onOpen}
     >
-      <td className="py-3 px-3">
+      <td className="py-3 px-4">
         {row.primary_photo ? (
-          <img src={row.primary_photo} alt="" className="w-10 h-10 rounded-full object-cover border border-stone-200" />
+          <img src={row.primary_photo} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-700" />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-stone-200" />
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700" />
         )}
       </td>
-      <td className="py-3 px-3">
-        <div className="font-medium text-stone-900">{row.full_name || "Unnamed"}</div>
-        <div className="text-xs text-stone-500">{row.email}</div>
+      <td className="py-3 px-4">
+        <div className="font-medium text-white">{row.full_name || 'Unnamed'}</div>
+        <div className="text-xs text-slate-400">{row.email}</div>
         {row.founding_member && (
-          <Badge className="mt-1 bg-amber-50 text-amber-700 border border-amber-200 text-xs">Founding</Badge>
+          <Badge variant="outline" className="mt-1 bg-purple-900/40 text-purple-300 border-purple-800 text-xs">Founding</Badge>
         )}
       </td>
-      <td className="py-3 px-3">
-        <Badge className={`border ${scoreBadgeColor(row.risk_score)}`}>{row.risk_score}</Badge>
+      <td className="py-3 px-4">
+        <Badge variant="outline" className={`border ${scoreBadgeClass(row.risk_score)}`}>{row.risk_score}</Badge>
         <div className="mt-1.5 space-y-0.5">
           {flags.map((f, i) => (
-            <div key={i} className="text-xs text-stone-600">· {f.label}</div>
+            <div key={i} className={`text-xs ${flagSeverityClass(f.severity)}`}>· {f.label}</div>
           ))}
         </div>
       </td>
-      <td className="py-3 px-3 text-sm text-stone-500 whitespace-nowrap">
-        {row.welcomed_at ? "Welcomed" : "Not yet welcomed"}
+      <td className="py-3 px-4 text-sm text-slate-400 whitespace-nowrap">
+        {row.welcomed_at ? (
+          <span className="text-emerald-400">Welcomed</span>
+        ) : (
+          <span className="text-slate-500">Not yet welcomed</span>
+        )}
       </td>
-      <td className="py-3 px-3 text-right">
-        <Button size="sm" variant="outline">Open in Users →</Button>
+      <td className="py-3 px-4 text-right">
+        <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white">
+          Open Users <ChevronRight className="w-3.5 h-3.5 ml-1" />
+        </Button>
       </td>
     </tr>
   );
@@ -265,7 +260,7 @@ function RiskRow({ row, onOpen }) {
 // ----------------------------------------------------------------------------
 // Main page
 // ----------------------------------------------------------------------------
-export default function AdminWelcomePage() {
+const AdminWelcomePage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -279,25 +274,24 @@ export default function AdminWelcomePage() {
     setLoadingQueues(true);
     try {
       const [statsRes, welcomeRes, riskRes] = await Promise.all([
-        supabase.rpc("get_welcome_stats"),
-        supabase.rpc("get_welcome_queue"),
-        supabase.rpc("get_risk_flagged_queue"),
+        supabase.rpc('get_welcome_stats'),
+        supabase.rpc('get_welcome_queue'),
+        supabase.rpc('get_risk_flagged_queue'),
       ]);
 
       if (statsRes.error) throw statsRes.error;
       if (welcomeRes.error) throw welcomeRes.error;
       if (riskRes.error) throw riskRes.error;
 
-      // get_welcome_stats returns a single row as an array of one
       setStats(Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data);
       setWelcomeQueue(welcomeRes.data || []);
       setRiskQueue(riskRes.data || []);
     } catch (err) {
-      console.error("AdminWelcomePage: load failed", err);
+      console.error('AdminWelcomePage: load failed', err);
       toast({
         title: "Couldn't load admin queues",
-        description: err?.message || "Unknown error — check console.",
-        variant: "destructive",
+        description: err?.message || 'Unknown error — check console.',
+        variant: 'destructive',
       });
     } finally {
       setLoadingQueues(false);
@@ -313,14 +307,14 @@ export default function AdminWelcomePage() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      if (!token) throw new Error("Not authenticated");
+      if (!token) throw new Error('Not authenticated');
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ user_id: userId }),
       });
@@ -331,24 +325,23 @@ export default function AdminWelcomePage() {
       }
 
       toast({
-        title: "Welcome sent",
+        title: 'Welcome sent',
         description: json?.warning
           ? `Email sent, but: ${json.warning}`
-          : "User has been personally welcomed.",
+          : 'User has been personally welcomed.',
       });
 
       // Optimistic: drop the row from the welcome queue + refresh stats
       setWelcomeQueue((q) => q.filter((r) => r.user_id !== userId));
-      // Refresh stats in background; don't block UI
-      supabase.rpc("get_welcome_stats").then(({ data }) => {
+      supabase.rpc('get_welcome_stats').then(({ data }) => {
         if (data) setStats(Array.isArray(data) ? data[0] : data);
       });
     } catch (err) {
-      console.error("AdminWelcomePage: send failed", err);
+      console.error('AdminWelcomePage: send failed', err);
       toast({
-        title: "Welcome failed",
-        description: err?.message || "Unknown error — check console.",
-        variant: "destructive",
+        title: 'Welcome failed',
+        description: err?.message || 'Unknown error — check console.',
+        variant: 'destructive',
       });
     } finally {
       setSendingId(null);
@@ -356,68 +349,84 @@ export default function AdminWelcomePage() {
   };
 
   const handleOpenUserList = () => {
-    // Marryzen's existing admin flows are report-driven (no per-user routes).
-    // Route to /admin/users where admin can search by name and access
-    // user-level actions (warn/suspend/ban via the existing UserManagement
-    // → SafetyPanel pattern).
-    navigate("/admin/users");
+    navigate('/admin/users');
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900">Welcome &amp; Risk Review</h1>
-          <p className="text-sm text-stone-500 mt-1">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-2">
+            <Heart className="w-7 h-7 text-rose-400" />
+            Welcome &amp; Risk Review
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">
             Personally welcome founding-500 members. Review risk-flagged accounts.
           </p>
         </div>
-        <Button variant="outline" onClick={loadAll} disabled={loadingQueues}>
-          {loadingQueues ? "Loading..." : "Refresh"}
+        <Button
+          variant="outline"
+          onClick={loadAll}
+          disabled={loadingQueues}
+          className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+        >
+          <RefreshCcw className={`w-4 h-4 mr-2 ${loadingQueues ? 'animate-spin' : ''}`} />
+          {loadingQueues ? 'Loading...' : 'Refresh'}
         </Button>
       </div>
 
+      {/* Stats */}
       <StatsBar stats={stats} />
 
-      <Tabs defaultValue="welcome">
-        <TabsList>
-          <TabsTrigger value="welcome">
+      {/* Tabs */}
+      <Tabs defaultValue="welcome" className="w-full">
+        <TabsList className="bg-slate-900 border border-slate-800">
+          <TabsTrigger
+            value="welcome"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-slate-400"
+          >
             Welcome Queue
             {welcomeQueue.length > 0 && (
-              <Badge className="ml-2 bg-rose-100 text-rose-800 border border-rose-200">
+              <Badge className="ml-2 bg-rose-500/90 text-white border-0">
                 {welcomeQueue.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="risk">
+          <TabsTrigger
+            value="risk"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-slate-400"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
             Risk-Flagged
             {riskQueue.length > 0 && (
-              <Badge className="ml-2 bg-amber-100 text-amber-800 border border-amber-200">
+              <Badge className="ml-2 bg-amber-500/90 text-slate-900 border-0">
                 {riskQueue.length}
               </Badge>
             )}
           </TabsTrigger>
         </TabsList>
 
+        {/* Welcome Queue tab */}
         <TabsContent value="welcome">
-          <Card className="mt-4">
-            <CardContent className="p-0 overflow-x-auto">
+          <Card className="bg-slate-900 border border-slate-800 overflow-hidden mt-4">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-cream/40 text-xs uppercase tracking-wide text-stone-500">
+                <thead className="text-xs text-slate-400 uppercase bg-slate-950 border-b border-slate-800">
                   <tr>
-                    <th className="py-3 px-3 text-left w-16"></th>
-                    <th className="py-3 px-3 text-left">Member</th>
-                    <th className="py-3 px-3 text-left">Bio</th>
-                    <th className="py-3 px-3 text-left">Risk</th>
-                    <th className="py-3 px-3 text-left">Verified</th>
-                    <th className="py-3 px-3 text-right">Action</th>
+                    <th className="py-3 px-4 text-left w-20"></th>
+                    <th className="py-3 px-4 text-left">Member</th>
+                    <th className="py-3 px-4 text-left">Bio</th>
+                    <th className="py-3 px-4 text-left">Risk</th>
+                    <th className="py-3 px-4 text-left">Joined</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingQueues ? (
-                    <tr><td colSpan={6} className="py-12 text-center text-stone-400">Loading…</td></tr>
+                    <tr><td colSpan={6} className="py-12 text-center text-slate-500">Loading…</td></tr>
                   ) : welcomeQueue.length === 0 ? (
-                    <tr><td colSpan={6} className="py-12 text-center text-stone-400">
+                    <tr><td colSpan={6} className="py-12 text-center text-slate-400">
                       🎉 Welcome queue empty — every founding member has been welcomed.
                     </td></tr>
                   ) : (
@@ -432,28 +441,29 @@ export default function AdminWelcomePage() {
                   )}
                 </tbody>
               </table>
-            </CardContent>
+            </div>
           </Card>
         </TabsContent>
 
+        {/* Risk-flagged tab */}
         <TabsContent value="risk">
-          <Card className="mt-4">
-            <CardContent className="p-0 overflow-x-auto">
+          <Card className="bg-slate-900 border border-slate-800 overflow-hidden mt-4">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-cream/40 text-xs uppercase tracking-wide text-stone-500">
+                <thead className="text-xs text-slate-400 uppercase bg-slate-950 border-b border-slate-800">
                   <tr>
-                    <th className="py-3 px-3 text-left w-16"></th>
-                    <th className="py-3 px-3 text-left">Member</th>
-                    <th className="py-3 px-3 text-left">Risk</th>
-                    <th className="py-3 px-3 text-left">Welcome</th>
-                    <th className="py-3 px-3 text-right">Review</th>
+                    <th className="py-3 px-4 text-left w-20"></th>
+                    <th className="py-3 px-4 text-left">Member</th>
+                    <th className="py-3 px-4 text-left">Risk</th>
+                    <th className="py-3 px-4 text-left">Welcome status</th>
+                    <th className="py-3 px-4 text-right">Review</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingQueues ? (
-                    <tr><td colSpan={5} className="py-12 text-center text-stone-400">Loading…</td></tr>
+                    <tr><td colSpan={5} className="py-12 text-center text-slate-500">Loading…</td></tr>
                   ) : riskQueue.length === 0 ? (
-                    <tr><td colSpan={5} className="py-12 text-center text-stone-400">
+                    <tr><td colSpan={5} className="py-12 text-center text-slate-400">
                       No risk-flagged users right now.
                     </td></tr>
                   ) : (
@@ -463,10 +473,12 @@ export default function AdminWelcomePage() {
                   )}
                 </tbody>
               </table>
-            </CardContent>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-}
+};
+
+export default AdminWelcomePage;
