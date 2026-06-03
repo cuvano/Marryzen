@@ -55,10 +55,10 @@ import PlatformSettings from '@/pages/admin/PlatformSettings';
 import AuditLogsPage from '@/pages/admin/AuditLogsPage';
 import ActivityDashboard from '@/pages/admin/ActivityDashboard';
 import VerificationQueue from '@/pages/admin/VerificationQueue';
+import AdminWelcomePage from '@/pages/admin/AdminWelcomePage';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <>
       <Helmet>
@@ -123,10 +123,11 @@ function App() {
                           <Route path="settings" element={<PlatformSettings />} />
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
+                        <Route path="welcome" element={<AdminWelcomePage />} />
                       </Route>
                     {/* 404 catch-all */}
             <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+                    
                   <Toaster />
                   <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
               </div>
