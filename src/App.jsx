@@ -42,7 +42,6 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
-import FoundingMemberTerms from '@/pages/legal/FoundingMemberTerms';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
@@ -55,8 +54,8 @@ import PlatformSettings from '@/pages/admin/PlatformSettings';
 import AuditLogsPage from '@/pages/admin/AuditLogsPage';
 import ActivityDashboard from '@/pages/admin/ActivityDashboard';
 import VerificationQueue from '@/pages/admin/VerificationQueue';
-import VerificationQueue from '@/pages/admin/VerificationQueue';
 import AdminWelcomePage from '@/pages/admin/AdminWelcomePage';
+
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -86,11 +85,11 @@ function App() {
                           <Route path="/verify-email" element={<VerifyEmailPage />} />
                           <Route path="/dashboard" element={<DashboardPage />} />
                           <Route path="/profile" element={<ProfilePage />} />
-                          <Route path="/discovery" element={<DiscoveryPage />} />
-                          <Route path="/matches" element={<MatchesPage />} />
-                          <Route path="/chat" element={<ChatPage />} />
-                          <Route path="/chat/:conversationId" element={<ChatPage />} />
-                          <Route path="/profile/:userId" element={<ProfilePage />} />
+                            <Route path="/discovery" element={<DiscoveryPage />} />
+                            <Route path="/matches" element={<MatchesPage />} />
+                            <Route path="/chat" element={<ChatPage />} />
+                            <Route path="/chat/:conversationId" element={<ChatPage />} />
+                            <Route path="/profile/:userId" element={<ProfilePage />} />
                           <Route path="/premium" element={<PremiumPage />} />
                           <Route path="/billing" element={<BillingPage />} />
                           <Route path="/referrals" element={<ReferralPage />} />
@@ -111,7 +110,6 @@ function App() {
                       <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
                       <Route path="/investor-legal" element={<InvestorLegalSummary />} />
                       <Route path="/referral-terms" element={<ReferralTerms />} />
-                      <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
                       {/* Admin Routes - Protected by AdminLayout logic */}
                       <Route path="/admin" element={<AdminLayout />}>
@@ -124,13 +122,11 @@ function App() {
                           <Route path="settings" element={<PlatformSettings />} />
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
-                          <Route path="activity" element={<ActivityDashboard />} />
                           <Route path="welcome" element={<AdminWelcomePage />} />
                       </Route>
-
-                      {/* 404 catch-all */}
-                      <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
+                    {/* 404 catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
                   <Toaster />
                   <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
               </div>
