@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Users, ShieldAlert, Sliders, Settings, LogOut, Lock, BadgeCheck } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldAlert, Sliders, Settings, LogOut, Lock, BadgeCheck, Heart } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -17,11 +17,12 @@ const AdminLayout = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [openReportsCount, setOpenReportsCount] = useState(0);
   const [idVerificationPendingCount, setIdVerificationPendingCount] = useState(0);
+  const [welcomeQueueCount, setWelcomeQueueCount] = useState(0);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         navigate('/login');
         return;
@@ -40,8 +41,8 @@ const AdminLayout = () => {
 
       if (error) {
         console.error('Profile fetch error:', error);
-        toast({ 
-          title: "Error", 
+        toast({
+          title: "Error",
           description: `Could not load profile: ${error.message}`,
           variant: "destructive"
         });
@@ -50,8 +51,8 @@ const AdminLayout = () => {
       }
 
       if (!profile) {
-        toast({ 
-          title: "Access Denied", 
+        toast({
+          title: "Access Denied",
           description: "Profile not found.",
           variant: "destructive"
         });
@@ -62,8 +63,8 @@ const AdminLayout = () => {
       // Check if role is admin or super_admin (case-insensitive)
       const userRole = profile.role?.toLowerCase();
       if (!userRole || !['admin', 'super_admin'].includes(userRole)) {
-        toast({ 
-          title: "Access Denied", 
+        toast({
+          title: "Access Denied",
           description: `You do not have permission to access the admin panel. Current role: ${profile.role || 'none'}. Required: admin or super_admin`,
           variant: "destructive"
         });
@@ -87,9 +88,11 @@ const AdminLayout = () => {
       const { count: pending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending_review');
       const { count: openReports } = await supabase.from('user_reports').select('*', { count: 'exact', head: true }).eq('status', 'open');
       const { count: idVerificationPending } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('identity_verification_status', 'pending');
+      const { count: welcomeQueue } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('founding_member', true).is('welcomed_at', null);
       setPendingCount(pending ?? 0);
       setOpenReportsCount(openReports ?? 0);
       setIdVerificationPendingCount(idVerificationPending ?? 0);
+      setWelcomeQueueCount(welcomeQueue ?? 0);
     };
 
     fetchNotificationCounts();
@@ -109,6 +112,7 @@ const AdminLayout = () => {
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/admin/users', label: 'Users', icon: Users },
+    { path: '/admin/welcome', label: 'Welcome & Risk', icon: Heart },
     { path: '/admin/reports', label: 'Reports/Safety', icon: ShieldAlert },
     { path: '/admin/verification', label: 'ID Verification', icon: BadgeCheck },
     { path: '/admin/matching', label: 'Matching Settings', icon: Sliders },
@@ -132,8 +136,17 @@ const AdminLayout = () => {
 
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const badgeCount = item.path === '/admin/users' ? pendingCount : item.path === '/admin/reports' ? openReportsCount : item.path === '/admin/verification' ? idVerificationPendingCount : 0;
-            const badgeClass = item.path === '/admin/users' ? 'bg-amber-500/90 text-slate-900' : item.path === '/admin/reports' ? 'bg-red-500/90 text-white' : 'bg-cyan-500/90 text-slate-900';
+            const badgeCount =
+              item.path === '/admin/users' ? pendingCount :
+              item.path === '/admin/welcome' ? welcomeQueueCount :
+              item.path === '/admin/reports' ? openReportsCount :
+              item.path === '/admin/verification' ? idVerificationPendingCount :
+              0;
+            const badgeClass =
+              item.path === '/admin/users' ? 'bg-amber-500/90 text-slate-900' :
+              item.path === '/admin/welcome' ? 'bg-rose-500/90 text-white' :
+              item.path === '/admin/reports' ? 'bg-red-500/90 text-white' :
+              'bg-cyan-500/90 text-slate-900';
             return (
               <NavLink
                 key={item.path}
@@ -156,8 +169,8 @@ const AdminLayout = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30"
             onClick={handleLogout}
           >
