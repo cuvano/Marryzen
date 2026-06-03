@@ -59,6 +59,7 @@ import AdminWelcomePage from '@/pages/admin/AdminWelcomePage';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <>
       <Helmet>
@@ -79,17 +80,17 @@ function App() {
                       <Route path="/auth/verify" element={<AuthVerifyPage />} />
                       <Route path="/join" element={<OnboardingPage />} />
                       <Route path="/onboarding" element={<OnboardingPage />} />
-                      
+
                       {/* Authenticated Routes with Global Header */}
                       <Route element={<AuthenticatedLayout />}>
                           <Route path="/verify-email" element={<VerifyEmailPage />} />
                           <Route path="/dashboard" element={<DashboardPage />} />
                           <Route path="/profile" element={<ProfilePage />} />
-                            <Route path="/discovery" element={<DiscoveryPage />} />
-                            <Route path="/matches" element={<MatchesPage />} />
-                            <Route path="/chat" element={<ChatPage />} />
-                            <Route path="/chat/:conversationId" element={<ChatPage />} />
-                            <Route path="/profile/:userId" element={<ProfilePage />} />
+                          <Route path="/discovery" element={<DiscoveryPage />} />
+                          <Route path="/matches" element={<MatchesPage />} />
+                          <Route path="/chat" element={<ChatPage />} />
+                          <Route path="/chat/:conversationId" element={<ChatPage />} />
+                          <Route path="/profile/:userId" element={<ProfilePage />} />
                           <Route path="/premium" element={<PremiumPage />} />
                           <Route path="/billing" element={<BillingPage />} />
                           <Route path="/referrals" element={<ReferralPage />} />
@@ -98,7 +99,7 @@ function App() {
                           <Route path="/account-settings" element={<AccountSettingsPage />} />
                           <Route path="/help" element={<HelpSupportPage />} />
                       </Route>
-                      
+
                       {/* Legal Routes */}
                       <Route path="/terms" element={<TermsOfService />} />
                       <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -123,11 +124,12 @@ function App() {
                           <Route path="settings" element={<PlatformSettings />} />
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
-                        <Route path="welcome" element={<AdminWelcomePage />} />
+                          <Route path="welcome" element={<AdminWelcomePage />} />
                       </Route>
-                    {/* 404 catch-all */}
-            <Route path="*" element={<NotFoundPage />} />
-                    
+
+                      {/* 404 catch-all */}
+                      <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
                   <Toaster />
                   <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
               </div>
