@@ -340,6 +340,29 @@ const DiscoveryPage = () => {
                 const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear();
                 if (age < filters.ageRange[0] || age > filters.ageRange[1]) return false;
 
+                // Hard thresholds — admin-tunable via matching_config.thresholds.
+                // Enforced BEFORE personal filters so admin floor always applies.
+                // Each check is no-op if the threshold is 0/null (defensive).
+                const _t = matchingConfig?.thresholds || {};
+                // Minimum bio length
+                if (_t.min_about_me_chars > 0) {
+                  if (!p.bio || p.bio.length < _t.min_about_me_chars) return false;
+                }
+                // Minimum photo count
+                if (_t.min_photos_for_recommendations > 0) {
+                  if (!p.photos || p.photos.length < _t.min_photos_for_recommendations) return false;
+                }
+                // Max age gap from viewer (in addition to user's own age preferences)
+                if (_t.max_age_gap_years > 0 && currentUser.date_of_birth) {
+                  const myAge = new Date().getFullYear() - new Date(currentUser.date_of_birth).getFullYear();
+                  if (Math.abs(myAge - age) > _t.max_age_gap_years) return false;
+                }
+                // Inactive too long — use last_active_at (Marryzen convention)
+                if (_t.max_days_last_active > 0 && p.last_active_at) {
+                  const daysIdle = (Date.now() - new Date(p.last_active_at).getTime()) / 86400000;
+                  if (daysIdle > _t.max_days_last_active) return false;
+                }
+
                 // Complex Filters
                 if (filters.smoking && p.smoking !== filters.smoking) return false;
                 if (filters.drinking && p.drinking !== filters.drinking) return false;
