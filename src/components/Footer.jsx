@@ -25,14 +25,18 @@ const Footer = ({ isProfileFooter = false }) => {
         <p className="text-sm max-w-2xl mx-auto mb-8 text-[#706B67] leading-relaxed">
           Marryzen is a private, values-based platform created strictly for serious marriage and long-term commitment. Casual dating, hookups, and inappropriate behavior are not permitted.
         </p>
-        <div className="flex justify-center gap-6 text-sm mb-8 flex-wrap font-medium">
+        <div className="flex justify-center gap-x-6 gap-y-2 text-sm mb-8 flex-wrap font-medium">
             <Link to="/terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Terms of Service</Link>
             <Link to="/privacy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Privacy Policy</Link>
             <Link to="/community-guidelines" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Community Guidelines</Link>
             <Link to="/safety" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Safety</Link>
             <Link to="/billing" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing & subscription</Link>
             <Link to="/billing-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing Terms</Link>
+            <Link to="/refund-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Refund Policy</Link>
             <Link to="/cookie-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Cookie Policy</Link>
+            <Link to="/founding-member-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Founding Member Terms</Link>
+            <Link to="/referral-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Referral Terms</Link>
+            <Link to="/app-store-disclosures" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">App Store Disclosures</Link>
             <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
         </div>
         <p className="text-xs text-[#706B67]">
