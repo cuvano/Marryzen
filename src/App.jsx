@@ -42,6 +42,7 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
+import FoundingMemberTerms from '@/pages/legal/FoundingMemberTerms';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
@@ -108,8 +109,8 @@ function App() {
                       <Route path="/refund-policy" element={<RefundPolicy />} />
                       <Route path="/cookie-policy" element={<CookiePolicy />} />
                       <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
-                      <Route path="/investor-legal" element={<InvestorLegalSummary />} />
                       <Route path="/referral-terms" element={<ReferralTerms />} />
+                      <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
                       {/* Admin Routes - Protected by AdminLayout logic */}
                       <Route path="/admin" element={<AdminLayout />}>
@@ -123,6 +124,7 @@ function App() {
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
                           <Route path="welcome" element={<AdminWelcomePage />} />
+                          <Route path="investor-legal" element={<InvestorLegalSummary />} />
                       </Route>
                     {/* 404 catch-all */}
             <Route path="*" element={<NotFoundPage />} />
