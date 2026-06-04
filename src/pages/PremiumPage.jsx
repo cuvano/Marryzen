@@ -27,7 +27,19 @@ const PremiumPage = () => {
 
   useEffect(() => {
     checkProfileStatus();
-    
+
+    // Defensive: if the profile check hangs for >10s (slow network, RLS edge,
+    // or any unhandled hang inside the awaits), force profileCheckLoading=false
+    // so the user gets the status-aware fallback render ("Complete profile
+    // first" / "Unlocks after approval") instead of being stuck on "Loading...".
+    // This was the cause of the three frozen "Loading..." CTAs observed in
+    // production for users whose profile query stalled. Setting state on an
+    // already-false value is a no-op in React, so this is safe even on the
+    // happy path where checkProfileStatus resolves first.
+    const loadingFallbackTimer = setTimeout(() => {
+      setProfileCheckLoading(false);
+    }, 10000);
+
     // Refresh profile status when page becomes visible (in case status changed)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -35,8 +47,9 @@ const PremiumPage = () => {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
+      clearTimeout(loadingFallbackTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -309,23 +322,40 @@ const PremiumPage = () => {
     }
   ];
 
+  // Features list — every row verified against actual code (file:line):
+  //   - Profile Photos cap:    Step2.jsx:14-15 MAX_FREE_PHOTOS=4 / MAX_PREMIUM_PHOTOS=12
+  //                            + ProfilePage.jsx:633 photoLimit = is_premium ? 12 : 4
+  //   - Messaging cap:         ChatPage.jsx:453 (!is_premium && dailyMessageCount >= 10)
+  //   - Daily Likes cap:       DiscoveryPage.jsx:60 LIKE_LIMIT_FREE=25
+  //                            + line 480 (!is_premium && dailyLikeCount >= LIKE_LIMIT_FREE)
+  //   - Read Receipts:         ChatPage.jsx:331-334 (gated on currentUser.is_premium)
+  //   - See Who Liked You:     server-side RLS (B3 — b3_premium_likes_rls.sql)
+  //   - View Past Interactions:MatchesPage.jsx:885 userProfile?.is_premium ? (...) : (upsell)
+  //   - Matching Filters:      FilterPanel.jsx "basic" accordion (free) +
+  //                            <PremiumLock>-wrapped Activity / Distance / Countries / Education / Zodiac
+  //   - Save Search:           FilterPanel.jsx:401 ({onSave && isPremium && ...})
+  //
+  // Removed for cause (every claim was either dead or never built):
+  //   - Verified Badge:           ALL Discovery profiles required verified (B-Plus, May 2026)
+  //   - View Verified Profiles Only: filter deleted per B-Plus (FilterPanel.jsx:110-111)
+  //   - Priority Support:         zero code implementation
+  //
+  // Daily Likes number corrected from 10 to 25 (was wrong on the live page —
+  // T&S exec consult May 28 set 25/day; matches LIKE_LIMIT_FREE constant).
   const features = [
     { name: 'Profile Photos', free: 'Max 4 Photos', premium: 'Max 12 Photos' },
     { name: 'Messaging', free: '10 / day', premium: 'Unlimited' },
-    { name: 'Daily Likes', free: '10 / day', premium: 'Unlimited' },
-    { name: 'Verified Badge', free: false, premium: true },
+    { name: 'Daily Likes', free: '25 / day', premium: 'Unlimited' },
     { name: 'Read Receipts', free: false, premium: true },
     { name: 'See Who Liked You', free: false, premium: true },
     { name: 'View Past Interactions', free: false, premium: true },
     { name: 'Matching Filters', free: 'Basic', premium: 'Advanced' },
     { name: 'View Recently Active Only', free: false, premium: true },
-    { name: 'View Verified Profiles Only', free: false, premium: true },
     { name: 'Select Countries (Multiple Selection)', free: false, premium: true },
     { name: 'Adjust Distance', free: false, premium: true },
     { name: 'Filter Education Level', free: false, premium: true },
     { name: 'Filter Zodiac Sign', free: false, premium: true },
     { name: 'Save or Load Search', free: false, premium: true },
-    { name: 'Priority Support', free: false, premium: true },
   ];
 
   return (
