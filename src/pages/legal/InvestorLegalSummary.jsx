@@ -1,21 +1,17 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Building, FileText, Shield, Briefcase, Lock } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+
+// NOTE: This page lives under /admin/investor-legal and is gated by AdminLayout's
+// role check (admin or super_admin). The previous localStorage-based 'adminRole'
+// guard was removed — it didn't match the real auth source (profile.role in DB)
+// and made the page bounce to /admin/dashboard for everyone, including admins.
+// FACT-CHECK PENDING: the entity/IP details below need to be updated to reflect
+// CUVAN LLC (Florida) — current copy still says "C-Corporation (Delaware)".
 
 const InvestorLegalSummary = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // Strict Admin Check
-  useEffect(() => {
-    const role = localStorage.getItem('adminRole');
-    if (role !== 'SUPER_ADMIN') {
-        toast({ title: "Access Denied", description: "This document is classified for Super Admins only.", variant: "destructive" });
-        navigate('/admin/dashboard');
-    }
-  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen p-4 md:p-8 pb-20 bg-slate-950">
@@ -27,7 +23,7 @@ const InvestorLegalSummary = () => {
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
                 </Button>
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                    <Briefcase className="w-8 h-8 text-yellow-500" /> 
+                    <Briefcase className="w-8 h-8 text-yellow-500" />
                     Investor Legal Summary (Internal)
                 </h1>
                 <p className="text-slate-400">Confidential • For Board & Investor Review Only</p>
@@ -39,7 +35,7 @@ const InvestorLegalSummary = () => {
 
         {/* Content Grid */}
         <div className="grid md:grid-cols-2 gap-6">
-            
+
             {/* Company Structure */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
