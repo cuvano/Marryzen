@@ -366,9 +366,11 @@ const OnboardingPage = () => {
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
         if (age < 18) isValid = false;
     }
-    // Payment-processor / sanctions block on Country of Residence.
+    // Geographic eligibility block on Country of Residence. Covers OFAC
+    // sanctions + countries where Marryzen hasn't yet appointed a local
+    // data-protection representative. Lift conditions per BLOCKED_COUNTRIES.md.
     if (formData.locationCountry && SANCTIONED_RESIDENCE.includes(formData.locationCountry)) {
-      errors.locationCountry = "Marryzen isn't available in your current country of residence due to sanctions and payment-processor restrictions.";
+      errors.locationCountry = "Marryzen is growing carefully and isn't yet available in your country. Email admin@marryzen.com with your country and we'll let you know the moment we arrive.";
       isValid = false;
     }
     // reCAPTCHA validation will be done in handleNext before signup
