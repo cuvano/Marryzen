@@ -106,17 +106,17 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
               className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
             >
               <option value="">Select Country...</option>
-              {filterResidenceCountries(COUNTRIES, formData.locationCountry).map(country => {
+              {COUNTRIES.map(country => {
                 const isBlocked = SANCTIONED_RESIDENCE.includes(country);
                 return (
                   <option key={country} value={country} disabled={isBlocked}>
-                    {country}{isBlocked ? ' (not available)' : ''}
+                    {country}{isBlocked ? ' — coming soon' : ''}
                   </option>
                 );
               })}
             </select>
             <p className="text-[#706B67] text-xs mt-1 font-medium">
-              Marryzen isn't available in some jurisdictions due to US sanctions and payment-processor restrictions.
+              Marryzen is growing carefully so we can serve every couple well. Countries marked "coming soon" aren't open yet — email <a href="mailto:admin@marryzen.com?subject=Marryzen%20waitlist%20-%20add%20my%20country" className="text-[#C85A72] underline">admin@marryzen.com</a> with your country and we'll let you know the moment we arrive.
             </p>
             {errors.locationCountry && (
               <p className="text-red-500 text-sm mt-1">{errors.locationCountry}</p>
