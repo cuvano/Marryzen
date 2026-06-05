@@ -62,6 +62,15 @@ const OnboardingPage = () => {
     locationCity: '',
     locationCountry: '',
     locationState: '',
+    // City structured-selection fields (added with CitySelect — see Step1b.jsx).
+    // cityGeonameId is the stable GeoNames ID for the picked city; cityLat/Lng are
+    // the denormalized coordinates that feed the matchmaking.js Haversine scorer.
+    // cityUnverified=true means user typed a city not in our dataset (free-text
+    // fallback for small towns) — matching falls back to country-equality only.
+    cityGeonameId: null,
+    cityLat: null,
+    cityLng: null,
+    cityUnverified: false,
     countryOfOrigin: '',
     countryOfResidence: '',
     identifyAs: '',
@@ -175,6 +184,10 @@ const OnboardingPage = () => {
                     locationCity: profile.location_city || '',
                     locationCountry: profile.location_country || '',
                     locationState: profile.location_state || '',
+                    cityGeonameId: profile.city_geoname_id || null,
+                    cityLat: profile.latitude ?? null,
+                    cityLng: profile.longitude ?? null,
+                    cityUnverified: profile.city_unverified || false,
                     identifyAs: profile.identify_as || '',
                     lookingForGender: profile.looking_for_gender || '',
                     seriousRelationship: profile.serious_relationship || false,
@@ -354,7 +367,10 @@ const OnboardingPage = () => {
     if (!formData.dateOfBirth) isValid = false;
     if (!formData.locationCountry) isValid = false;
     if (formData.locationCountry === 'United States' && !formData.locationState) isValid = false;
-    if (formData.locationCountry !== 'United States' && !formData.locationCity) isValid = false;
+    // City is now required for ALL countries (used to be non-US only). City is
+    // captured via CitySelect; if user typed a small town not in the dataset, the
+    // free-text fallback path still populates locationCity (with cityUnverified=true).
+    if (formData.locationCountry && !formData.locationCity) isValid = false;
     if (!formData.identifyAs) isValid = false;
     if (!formData.seriousRelationship) isValid = false;
     if (!isEditMode && !formData.agreeToTerms) isValid = false;
@@ -594,6 +610,12 @@ const OnboardingPage = () => {
                       location_city: formData.locationCity,
                       location_country: formData.locationCountry,
                       location_state: formData.locationState,
+                      // Structured city fields — populated by CitySelect. NULLs when
+                      // user typed a small town not in our dataset (cityUnverified=true).
+                      city_geoname_id: formData.cityGeonameId,
+                      latitude: formData.cityLat,
+                      longitude: formData.cityLng,
+                      city_unverified: !!formData.cityUnverified,
                       country_of_origin: formData.countryOfOrigin,
                       country_of_residence: formData.locationCountry, // Same as location_country
                       identify_as: formData.identifyAs,
@@ -626,6 +648,11 @@ const OnboardingPage = () => {
                   location_city: formData.locationCity,
                   location_country: formData.locationCountry,
                   location_state: formData.locationState,
+                  // Structured city fields (CitySelect) — see updateData above for context.
+                  city_geoname_id: formData.cityGeonameId,
+                  latitude: formData.cityLat,
+                  longitude: formData.cityLng,
+                  city_unverified: !!formData.cityUnverified,
                   identify_as: formData.identifyAs,
                   looking_for_gender: formData.lookingForGender,
                   serious_relationship: formData.seriousRelationship,
@@ -928,7 +955,7 @@ const OnboardingPage = () => {
     const locationOk =
       !!formData.locationCountry &&
       (formData.locationCountry !== 'United States' || !!formData.locationState) &&
-      (formData.locationCountry === 'United States' || !!formData.locationCity?.trim());
+      !!formData.locationCity?.trim(); // city now required for ALL countries (CitySelect)
     const baseFields =
       formData.name?.trim() &&
       formData.email &&
@@ -957,7 +984,7 @@ const OnboardingPage = () => {
     const locationOk =
       !!formData.locationCountry &&
       (formData.locationCountry !== 'United States' || !!formData.locationState) &&
-      (formData.locationCountry === 'United States' || !!formData.locationCity?.trim());
+      !!formData.locationCity?.trim(); // city now required for ALL countries (CitySelect)
     return !!(formData.dateOfBirth && locationOk && formData.identifyAs);
   })();
   const isStep1cComplete = (() => {
@@ -988,8 +1015,8 @@ const OnboardingPage = () => {
       if (!formData.dateOfBirth) parts.push('add your date of birth');
       if (!formData.locationCountry) parts.push('select your country of residence');
       if (formData.locationCountry === 'United States' && !formData.locationState) parts.push('select your state');
-      if (formData.locationCountry && formData.locationCountry !== 'United States' && !formData.locationCity?.trim()) {
-        parts.push('enter your city');
+      if (formData.locationCountry && !formData.locationCity?.trim()) {
+        parts.push('select your city');
       }
       if (!formData.identifyAs) parts.push('choose how you identify');
     } else if (step1SubStep === 2) {
