@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle } from 'lucide-react';
 import { SANCTIONED_RESIDENCE, filterResidenceCountries } from '@/lib/sanctionedJurisdictions';
+import CitySelect from '@/components/onboarding/CitySelect';
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -32,7 +33,7 @@ const COUNTRIES = [
 ].sort();
 
 const US_STATES = [
-  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia",
   "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
   "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
   "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
@@ -141,13 +142,25 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
             </p>
           </div>
 
-          {formData.locationCountry === 'United States' ? (
+          {/* State dropdown (US only). City field below applies to all countries. */}
+          {formData.locationCountry === 'United States' && (
             <div className="space-y-2">
               <Label htmlFor="locationState" className="text-[#333333] font-bold text-base">State</Label>
               <select
                 id="locationState"
                 value={formData.locationState}
-                onChange={(e) => updateFormData('locationState', e.target.value)}
+                onChange={(e) => {
+                  // When state changes, clear the city — city dropdown is filtered
+                  // by state for US, so the old city may not belong to the new state.
+                  updateFormData('locationState', e.target.value);
+                  if (formData.locationCity) {
+                    updateFormData('locationCity', '');
+                    updateFormData('cityGeonameId', null);
+                    updateFormData('cityLat', null);
+                    updateFormData('cityLng', null);
+                    updateFormData('cityUnverified', false);
+                  }
+                }}
                 className="flex h-12 w-full rounded-xl border border-[#CFC6BA] bg-white px-3 py-2 text-base text-[#1F1F1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450]"
               >
                 <option value="">Select State...</option>
@@ -156,34 +169,36 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
                 ))}
               </select>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
-              <Input
-                id="locationCity"
-                value={formData.locationCity}
-                onChange={(e) => updateFormData('locationCity', e.target.value)}
-                maxLength={120}
-                className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
-                placeholder="Enter City"
-              />
-            </div>
           )}
-        </div>
 
-        {formData.locationCountry === 'United States' && (
-          <div className="space-y-2">
-            <Label htmlFor="locationCity" className="text-[#333333] font-bold text-base">City</Label>
-            <Input
+          {/* City selector — applies to all countries. Replaces the legacy free-text
+             input with a structured picker backed by GeoNames (≥50K population) so
+             the matching algorithm gets real lat/lng for Haversine distance scoring.
+             Falls back to free-text + city_unverified=true for towns not in the dataset. */}
+          <div className={formData.locationCountry === 'United States' ? '' : 'md:col-start-1'}>
+            <CitySelect
               id="locationCity"
+              country={formData.locationCountry}
+              stateFilter={formData.locationCountry === 'United States' ? formData.locationState : ''}
               value={formData.locationCity}
-              onChange={(e) => updateFormData('locationCity', e.target.value)}
-              maxLength={120}
-              className="bg-white border-[#CFC6BA] text-[#1F1F1F] placeholder:text-[#8A857D] focus:border-[#E6B450] focus:ring-[#E6B450] rounded-xl h-12 px-4"
-              placeholder="Enter City"
+              onChange={(cityObj) => {
+                if (!cityObj) {
+                  updateFormData('locationCity', '');
+                  updateFormData('cityGeonameId', null);
+                  updateFormData('cityLat', null);
+                  updateFormData('cityLng', null);
+                  updateFormData('cityUnverified', false);
+                  return;
+                }
+                updateFormData('locationCity', cityObj.name || '');
+                updateFormData('cityGeonameId', cityObj.geoname_id || null);
+                updateFormData('cityLat', cityObj.lat ?? null);
+                updateFormData('cityLng', cityObj.lng ?? null);
+                updateFormData('cityUnverified', !!cityObj.unverified);
+              }}
             />
           </div>
-        )}
+        </div>
 
         <div className="space-y-2">
           <Label id="identifyAs" htmlFor="identifyAs" className="text-[#333333] font-bold text-base">I am a</Label>
