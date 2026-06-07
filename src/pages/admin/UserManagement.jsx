@@ -25,6 +25,11 @@ const UserManagement = () => {
   const [currentAdminRole, setCurrentAdminRole] = useState(null);
   const [page, setPage] = useState(1);
   const [deletingUser, setDeletingUser] = useState(false);
+  // Premium grant UI state (per-selectedUser; resets on close).
+  const [premiumDurationKey, setPremiumDurationKey] = useState('');
+  const [customDate, setCustomDate] = useState('');
+  const [grantReason, setGrantReason] = useState('');
+  const [applyingGrant, setApplyingGrant] = useState(false);
 
   const totalCount = allUsers.length;
   const users = allUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -45,6 +50,13 @@ const UserManagement = () => {
   const isSuspensionExpired = (u) =>
     u?.status === 'suspended' && u?.suspended_until &&
     new Date(u.suspended_until).getTime() < Date.now();
+
+  // Reset premium-grant form when switching between users (or closing the dialog).
+  useEffect(() => {
+    setPremiumDurationKey('');
+    setCustomDate('');
+    setGrantReason('');
+  }, [selectedUser?.id]);
 
 
   const buildBaseQuery = (cursorId = null) => {
@@ -174,6 +186,67 @@ const UserManagement = () => {
       toast({ title: "Updated Successfully", description: "User record modified." });
       setAllUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
       if (selectedUser?.id === id) setSelectedUser({ ...selectedUser, ...updates });
+    }
+  };
+
+  // Apply a time-bounded premium grant or revoke via RPC.
+  // Migration 20260607020000_premium_grants_time_bounded.sql installs the
+  // log_premium_grant and log_premium_revoke server-side functions, which
+  // atomically update profiles + write an audit_logs entry, and which check
+  // is_admin() internally so a non-admin caller gets a 42501 error.
+  const applyPremiumGrant = async (userId) => {
+    if (!premiumDurationKey) return;
+    setApplyingGrant(true);
+    try {
+      let rpcName;
+      let rpcArgs;
+      if (premiumDurationKey === 'off') {
+        rpcName = 'log_premium_revoke';
+        rpcArgs = { target_user: userId, reason: grantReason || null };
+      } else {
+        rpcName = 'log_premium_grant';
+        let durationStr;
+        if (premiumDurationKey === 'forever') durationStr = null;
+        else if (premiumDurationKey === '7d') durationStr = '7 days';
+        else if (premiumDurationKey === '30d') durationStr = '30 days';
+        else if (premiumDurationKey === '90d') durationStr = '90 days';
+        else if (premiumDurationKey === '365d') durationStr = '365 days';
+        else if (premiumDurationKey === 'custom') {
+          if (!customDate) {
+            toast({ title: 'Pick a date', description: 'Custom expiry requires a date.', variant: 'destructive' });
+            setApplyingGrant(false);
+            return;
+          }
+          const target = new Date(customDate + 'T23:59:59');
+          const ms = target - new Date();
+          const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+          if (days <= 0) {
+            toast({ title: 'Invalid date', description: 'Custom expiry must be a future date.', variant: 'destructive' });
+            setApplyingGrant(false);
+            return;
+          }
+          durationStr = `${days} days`;
+        } else { setApplyingGrant(false); return; }
+        rpcArgs = { target_user: userId, source: 'admin', duration: durationStr, reason: grantReason || null };
+      }
+      const { data, error } = await supabase.rpc(rpcName, rpcArgs);
+      if (error) {
+        toast({ title: 'Premium update failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+      const newIsPremium = data?.is_premium ?? (rpcName === 'log_premium_grant');
+      const newUntil = data?.premium_until ?? null;
+      const desc = newIsPremium
+        ? (newUntil ? `Premium until ${new Date(newUntil).toLocaleString()}` : 'Premium (forever)')
+        : 'Premium revoked';
+      toast({ title: 'Premium updated', description: desc });
+      setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, is_premium: newIsPremium, premium_until: newUntil } : u));
+      if (selectedUser?.id === userId) {
+        setSelectedUser(prev => ({ ...prev, is_premium: newIsPremium, premium_until: newUntil }));
+      }
+      setPremiumDurationKey(''); setCustomDate(''); setGrantReason('');
+    } finally {
+      setApplyingGrant(false);
     }
   };
 
@@ -386,12 +459,73 @@ const UserManagement = () => {
                                             }} 
                                           />
                                       </div>
-                                      <div className="flex items-center justify-between pt-4">
-                                          <Label>Premium</Label>
-                                          <Switch 
-                                            checked={selectedUser.is_premium} 
-                                            onCheckedChange={(c) => updateUser(selectedUser.id, { is_premium: c })} 
-                                          />
+                                      {/* Time-bounded premium grants — see migration
+                                          20260607020000_premium_grants_time_bounded.sql.
+                                          The pg_cron 'premium-expiry-sweep' job flips
+                                          is_premium=false when premium_until passes. */}
+                                      <div className="pt-4 space-y-3 border-t border-slate-700">
+                                          <div className="flex items-center justify-between">
+                                              <Label>Premium Status</Label>
+                                              {(() => {
+                                                if (!selectedUser?.is_premium) return <Badge variant="outline" className="text-slate-400 border-slate-700">Not Premium</Badge>;
+                                                if (!selectedUser.premium_until) return <Badge className="bg-yellow-600 text-white">Premium &middot; forever</Badge>;
+                                                const expiry = new Date(selectedUser.premium_until);
+                                                const ms = expiry - new Date();
+                                                if (ms <= 0) return <Badge variant="destructive">Premium &middot; expiring shortly</Badge>;
+                                                const days = Math.ceil(ms / 86400000);
+                                                return <Badge className="bg-yellow-600 text-white">Premium &middot; {days}d left &middot; until {expiry.toLocaleDateString()}</Badge>;
+                                              })()}
+                                          </div>
+                                          <div className="space-y-2">
+                                              <Label className="text-xs text-slate-400">Grant or Revoke</Label>
+                                              <select
+                                                  value={premiumDurationKey}
+                                                  onChange={(e) => setPremiumDurationKey(e.target.value)}
+                                                  className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100"
+                                              >
+                                                  <option value="">&mdash; Select action &mdash;</option>
+                                                  <option value="off">Revoke (turn Premium off)</option>
+                                                  <option value="7d">Grant 7 days</option>
+                                                  <option value="30d">Grant 30 days</option>
+                                                  <option value="90d">Grant 90 days</option>
+                                                  <option value="365d">Grant 1 year</option>
+                                                  <option value="forever">Grant forever (no expiry)</option>
+                                                  <option value="custom">Grant until custom date&hellip;</option>
+                                              </select>
+                                          </div>
+                                          {premiumDurationKey === 'custom' && (
+                                              <div className="space-y-2">
+                                                  <Label className="text-xs text-slate-400">Expires at end of day on</Label>
+                                                  <Input
+                                                      type="date"
+                                                      value={customDate}
+                                                      onChange={(e) => setCustomDate(e.target.value)}
+                                                      min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                                                      className="bg-slate-900 border-slate-700 text-sm"
+                                                  />
+                                              </div>
+                                          )}
+                                          {premiumDurationKey && (
+                                              <>
+                                                  <div className="space-y-2">
+                                                      <Label className="text-xs text-slate-400">Reason (optional, logged to audit)</Label>
+                                                      <Input
+                                                          value={grantReason}
+                                                          onChange={(e) => setGrantReason(e.target.value)}
+                                                          placeholder="e.g. founding member comp, support escalation"
+                                                          className="bg-slate-900 border-slate-700 text-sm"
+                                                          maxLength={200}
+                                                      />
+                                                  </div>
+                                                  <Button
+                                                      onClick={() => applyPremiumGrant(selectedUser.id)}
+                                                      disabled={applyingGrant || (premiumDurationKey === 'custom' && !customDate)}
+                                                      className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
+                                                  >
+                                                      {applyingGrant ? 'Applying…' : (premiumDurationKey === 'off' ? 'Revoke Premium' : 'Apply Premium Grant')}
+                                                  </Button>
+                                              </>
+                                          )}
                                       </div>
                                    </div>
                                    
