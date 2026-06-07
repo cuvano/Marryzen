@@ -728,9 +728,18 @@ const ProfilePage = () => {
           through the location row. Solved by moving all typography onto a
           solid white band below the cover. */}
       <div className="w-full">
-        <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'h-[280px] sm:h-[320px] lg:h-[380px]' : 'h-[200px] sm:h-[220px]'}`}>
+        {/* Cover photo container uses aspect-[16/5] to MATCH the cropper output
+            (CoverCropDialog ~line 1297 produces 1920x600). When the container
+            and image share the same aspect ratio, object-fit: cover does not
+            crop and the image displays in full at every viewport. Previously
+            the container used fixed heights h-[280px]/h-[320px]/h-[380px] which
+            on wide screens made the container much wider than 16:5, forcing
+            object-fit: cover to crop top+bottom and squash centered subjects.
+            max-h caps the height on ultrawide. Fallback (no photo) keeps its
+            compact fixed height so the "Add cover photo" banner stays small. */}
+        <div className={`relative w-full overflow-hidden group ${profile.cover_photo ? 'aspect-[16/5] max-h-[480px]' : 'h-[200px] sm:h-[220px]'}`}>
           {profile.cover_photo ? (
-            <img src={profile.cover_photo} alt="" className="w-full h-full object-cover" />
+            <img src={profile.cover_photo} alt="" className="w-full h-full object-cover object-center" />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-[#E6B450] via-[#D0A23D] to-[#1F1F1F]" />
           )}
