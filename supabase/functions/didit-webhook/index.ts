@@ -1,6 +1,27 @@
 // supabase/functions/didit-webhook/index.ts
 //
-// Marryzen ID verification webhook (v9)
+// Marryzen ID verification webhook (v10)
+//
+// Significant changes vs v9:
+//
+//   * GDPR/DPIA sanitization (§4.1 compliance). awsRekognitionCompareFaces()
+//     no longer returns the raw AWS response. It now returns a sanitized
+//     audit summary: counts of FaceMatches/UnmatchedFaces, the array of
+//     similarity values (numbers only), and source_image_face_detected (bool).
+//     The Face.Landmarks (27 facial points), BoundingBox, Pose, Quality, and
+//     SourceImageFace objects are dropped before persistence. This brings the
+//     Edge Function in line with the DPIA's claim that Marryzen retains only
+//     the numeric similarity score, not biometric-derived geometry.
+//
+//   * vendor_request_id is now extracted from the x-amzn-RequestId HTTP
+//     header (the canonical location), not from a (non-existent) JSON body
+//     ResponseMetadata field. This fixes a latent bug where vendor_request_id
+//     was always null on success.
+//
+//   * Bundled with the AWS_REGION env var flip from us-east-1 to eu-west-1
+//     (DPIA §1.5, §4.1, Annex B commitment). Code is region-agnostic — it
+//     reads from Deno.env.get("AWS_REGION"). The default fallback remains
+//     "us-east-1" for safety in case the env var is ever missing.
 //
 // Significant changes vs v8:
 //
@@ -417,15 +438,27 @@ async function fetchImageAsBase64(url: string): Promise<string | null> {
 // Compares two face images. Returns the highest similarity score 0..100 (we
 // divide by 100 to return 0..1) or null on failure. Uses AWS Signature V4
 // via the aws4fetch library.
+//
+// DPIA §4.1 sanitization: the `summary` field returned here is what gets
+// persisted into face_match_attempts.vendor_response. It deliberately omits
+// all biometric-derived geometry from the AWS response:
+//   - Face.Landmarks (27 facial points per detected face)
+//   - Face.BoundingBox (x/y/width/height of each face)
+//   - Face.Pose (roll/yaw/pitch)
+//   - Face.Quality (brightness/sharpness)
+//   - SourceImageFace (same shape as above for the source)
+// Only similarity values and counts are retained — these are sufficient for
+// audit (was a face detected? how many matches? what scores?) without
+// persisting biometric templates.
 async function awsRekognitionCompareFaces(
   sourceB64: string,
   targetB64: string,
-): Promise<{ score: number | null; raw: unknown; error?: string }> {
+): Promise<{ score: number | null; summary: Record<string, unknown>; requestId: string | null; error?: string }> {
   const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
   const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
   const region = Deno.env.get("AWS_REGION") ?? "us-east-1";
   if (!accessKeyId || !secretAccessKey) {
-    return { score: null, raw: null, error: "AWS credentials missing" };
+    return { score: null, summary: { error: "AWS credentials missing" }, requestId: null, error: "AWS credentials missing" };
   }
 
   try {
@@ -449,25 +482,47 @@ async function awsRekognitionCompareFaces(
       body,
     });
 
+    // AWS puts the request ID in the x-amzn-RequestId header (not the JSON body).
+    const requestId = r.headers.get("x-amzn-requestid");
+
     if (!r.ok) {
       const errText = (await r.text()).slice(0, 400);
-      return { score: null, raw: { error: errText }, error: "Rekognition HTTP " + r.status };
+      return {
+        score: null,
+        summary: { error: errText, http_status: r.status, region },
+        requestId,
+        error: "Rekognition HTTP " + r.status,
+      };
     }
 
     const j = await r.json();
-    // Response: { FaceMatches: [{ Similarity: 95.2, Face: {...} }, ...], UnmatchedFaces: [...] }
+    // Response: { FaceMatches: [{ Similarity: 95.2, Face: {...biometric...} }, ...], UnmatchedFaces: [...], SourceImageFace: {...biometric...} }
     // Use the highest similarity score among matches, or 0 if no matches.
     const matches = Array.isArray(j?.FaceMatches) ? j.FaceMatches : [];
+    const unmatched = Array.isArray(j?.UnmatchedFaces) ? j.UnmatchedFaces : [];
     let topSimilarity = 0;
+    const similarities: number[] = [];
     for (const m of matches) {
       const s = Number(m?.Similarity ?? 0);
+      similarities.push(s);
       if (s > topSimilarity) topSimilarity = s;
     }
-    // Also check unmatched — if we had a source face but no target match was
-    // above the threshold, similarity is effectively 0.
-    return { score: topSimilarity / 100, raw: j };
+
+    // DPIA §4.1: sanitized audit summary. NO Face objects, NO Landmarks, NO
+    // BoundingBox, NO Pose, NO Quality, NO SourceImageFace. Just counts and
+    // similarity values.
+    const summary: Record<string, unknown> = {
+      face_matches_count: matches.length,
+      unmatched_faces_count: unmatched.length,
+      source_image_face_detected: !!j?.SourceImageFace,
+      similarities,
+      region,
+    };
+
+    return { score: topSimilarity / 100, summary, requestId };
   } catch (e) {
-    return { score: null, raw: null, error: "AWS call threw: " + String(e) };
+    const errStr = ("AWS call threw: " + String(e)).slice(0, 400);
+    return { score: null, summary: { error: errStr }, requestId: null, error: errStr };
   }
 }
 
@@ -749,7 +804,10 @@ serve(async (req) => {
     const FACE_MISMATCH_THRESHOLD = 0.60;
     let faceMatchDecision: "match" | "mismatch" | "review" | "error" = "error";
     let faceMatchScore: number | null = null;
-    let faceMatchRaw: unknown = null;
+    // v10: faceMatchSummary is the sanitized DPIA-compliant audit object,
+    // NOT the raw Rekognition response. See awsRekognitionCompareFaces().
+    let faceMatchSummary: Record<string, unknown> | null = null;
+    let faceMatchRequestId: string | null = null;
     let faceMatchPassed = false;
     const profilePhotos = Array.isArray(profile?.photos) ? profile.photos as unknown[] : [];
     const primaryPhotoUrl = typeof profilePhotos[0] === "string" ? profilePhotos[0] as string : null;
@@ -774,7 +832,8 @@ serve(async (req) => {
         } else {
           const cmp = await awsRekognitionCompareFaces(selfieB64, profileB64);
           faceMatchScore = cmp.score;
-          faceMatchRaw = cmp.raw;
+          faceMatchSummary = cmp.summary;
+          faceMatchRequestId = cmp.requestId;
           if (cmp.error || faceMatchScore === null) {
             faceMatchDecision = "review";
             console.error("didit-webhook B1: AWS Rekognition failed:", cmp.error);
@@ -790,11 +849,10 @@ serve(async (req) => {
       }
 
       // Persist audit row regardless of outcome (best-effort).
+      // v10: vendor_response stores the DPIA-sanitized summary (counts +
+      // similarity values), NOT the raw Rekognition JSON. vendor_request_id
+      // comes from the x-amzn-RequestId HTTP header (canonical AWS location).
       try {
-        const raw = faceMatchRaw as Record<string, unknown> | null;
-        const vendorReqId = raw && typeof (raw as { ResponseMetadata?: { RequestId?: string } }).ResponseMetadata?.RequestId === "string"
-          ? (raw as { ResponseMetadata: { RequestId: string } }).ResponseMetadata.RequestId
-          : null;
         await supabase.from("face_match_attempts").insert({
           user_id: userId,
           selfie_url: diditSelfieUrl,
@@ -802,8 +860,8 @@ serve(async (req) => {
           similarity_score: faceMatchScore,
           decision: faceMatchDecision,
           granted_verified: faceMatchPassed,
-          vendor_response: faceMatchRaw,
-          vendor_request_id: vendorReqId,
+          vendor_response: faceMatchSummary,
+          vendor_request_id: faceMatchRequestId,
         });
       } catch (e) {
         console.error("didit-webhook B1: face_match_attempts insert failed:", e);
