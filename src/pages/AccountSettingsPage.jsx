@@ -99,29 +99,36 @@ const AccountSettingsPage = () => {
     setLoading(true);
 
     try {
-      // First, verify the current password by attempting to sign in
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: currentPassword,
-      });
-
-      if (signInError) {
-        setPasswordErrors({ currentPassword: 'Current password is incorrect' });
-        toast({
-          title: "Error",
-          description: "Current password is incorrect.",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      // If current password is correct, update to new password
+      // Single Supabase call: supabase-js v2.102+ accepts `current_password`
+      // and verifies it server-side before applying the new password. The
+      // previous two-step (signInWithPassword then updateUser) failed because
+      // signInWithPassword swapped the session token, after which updateUser
+      // triggered Supabase's "Current password required when setting new
+      // password" enforcement on the server. The single-call form avoids that.
       const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
+        current_password: currentPassword,
+        password: newPassword,
       });
 
       if (updateError) {
+        // Distinguish "wrong current password" from other failures so we can
+        // surface the right field-level message + toast.
+        const msg = (updateError.message || '').toLowerCase();
+        if (
+          msg.includes('current password') ||
+          msg.includes('incorrect') ||
+          msg.includes('does not match') ||
+          msg.includes('invalid login credentials')
+        ) {
+          setPasswordErrors({ currentPassword: 'Current password is incorrect' });
+          toast({
+            title: "Error",
+            description: "Current password is incorrect.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
         throw updateError;
       }
 
