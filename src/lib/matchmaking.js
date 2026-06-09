@@ -213,7 +213,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
       score += weights.intent;
       breakdown['Intent'] = weights.intent;
     } else {
-      const seriousGoals = ['Marriage', 'Long-term', 'Serious'];
+      const seriousGoals = ['Marriage Within 1–2 Years', 'Family-Supervised Courtship', 'Serious Relationship → Marriage', 'Traditional Marriage Mindset'];
       const bothSerious = seriousGoals.includes(currentUser.relationship_goal) && seriousGoals.includes(candidate.relationship_goal);
       if (bothSerious) {
         score += weights.intent * 0.7;
@@ -308,12 +308,12 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   attempted += weights.lifestyle;
   let lifestyleRaw = 0;
   if (currentUser.smoking === candidate.smoking) lifestyleRaw += 4;
-  else if ((currentUser.smoking === 'Never' && candidate.smoking === 'Socially') || (currentUser.smoking === 'Socially' && candidate.smoking === 'Never')) lifestyleRaw += 2;
+  else if ((currentUser.smoking === 'No' && candidate.smoking === 'Socially') || (currentUser.smoking === 'Socially' && candidate.smoking === 'No')) lifestyleRaw += 2;
   if (currentUser.drinking === candidate.drinking) lifestyleRaw += 4;
-  else if ((currentUser.drinking === 'Never' && candidate.drinking === 'Socially') || (currentUser.drinking === 'Socially' && candidate.drinking === 'Never')) lifestyleRaw += 2;
+  else if ((currentUser.drinking === 'No' && candidate.drinking === 'Socially') || (currentUser.drinking === 'Socially' && candidate.drinking === 'No')) lifestyleRaw += 2;
   if (currentUser.education === candidate.education) lifestyleRaw += 3;
   else if (currentUser.education && candidate.education) {
-    const eduLevels = ['High School', 'Bachelor', 'Master', 'PhD'];
+    const eduLevels = ['High School', 'Some College', "Bachelor's Degree", "Master's Degree", 'Professional Degree', 'Doctorate'];
     const ui = eduLevels.indexOf(currentUser.education);
     const ci = eduLevels.indexOf(candidate.education);
     if (ui >= 0 && ci >= 0 && Math.abs(ui - ci) <= 1) lifestyleRaw += 1.5;
