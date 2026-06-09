@@ -5,6 +5,34 @@ import { useToast } from '@/components/ui/use-toast';
 
 const AuthContext = createContext(undefined);
 
+// LEVEL-3 AUDIT 2026-06-08:
+// Previous code referenced `posthog.identify(...)` and `Sentry.setUser(...)`
+// as bare globals without imports, and wrapped the calls in `try/catch (_) {}`
+// — which silently swallowed the `ReferenceError`. Result: analytics and
+// Sentry user attribution were dead in production. Per ROPA: PostHog is
+// planned but not yet active; Sentry DPA is deferred. So the right fix
+// (until both are properly installed as packages or loaded via script tag)
+// is to call them through `window.*` so the code is a safe no-op when
+// they're not present, AND in dev mode log a warning so the absence is
+// noticed instead of hidden.
+function identifyAnalyticsUser(user) {
+  try {
+    if (typeof window === 'undefined') return;
+    if (user && user.id) {
+      window.posthog?.identify(user.id, { email: user.email });
+      window.Sentry?.setUser({ id: user.id, email: user.email });
+    } else {
+      window.posthog?.reset();
+      window.Sentry?.setUser(null);
+    }
+  } catch (err) {
+    // Only surface this in dev — analytics failure must never break auth.
+    if (import.meta.env?.DEV) {
+      console.warn('[auth] analytics identify failed:', err);
+    }
+  }
+}
+
 export const AuthProvider = ({ children }) => {
   const { toast } = useToast();
 
@@ -15,16 +43,7 @@ export const AuthProvider = ({ children }) => {
   const handleSession = useCallback(async (session) => {
     setSession(session);
     setUser(session?.user ?? null);
-      try {
-        const _u = session?.user ?? null;
-        if (_u && _u.id) {
-          posthog.identify(_u.id, { email: _u.email });
-          Sentry.setUser({ id: _u.id, email: _u.email });
-        } else {
-          posthog.reset();
-          Sentry.setUser(null);
-        }
-      } catch (_) {}
+    identifyAnalyticsUser(session?.user ?? null);
     setLoading(false);
   }, []);
 
