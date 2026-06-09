@@ -240,6 +240,23 @@ const ChatPage = () => {
       return { isSpam: true, reason: "Links aren't allowed in messages. Get to know each other on Marryzen first." };
     }
 
+    // 1b. Obfuscated URLs/emails — "dot com", "dot net", "at gmail", etc.
+    //     Added L3 audit 2026-06-08 after T&S + Brand boards flagged that
+    //     romance scammers use these to bypass section 1. denormSpaced
+    //     handles single-letter spacing ("d o t c o m"); this catches
+    //     the multi-word form ("dot com", "at gmail").
+    // Obfuscated URL: require a 3+ char alphanumeric handle BEFORE "dot",
+    // and a real-TLD word AFTER. Dropped "me/co/tv/ly" (English homonyms) and
+    // dropped "dot com bubble" / "dot com era" idioms by requiring the handle.
+    const obfuscatedUrl = /\b[a-z0-9_-]{4,}\s+(dot|d0t)\s+(com|net|org|io|info|app|biz)\b/i;
+    // Obfuscated email: require BOTH "at" word AND "dot" word + TLD. This
+    // refuses to match "I work at gmail." (sentence-ending period) while still
+    // catching "send to john at gmail dot com".
+    const obfuscatedEmail = /\b(at|@|\(at\))\s+(gmail|yahoo|hotmail|outlook|protonmail|aol|icloud|mail|live|msn|gmx|fastmail|zoho)\s+(dot|d0t)\s+(com|net|org|io)\b/i;
+    if (matchAny(obfuscatedUrl) || matchAny(obfuscatedEmail)) {
+      return { isSpam: true, reason: "Obfuscated links aren't allowed in messages. Keep the conversation on Marryzen until you've built trust." };
+    }
+
     // 2. Phone numbers
     const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
     if (matchAny(phonePattern)) {
@@ -257,7 +274,14 @@ const ChatPage = () => {
     //    whatsapp, wa.me, telegram, t.me, kik, viber, wechat, kakao.
     //    Deliberately NOT listed: "signal", "discord", "snap", "insta",
     //    "ig" — all of these have legitimate non-app meanings.
-    const offPlatformHandles = /\b(whats?app|wa\.me|telegram|t\.me|\bkik\b|viber|wechat|kakao(talk)?)\b/i;
+    // L3 audit 2026-06-08: extended for obfuscation, with care for false
+    // positives on a relationship app where "we chat often" is common English.
+    // DROPPED: "we chat" / "we\u2019chat" variants (idiomatic English).
+    // DROPPED: "tele gram" variants ("tele" + "gram" is not common obfuscation;
+    //          users who want to share telegram tend to write "telegram" plain).
+    // KEPT and EXTENDED: explicit apostrophe variant for what's-app, and
+    // "signal me / signal messenger" as the disambiguated forms.
+    const offPlatformHandles = /\b(whats?app|what['\u2019]s\s+app|wa\.me|telegram|t\.me|\bkik\b|viber|wechat|kakao(?:talk)?|signal\s+messenger|signal\s+me)\b/i;
     if (matchAny(offPlatformHandles)) {
       return { isSpam: true, reason: "Outside messaging apps can't be shared. Stay on Marryzen to keep our community safe from scams." };
     }
