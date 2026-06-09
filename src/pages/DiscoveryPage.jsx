@@ -18,7 +18,9 @@ import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
 import FilterPanel from '@/components/discovery/FilterPanel';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { displayReligion, getReligionFilterValues } from '@/lib/religionLabels';
+import { displayReligion, displayFaithLifestyle, getReligionFilterValues } from '@/lib/religionLabels';
+import { displayMaritalStatus, displayEducation, displaySmoking, displayDrinking, displayRelationshipGoal, displayHasChildren, displayFamilyGoals } from '@/lib/profileDisplayLabels';
+import { getAge } from '@/lib/getAge';
 import ProfileCard from '@/components/discovery/ProfileCard';
 import {
   DropdownMenu,
@@ -337,7 +339,7 @@ const DiscoveryPage = () => {
                 }
 
                 // Age
-                const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear();
+                const age = getAge(p.date_of_birth);
                 if (age < filters.ageRange[0] || age > filters.ageRange[1]) return false;
 
                 // Hard thresholds — admin-tunable via matching_config.thresholds.
@@ -354,7 +356,7 @@ const DiscoveryPage = () => {
                 }
                 // Max age gap from viewer (in addition to user's own age preferences)
                 if (_t.max_age_gap_years > 0 && currentUser.date_of_birth) {
-                  const myAge = new Date().getFullYear() - new Date(currentUser.date_of_birth).getFullYear();
+                  const myAge = getAge(currentUser.date_of_birth);
                   if (Math.abs(myAge - age) > _t.max_age_gap_years) return false;
                 }
                 // Inactive too long — use last_active_at (Marryzen convention)
@@ -423,7 +425,7 @@ const DiscoveryPage = () => {
                 const validScore = (typeof score === 'number' && !isNaN(score)) ? score : 0;
                 return {
                     ...p,
-                    age: new Date().getFullYear() - new Date(p.date_of_birth).getFullYear(),
+                    age: getAge(p.date_of_birth),
                     compatibilityScore: validScore,
                     matchLabel: getMatchLabel(validScore)
                 };
@@ -915,19 +917,19 @@ const DiscoveryPage = () => {
               {profile.faith_lifestyle && (
                 <div>
                   <span className="text-sm text-[#706B67]">Faith Lifestyle</span>
-                  <p className="font-medium text-[#1F1F1F]">{profile.faith_lifestyle}</p>
+                  <p className="font-medium text-[#1F1F1F]">{displayFaithLifestyle(profile.faith_lifestyle)}</p>
                 </div>
               )}
               {profile.marital_status && (
                 <div>
                   <span className="text-sm text-[#706B67]">Marital Status</span>
-                  <p className="font-medium text-[#1F1F1F]">{profile.marital_status}</p>
+                  <p className="font-medium text-[#1F1F1F]">{displayMaritalStatus(profile.marital_status)}</p>
                 </div>
               )}
               {profile.education && (
                 <div>
                   <span className="text-sm text-[#706B67]">Education</span>
-                  <p className="font-medium text-[#1F1F1F]">{profile.education}</p>
+                  <p className="font-medium text-[#1F1F1F]">{displayEducation(profile.education)}</p>
                 </div>
               )}
               {profile.zodiac_sign && (
