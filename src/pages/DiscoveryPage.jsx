@@ -381,7 +381,7 @@ const DiscoveryPage = () => {
                 // slipped through (cache, race condition), filter it out here.
                 if (!isIdentityVerifiedProfile(p)) return false;
 
-                // ...Active today... = same local calendar day as viewer...s device; missing/stale last_active_at excluded
+                // "Active today" = same local calendar day as viewer's device; missing/stale last_active_at excluded
                 if (filters.recentActive && !isProfileActiveLocalToday(p.last_active_at)) return false;
 
                 // Premium Checks
@@ -1031,8 +1031,8 @@ const DiscoveryPage = () => {
     if (filters.recentActive) {
       suggestions.push({
         icon: Clock,
-        title: 'Turn off ...Active today...',
-        description: 'Only people who used Marryzen today (your device...s date) qualify. Turn this off to see more members.',
+        title: 'Turn off "Active today"',
+        description: "Only people who used Marryzen today (your device's date) qualify. Turn this off to see more members.",
         action: onRemovePremiumFilters,
         color: 'text-green-700',
         bg: 'bg-green-50'
