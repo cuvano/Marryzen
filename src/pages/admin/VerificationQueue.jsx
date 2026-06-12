@@ -52,12 +52,17 @@ const VerificationQueue = () => {
     // Guard against double-click while a decision is in flight (any row)
     if (decidingId) return;
     setDecidingId(userId);
-    const updates = decision === 'APPROVED'
-      ? { identity_verification_status: 'verified', is_verified: true }
-      : { identity_verification_status: 'rejected' };
 
     try {
-      const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+      // L3 hardening 2026-06-09: route through log_admin_identity_verify RPC
+      // (migration 20260609010000) so the mutation + audit_logs row land
+      // atomically in one transaction, and the privileged-column trigger
+      // doesn't block the write.
+      const { error } = await supabase.rpc('log_admin_identity_verify', {
+        target_user: userId,
+        decision: decision.toLowerCase(),       // 'approved' | 'rejected'
+        reviewer_notes: null,                   // could surface a UI textarea later
+      });
 
       if (error) {
         toast({ title: 'Error', description: error.message, variant: 'destructive' });
