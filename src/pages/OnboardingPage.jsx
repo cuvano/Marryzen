@@ -1131,7 +1131,7 @@ const OnboardingPage = () => {
                 )}
                 <Button
                   onClick={handleNext}
-                  className="bg-[#E6B450] hover:bg-[#D0A23D] text-white rounded-full px-10 py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F] rounded-full px-10 py-6 text-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={
                     isLoading ||
                     (currentStep === 1 && step1SubStep === 0 && !isStep1aComplete) ||
