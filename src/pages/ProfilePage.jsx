@@ -768,7 +768,7 @@ const ProfilePage = () => {
           {/* Subtle bottom shade — keeps cover controls legible without scorching the photo */}
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/40 to-transparent" />
           {isOwnProfile && !isPreviewMode && (
-            <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
+            <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-transparent md:bg-black/10">
               <span className="bg-white text-[#111] px-5 py-2.5 rounded-lg text-sm font-medium shadow-lg">
                 {profile.cover_photo ? 'Change cover' : 'Add cover photo'}
               </span>
@@ -886,7 +886,7 @@ const ProfilePage = () => {
                       </div>
                     )}
                     {isOwnProfile && !isPreviewMode && deletingPhotoIndex === null && (
-                      <button type="button" onClick={() => handleRemovePhoto(i)} className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all">
+                      <button type="button" aria-label="Remove photo" onClick={() => handleRemovePhoto(i)} className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -1690,41 +1690,3 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
                   Reset
                 </Button>
               </div>
-              <input
-                type="range"
-                min="1"
-                max="3"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full"
-                disabled={uploading}
-              />
-            </div>
-            <p className="text-xs text-[#706B67] text-center">
-              Drag the image to reposition, adjust zoom, then click "Crop & Save"
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={uploading}>Cancel</Button>
-          <Button onClick={cropImage} disabled={uploading} className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]">
-            {uploading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Crop className="w-4 h-4 mr-2" />
-                Crop & Save
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default ProfilePage;
