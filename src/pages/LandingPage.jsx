@@ -419,7 +419,7 @@ const LandingPage = () => {
                 
                 <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
                     <div>
-                        <div className="inline-flex items-center gap-2 bg-[#E6B450] text-white px-4 py-2 rounded-full text-sm font-bold mb-8 shadow-sm">
+                        <div className="inline-flex items-center gap-2 bg-[#E6B450] text-[#1F1F1F] px-4 py-2 rounded-full text-sm font-bold mb-8 shadow-sm">
                             <Star size={16} fill="currentColor" /> Premium Membership
                         </div>
                         <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-6">Upgrade Your Search for Love</h2>
