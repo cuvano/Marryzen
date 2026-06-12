@@ -179,7 +179,63 @@ const UserManagement = () => {
       }
     }
 
-    const { error } = await supabase.from('profiles').update(updates).eq('id', id);
+    // L3 hardening 2026-06-09: dispatch privileged-column updates through
+    // their respective SECURITY DEFINER RPCs (migration 20260609010000).
+    // Each RPC writes a profiles UPDATE + audit_logs row atomically and
+    // bypasses the privileged-column trigger that blocks direct PATCHes.
+    // Non-privileged updates (e.g., future free-text fields) keep the
+    // direct .update() path.
+    let error = null;
+    // Reviewer-B1 2026-06-09: identity_verification_status is paired with
+    // is_verified in several call sites in this file. If we routed through
+    // log_admin_toggle_verified the identity status would be silently dropped.
+    // Route both to log_admin_identity_verify, which writes BOTH columns
+    // atomically — matching how VerificationQueue does it.
+    if (Object.prototype.hasOwnProperty.call(updates, 'identity_verification_status')) {
+      const ivs = updates.identity_verification_status;
+      // 'verified' or 'rejected' map directly; 'pending'/null map to a soft "reset"
+      // which we expose as a 'rejected' decision so the admin path remains audited.
+      const decision = ivs === 'verified' ? 'approved' : 'rejected';
+      const r = await supabase.rpc('log_admin_identity_verify', {
+        target_user: id,
+        decision,
+        reviewer_notes: null,
+      });
+      error = r.error;
+    } else if (Object.prototype.hasOwnProperty.call(updates, 'role')) {
+      const r = await supabase.rpc('log_admin_role_change', {
+        target_user: id,
+        new_role: updates.role,
+        reason: null,
+      });
+      error = r.error;
+    } else if (Object.prototype.hasOwnProperty.call(updates, 'status')) {
+      const r = await supabase.rpc('log_admin_user_status_change', {
+        target_user: id,
+        new_status: updates.status,
+        suspend_until: updates.suspended_until ?? null,
+        reason: null,
+      });
+      error = r.error;
+    } else if (Object.prototype.hasOwnProperty.call(updates, 'is_verified')) {
+      const r = await supabase.rpc('log_admin_toggle_verified', {
+        target_user: id,
+        new_value: !!updates.is_verified,
+        reason: null,
+      });
+      error = r.error;
+    } else if (Object.prototype.hasOwnProperty.call(updates, 'notes_admin')) {
+      const r = await supabase.rpc('log_admin_set_notes', {
+        target_user: id,
+        notes: updates.notes_admin,
+      });
+      error = r.error;
+    } else {
+      // Non-privileged field update — direct PATCH is fine (trigger won't block).
+      const r = await supabase.from('profiles').update(updates).eq('id', id);
+      error = r.error;
+    }
+
     if (error) {
       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     } else {
