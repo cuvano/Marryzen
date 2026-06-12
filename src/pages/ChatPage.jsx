@@ -542,7 +542,7 @@ if (currentUser.status === 'suspended') {
              {conversations.map(convo => (
                 <div key={convo.id} onClick={() => navigate(`/chat/${convo.id}`)} className={`p-4 border-b cursor-pointer hover:bg-[#FAF7F2] flex gap-3 ${activeConversation?.id === convo.id ? 'bg-[#FAF7F2]' : ''}`}>
                     <div className="relative">
-                        <img src={convo.partner.photos?.[0] || 'https://via.placeholder.com/50'} className="w-12 h-12 rounded-full object-cover" />
+                        <img src={convo.partner.photos?.[0] || '/profile-placeholder.svg'} className="w-12 h-12 rounded-full object-cover" />
                         {convo.partner.is_premium_active && (
                           <Crown className="absolute -top-1 -right-1 w-4 h-4 text-[#E6B450] fill-[#E6B450] bg-white rounded-full" />
                         )}
