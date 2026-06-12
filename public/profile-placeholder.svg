@@ -1,0 +1,41 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  public/profile-placeholder.svg  (LANDS AT REPO ROOT public/ FOLDER)
+  Default placeholder for profile photos that fail to load or aren't set.
+  Replaces the dead via.placeholder.com fallback. 400x500 = 4:5 portrait,
+  matches the existing ProfileCard aspect.
+  Bundled with the app so it's available offline + never 404s.
+  L3 hardening 2026-06-09.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 400 500"
+  preserveAspectRatio="xMidYMid slice"
+  role="img"
+  aria-label="Profile photo placeholder"
+>
+  <rect width="400" height="500" fill="#FAF7F2"/>
+  <defs>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E6B450" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#E6B450" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="220" fill="url(#glow)"/>
+  <circle cx="200" cy="190" r="58" fill="#C85A72" opacity="0.55"/>
+  <path
+    d="M 80 470 C 80 380 130 320 200 320 C 270 320 320 380 320 470 L 320 500 L 80 500 Z"
+    fill="#C85A72"
+    opacity="0.55"
+  />
+  <text
+    x="200"
+    y="490"
+    text-anchor="middle"
+    fill="#706B67"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="14"
+    font-weight="500"
+  >Photo not available</text>
+</svg>
