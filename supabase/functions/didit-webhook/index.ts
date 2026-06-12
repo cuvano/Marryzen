@@ -1,6 +1,26 @@
 // supabase/functions/didit-webhook/index.ts
 //
-// Marryzen ID verification webhook (v10)
+// Marryzen ID verification webhook (v11)
+//
+// Significant changes vs v10:
+//
+//   * Process-and-purge (data minimization, DPIA §4.1 + Didit retention
+//     hardening). After all terminal-state processing is complete, the
+//     webhook calls DELETE https://verification.didit.me/v3/session/{id}/
+//     against Didit so the verification session is wiped from Didit's
+//     storage as soon as Marryzen has persisted everything we need.
+//
+//     Belt-and-suspenders with the 6-month Didit-side retention policy:
+//     this brings the typical session lifetime on Didit's side down from
+//     180 days to a few seconds.
+//
+//     OPT-IN behavior: requires DIDIT_API_KEY env var. If unset, the
+//     purge is skipped (logged once) and the webhook behaves identically
+//     to v10. This keeps the rollout safe — set the env var to enable.
+//
+//     Best-effort: errors are logged but never fail the 200 ack to Didit.
+//     The 6-month server-side retention remains as the backstop if a
+//     purge call fails.
 //
 // Significant changes vs v9:
 //
@@ -598,6 +618,56 @@ async function insertCredit(row: {
   return { ok: false, alreadyExisted: false, error: error.message };
 }
 
+// ---------- Process-and-purge (v11) ----------
+//
+// After Marryzen has persisted everything we need from a Didit verification
+// session, DELETE the session from Didit so the verification data doesn't
+// sit on their servers longer than necessary. Belt-and-suspenders with
+// the 6-month dashboard retention policy.
+//
+// Best-effort: errors are logged, never fatal. The 200 ack to Didit fires
+// regardless of purge outcome.
+//
+// Auth uses x-api-key against Marryzen's DIDIT_API_KEY env var. If the
+// env var is unset, purge is a no-op (logged once via the unsetWarned flag).
+let purgeDisabledLogged = false;
+async function purgeDiditSession(sessionId: string | null | undefined): Promise<void> {
+  if (!sessionId) return;
+  const apiKey = Deno.env.get("DIDIT_API_KEY") ?? "";
+  if (!apiKey) {
+    if (!purgeDisabledLogged) {
+      console.log("didit-webhook v11: DIDIT_API_KEY not set; purge skipped (set the env var to enable process-and-purge)");
+      purgeDisabledLogged = true;
+    }
+    return;
+  }
+  try {
+    const url = `https://verification.didit.me/v3/session/${encodeURIComponent(sessionId)}/`;
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+    const resp = await fetch(url, {
+      method: "DELETE",
+      headers: { "x-api-key": apiKey },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timeoutId);
+    if (resp.ok) {
+      console.log(`didit-webhook v11: purged Didit session ${sessionId} (status ${resp.status})`);
+    } else {
+      // 404 is fine — session already purged or expired
+      const text = await resp.text().catch(() => "");
+      if (resp.status === 404) {
+        console.log(`didit-webhook v11: purge — session ${sessionId} already gone (404)`);
+      } else {
+        console.warn(`didit-webhook v11: purge FAILED for session ${sessionId}: ${resp.status} ${text.slice(0, 200)}`);
+      }
+    }
+  } catch (err) {
+    // Network error / abort / etc. — best-effort, swallow
+    console.warn("didit-webhook v11: purge threw (non-fatal):", err);
+  }
+}
+
 // ---------- Main handler ----------
 
 serve(async (req) => {
@@ -617,6 +687,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // v11: extract sessionId once at the top so each terminal return can
+  // fire the process-and-purge call cleanly (no closure-over-mutable-scope).
+  const purgeSessionId = (payload.session_id ?? "") as string;
 
   // 1. Signature verification — OPT-IN via DIDIT_REQUIRE_SIGNATURE=1.
   // While disabled we accept any POST (matches v8 behavior). The check is
@@ -889,6 +963,7 @@ serve(async (req) => {
       // user wins; this one stays unverified.
       if ((updErr as { code?: string }).code === "23505") {
         console.log("Profile update hit 23505 (race lost); leaving this profile unverified.");
+        await purgeDiditSession(purgeSessionId);
         return new Response(
           JSON.stringify({ ok: true, status: "rejected", reason: "race_lost" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -903,6 +978,7 @@ serve(async (req) => {
 
     // Name mismatch — no credits on this path.
     if (!nameCheck.match) {
+      await purgeDiditSession(purgeSessionId);
       return new Response(
         JSON.stringify({ ok: true, status: "pending_name_mismatch", score: nameCheck.score }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -912,6 +988,7 @@ serve(async (req) => {
     // B1 — Face-match did not pass even though name matched.
     if (!faceMatchPassed) {
       console.log("didit-webhook B1: face-match did not pass; status=" + faceMatchDecision + ", score=" + faceMatchScore);
+      await purgeDiditSession(purgeSessionId);
       return new Response(
         JSON.stringify({
           ok: true,
@@ -973,12 +1050,13 @@ serve(async (req) => {
       console.error("Referee bonus grant error (non-fatal):", e);
     }
 
+    await purgeDiditSession(purgeSessionId);
     return new Response(JSON.stringify({ ok: true, status: "verified" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("didit-webhook v9.1: top-level error", err);
+    console.error("didit-webhook v11: top-level error", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
