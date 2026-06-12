@@ -49,7 +49,7 @@ const ProfileCard = ({ profile, onLike, onPass, onFavorite, isFavorite, onClick 
     >
         <div className="relative aspect-[3/4] overflow-hidden cursor-pointer" onClick={onClick}>
             <img loading="lazy" decoding="async" 
-                src={profile.photos?.[0] || 'https://via.placeholder.com/400x500'} 
+                src={profile.photos?.[0] || '/profile-placeholder.svg'} 
                 alt={profile.full_name}
                 className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
             />
