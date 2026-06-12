@@ -21,6 +21,11 @@ function identifyAnalyticsUser(user) {
     if (user && user.id) {
       window.posthog?.identify(user.id, { email: user.email });
       window.Sentry?.setUser({ id: user.id, email: user.email });
+      // Phase 45 2026-06-12: main.jsx now ships with capture_pageview:false
+      // (so the first $pageview doesn't fire as anonymous before identify
+      // arrives). Manually fire it here, AFTER identify, so the first
+      // pageview lands on the authenticated distinct_id.
+      window.posthog?.capture('$pageview');
     } else {
       window.posthog?.reset();
       window.Sentry?.setUser(null);
