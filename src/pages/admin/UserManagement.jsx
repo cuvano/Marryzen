@@ -193,9 +193,22 @@ const UserManagement = () => {
     // atomically — matching how VerificationQueue does it.
     if (Object.prototype.hasOwnProperty.call(updates, 'identity_verification_status')) {
       const ivs = updates.identity_verification_status;
-      // 'verified' or 'rejected' map directly; 'pending'/null map to a soft "reset"
-      // which we expose as a 'rejected' decision so the admin path remains audited.
-      const decision = ivs === 'verified' ? 'approved' : 'rejected';
+      // Reviewer-C1 2026-06-12: only 'verified' and 'rejected' are valid here.
+      // The previous code mapped anything-not-'verified' to 'rejected', which
+      // silently rejected users when an admin selected 'pending' or
+      // 'Not Submitted' from the dropdown (no toast, audit_logs falsely records
+      // a rejection). Block those paths instead with a clear toast.
+      let decision = null;
+      if (ivs === 'verified') decision = 'approved';
+      else if (ivs === 'rejected') decision = 'rejected';
+      else {
+        toast({
+          title: 'Use Approve or Reject',
+          description: "To reset a user's status to Pending or Not Submitted, ask them to resubmit via the Didit flow — the queue will refill automatically.",
+          variant: 'destructive',
+        });
+        return;
+      }
       const r = await supabase.rpc('log_admin_identity_verify', {
         target_user: id,
         decision,
