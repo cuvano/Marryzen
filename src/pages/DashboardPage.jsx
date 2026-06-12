@@ -866,8 +866,13 @@ const DashboardPage = () => {
               </>
             ) : (
               <>
-                {/* Non-premium: blur the count + show unlock nudge — Hinge/Tinder pattern */}
-                <div className="text-3xl font-bold text-[#1F1F1F] blur-sm select-none">{stats.profileInterest || '?'}</div>
+                {/* Non-premium: blur the count + show unlock nudge — Hinge/Tinder pattern.
+                    Phase 56 2026-06-12: CSS blur is visual-only — screen readers still
+                    announce the real number. Hide the blurred node from AT and surface
+                    a sr-only fallback so assistive-tech users get the lock-message
+                    instead of the real count (which they shouldn't see). */}
+                <div aria-hidden="true" className="text-3xl font-bold text-[#1F1F1F] blur-sm select-none">{stats.profileInterest || '?'}</div>
+                <span className="sr-only">Profile Interest count is hidden. Upgrade to Premium to see who&rsquo;s interested.</span>
                 <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
                 <div className="text-[#E6B450] text-xs font-semibold mt-1 flex items-center justify-center gap-1">
                   <Crown size={11} className="fill-[#E6B450]" />
