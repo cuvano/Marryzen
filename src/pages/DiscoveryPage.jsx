@@ -91,6 +91,18 @@ const DiscoveryPage = () => {
   const initialProfilesFetchDone = useRef(false);
   const filterRefetchReady = useRef(false); // true after initial load so filter-effect can refetch on filter change only
 
+  // Phase 54 2026-06-12: mobile detection for carousel sizing. Sub-sm (<640px)
+  // only renders 1 card so we don't overflow horizontally; sm+ shows 3-wide.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    return () => mq.removeEventListener?.('change', update);
+  }, []);
+
   // Filters State
   const defaultFilters = {
     ageRange: [18, 65],
@@ -1270,9 +1282,9 @@ const DiscoveryPage = () => {
                     {(filters.faith || filters.city || filters.recentActive) && (
                       <div className="flex flex-wrap gap-2 items-center">
                           <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
-                          {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, faith: ''})}/></Badge>}
-                          {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, city: ''})}/></Badge>}
-                          {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, recentActive: false})}/></Badge>}
+                          {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <button type="button" aria-label={`Remove ${filters.faith} filter`} onClick={() => setFilters({...filters, faith: ''})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-[#E6B450]"><X className="w-3.5 h-3.5"/></button></Badge>}
+                          {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <button type="button" aria-label={`Remove ${filters.city} filter`} onClick={() => setFilters({...filters, city: ''})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-[#E6B450]"><X className="w-3.5 h-3.5"/></button></Badge>}
+                          {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <button type="button" aria-label="Remove Active Today filter" onClick={() => setFilters({...filters, recentActive: false})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"><X className="w-3.5 h-3.5"/></button></Badge>}
                       </div>
                     )}
 
@@ -1383,7 +1395,7 @@ const DiscoveryPage = () => {
                             {/* Carousel Container */}
                             <div className="flex-1 flex justify-center gap-2 md:gap-4 overflow-hidden">
                                 <AnimatePresence initial={false} mode="popLayout">
-                                    {profiles.slice(0, 3).map((profile, idx) => (
+                                    {profiles.slice(0, isMobile ? 1 : 3).map((profile, idx) => (
                                         <motion.div
                                             key={profile.id}
                                             layout
