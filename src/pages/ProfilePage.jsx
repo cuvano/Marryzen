@@ -359,6 +359,25 @@ const ProfilePage = () => {
     }
   };
 
+  // Read a File into a previewable string. Prefers FileReader (data URL,
+  // works with the existing crop-modal data-URL flow); falls back to
+  // URL.createObjectURL() for in-app webviews (iOS Facebook, Instagram,
+  // TikTok, LinkedIn, etc.) that strip FileReader from globals. Sentry
+  // recorded 27 events / 14 users hitting "Can't find variable: FileReader"
+  // on /profile before this fallback was added (Phase 43, 2026-06-12).
+  const readImageForPreview = (file) =>
+    new Promise((resolve, reject) => {
+      if (typeof FileReader === 'undefined') {
+        try { resolve(URL.createObjectURL(file)); }
+        catch (err) { reject(err); }
+        return;
+      }
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error || new Error('FileReader failed'));
+      r.readAsDataURL(file);
+    });
+
   const handleCoverPhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -374,15 +393,14 @@ const ProfilePage = () => {
     }
 
     // Read file and open crop modal for cover photo (wide aspect ratio)
-    const reader = new FileReader();
-    reader.onload = () => {
-      setTempCoverImage(reader.result);
+    try {
+      const preview = await readImageForPreview(file);
+      setTempCoverImage(preview);
       setCoverCropModalOpen(true);
-    };
-    reader.onerror = () => {
-      toast({ title: "Error", description: "Failed to read image file", variant: "destructive" });
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Cover preview failed:', err);
+      toast({ title: "Error", description: "Failed to read image file. Try opening Marryzen in Safari or Chrome.", variant: "destructive" });
+    }
   };
 
   const handleCoverCropComplete = async (croppedBase64) => {
@@ -442,7 +460,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -458,14 +476,18 @@ const ProfilePage = () => {
       return;
     }
 
-    // Open crop modal (same flow as edit/onboarding page)
-    const reader = new FileReader();
-    reader.onload = () => {
-      setTempImage(reader.result);
+    // Open crop modal (same flow as edit/onboarding page).
+    // Uses the in-app-webview-safe helper — see readImageForPreview above.
+    try {
+      const preview = await readImageForPreview(file);
+      setTempImage(preview);
       setCropModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = ''; // Reset so same file can be selected again
+    } catch (err) {
+      console.error('Photo preview failed:', err);
+      toast({ title: "Error", description: "Failed to read image file. Try opening Marryzen in Safari or Chrome.", variant: "destructive" });
+    } finally {
+      e.target.value = ''; // Reset so same file can be selected again
+    }
   };
 
   const compressImage = (base64, maxWidth = 1200, quality = 0.8) => {
