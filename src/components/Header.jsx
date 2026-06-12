@@ -37,7 +37,7 @@ const Header = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
-      
+
       setNotifications(data || []);
       const unread = data?.filter(n => !n.read).length || 0;
       setUnreadCount(unread);
@@ -124,7 +124,7 @@ const Header = () => {
 
     // Route based on notification type
     const metadata = notification.metadata || {};
-    
+
     switch (notification.type) {
       case 'new_match':
         navigate('/matches');
@@ -163,6 +163,15 @@ const Header = () => {
     navigate('/');
   };
 
+  // L3 hardening 2026-06-12: open admin panel in a new tab so super_admin
+  // doesn't lose their customer-side session state (notifications, scroll,
+  // open chats). Same-origin so cookies + Supabase session ride across, and
+  // 'noopener,noreferrer' isolates window.opener for safety.
+  const openAdminPanel = () => {
+    window.open('/admin', '_blank', 'noopener,noreferrer');
+    setIsProfileMenuOpen(false);
+  };
+
   const NavItem = ({ label, path, icon: Icon, active }) => (
     <button
       onClick={() => { navigate(path); setIsMenuOpen(false); }}
@@ -193,7 +202,7 @@ const Header = () => {
               <NavItem label="My Matches" path="/matches" icon={Heart} active={location.pathname === '/matches'} />
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
-              
+
               {/* Notifications */}
               <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -207,9 +216,9 @@ const Header = () => {
             <DropdownMenuContent align="end" className="w-80">
                 <div className="flex items-center justify-between px-2 py-1.5">
                     <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-7 text-xs"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -228,9 +237,9 @@ const Header = () => {
                         </div>
                     ) : (
                         notifications.map(n => (
-                            <DropdownMenuItem 
-                                key={n.id} 
-                                onClick={() => handleNotificationClick(n)} 
+                            <DropdownMenuItem
+                                key={n.id}
+                                onClick={() => handleNotificationClick(n)}
                                 className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-[#FAF7F2] ${!n.read ? 'bg-blue-50/50' : ''}`}
                             >
                                 <div className="mt-0.5">
@@ -253,7 +262,7 @@ const Header = () => {
                 {notifications.length > 0 && (
                     <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                             onClick={() => navigate('/notifications')}
                             className="text-center justify-center text-sm font-medium text-[#C85A72]"
                         >
@@ -266,7 +275,7 @@ const Header = () => {
 
               {/* Profile Dropdown */}
               <div className="relative">
-                <button 
+                <button
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                     className="flex items-center gap-2 pl-4 border-l border-[#E6DCD2] hover:opacity-80 transition-opacity"
                 >
@@ -303,7 +312,7 @@ const Header = () => {
                         {isAdmin && (
                           <>
                             <div className="h-px bg-[#E6DCD2] my-1"></div>
-                            <button onClick={() => { navigate('/admin'); setIsProfileMenuOpen(false); }} className="text-left px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 flex items-center gap-2">
+                            <button onClick={openAdminPanel} className="text-left px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 flex items-center gap-2">
                                 <Shield size={16} /> Admin Panel
                             </button>
                           </>
@@ -314,7 +323,7 @@ const Header = () => {
                         </button>
                     </div>
                 )}
-                
+
                 {/* Backdrop for dropdown */}
                 {isProfileMenuOpen && (
                     <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
@@ -323,14 +332,14 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => navigate('/login')}
                 className="text-[#706B67] hover:text-[#1F1F1F]"
               >
                 Log In
               </Button>
-              <Button 
+              <Button
                 onClick={() => navigate('/onboarding')}
                 className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
               >
@@ -348,7 +357,7 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-b border-[#E6DCD2] p-4 flex flex-col gap-2 absolute w-full shadow-lg">
+        <div className="md:hidden bg-white border-b border-[#E6DCD2] p-4 flex flex-col gap-2 absolute w-full shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
           {user ? (
             <>
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
@@ -356,14 +365,22 @@ const Header = () => {
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
               <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
               <NavItem label="Premium" path="/premium" icon={Crown} active={location.pathname === '/premium'} />
-              <NavItem 
-                label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`} 
-                path="/notifications" 
-                icon={Bell} 
-                active={location.pathname === '/notifications'} 
+              <NavItem
+                label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
+                path="/notifications"
+                icon={Bell}
+                active={location.pathname === '/notifications'}
               />
               <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
               <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
+              {isAdmin && (
+                <button
+                  onClick={() => { openAdminPanel(); setIsMenuOpen(false); }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-purple-600 hover:bg-purple-50 rounded-lg w-full"
+                >
+                  <Shield size={18} /> Admin Panel
+                </button>
+              )}
               <div className="h-px bg-[#E6DCD2] my-2"></div>
               <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-[#C85A72] bg-[#F9E7EB] rounded-lg">
                 <LogOut size={18} /> Sign Out
@@ -371,14 +388,14 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
                 className="w-full border-[#E6DCD2] text-[#1F1F1F] hover:bg-[#FAF7F2]"
               >
                 Log In
               </Button>
-              <Button 
+              <Button
                 onClick={() => { navigate('/onboarding'); setIsMenuOpen(false); }}
                 className="w-full bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
               >
