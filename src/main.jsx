@@ -36,9 +36,22 @@ if (POSTHOG_KEY) {
     person_profiles: 'identified_only',
     autocapture: true,
     session_recording: { maskAllInputs: true },
-    capture_pageview: true,
+    // Phase 45 2026-06-12: defer the first $pageview so it lands on the
+    // authenticated distinct_id after SupabaseAuthContext fires identify().
+    // Previously this was true, which meant every signed-in user's first
+    // pageview was anonymous and PostHog showed device IDs instead of
+    // auth.uid in the Activity feed.
+    capture_pageview: false,
     capture_pageleave: true,
   });
+  // Phase 45 2026-06-12: ES-module `import posthog from 'posthog-js'` does
+  // NOT auto-attach to window in modern posthog-js versions — that's only
+  // the snippet loader. The SupabaseAuthContext shim (window.posthog?.identify)
+  // depends on this assignment to actually attribute events. Without it,
+  // every event is anonymous regardless of auth state.
+  if (typeof window !== 'undefined') {
+    window.posthog = posthog;
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
