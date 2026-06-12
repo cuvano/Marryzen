@@ -410,57 +410,25 @@ const SafetyPanel = () => {
         }
       }
 
-      // 2. Build report update
-      const reportUpdate = {
-        admin_resolved_by: session?.user?.id,
-        admin_resolution_notes: resolutionNotes.trim() || null,
-      };
-      // 3. Build profile update if needed
-      let profileUpdate = null;
-
-      if (action === 'dismiss') {
-        reportUpdate.status = 'dismissed';
-        reportUpdate.action_taken = 'dismissed';
-      } else if (action === 'warn') {
-        reportUpdate.status = 'resolved';
-        reportUpdate.action_taken = 'warning_sent';
-      } else if (action === 'suspend') {
-        const untilIso = new Date(Date.now() + suspendDays * 24 * 60 * 60 * 1000).toISOString();
-        reportUpdate.status = 'resolved';
-        reportUpdate.action_taken = `suspended_${suspendDays}d`;
-        reportUpdate.suspended_until = untilIso;
-        profileUpdate = { status: 'suspended', suspended_until: untilIso };
-      } else if (action === 'ban') {
-        reportUpdate.status = 'resolved';
-        reportUpdate.action_taken = 'banned';
-        profileUpdate = { status: 'banned', suspended_until: null };
-      }
-
-      // 4. Apply report update
-      const { error: reportErr } = await supabase
-        .from('user_reports')
-        .update(reportUpdate)
-        .eq('id', selectedReport.id);
-      if (reportErr) {
-        toast({ title: 'Failed to update report', description: reportErr.message, variant: 'destructive' });
+      // 2. Apply report + profile changes atomically via the audit-logged RPC.
+      //    L3 hardening 2026-06-09: replaces the previous two-step
+      //    user_reports.update() + profiles.update() pattern that had no
+      //    audit_logs entry and a race window if the profile update failed
+      //    after the report was already marked resolved. The RPC writes
+      //    user_reports + profiles + audit_logs in a single transaction,
+      //    is_admin()-gated, and bypasses the privileged-column trigger
+      //    via SECURITY DEFINER. (Migration 20260609010000.)
+      const { error: rpcErr } = await supabase.rpc('log_admin_resolve_report', {
+        report_id: selectedReport.id,
+        resolution_action: action,                // 'dismiss' | 'warn' | 'suspend' | 'ban'
+        suspend_days: action === 'suspend' ? suspendDays : null,
+        resolution_notes: resolutionNotes.trim() || null,
+        reason: null,
+      });
+      if (rpcErr) {
+        toast({ title: 'Failed to resolve report', description: rpcErr.message, variant: 'destructive' });
         setActionInFlight(false);
         return;
-      }
-
-      // 5. Apply profile update if any
-      if (profileUpdate && selectedReport.reported?.id) {
-        const { error: profErr } = await supabase
-          .from('profiles')
-          .update(profileUpdate)
-          .eq('id', selectedReport.reported.id);
-        if (profErr) {
-          // Report already updated; profile failed. Surface but don't roll back.
-          toast({
-            title: 'Profile update failed',
-            description: `Report saved, but profile.status not updated: ${profErr.message}`,
-            variant: 'destructive',
-          });
-        }
       }
 
       // 6. Notify the user (DSA Art. 17 "statement of reasons").
