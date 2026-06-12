@@ -153,8 +153,8 @@ serve(async (req) => {
               `<div style='display:flex;justify-content:space-between'><strong>Amount</strong><span>${fmt}</span></div>` +
               `<div style='display:flex;justify-content:space-between;margin-top:8px'><strong>Date</strong><span>${new Date().toLocaleDateString('en-US')}</span></div>` +
               `</div>` +
-              `<p style='color:#6B7280;font-size:13px;line-height:1.6'>Your subscription renews automatically. Cancel anytime from Settings Ã¢ÂÂ Subscription. You will receive a reminder 24 hours before renewal.</p>` +
-              `<p style='color:#9CA3AF;font-size:12px;margin-top:32px;text-align:center'>Marryzen Ã¢ÂÂ The verified marriage app</p></div>`
+              `<p style='color:#6B7280;font-size:13px;line-height:1.6'>Your subscription renews automatically. Cancel anytime from Settings &mdash; Subscription. You will receive a reminder 24 hours before renewal.</p>` +
+              `<p style='color:#9CA3AF;font-size:12px;margin-top:32px;text-align:center'>Marryzen &mdash; The verified marriage app</p></div>`
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -298,7 +298,7 @@ serve(async (req) => {
             const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
             const recipient = invoice.customer_email || profiles[0].email
             if (RESEND_API_KEY && recipient) {
-              const html = `<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px"><h1 style="color:#1F1F1F">Payment didnÃ¢ÂÂt go through</h1><p>We were unable to process your Marryzen Premium renewal. We will retry your card automatically. To avoid any interruption, please update your billing details in <a href="https://www.marryzen.com/billing">Settings Ã¢ÂÂ Billing</a>.</p></div>`
+              const html = `<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px"><h1 style="color:#1F1F1F">Payment didn&rsquo;t go through</h1><p>We were unable to process your Marryzen Premium renewal. We will retry your card automatically. To avoid any interruption, please update your billing details in <a href="https://www.marryzen.com/billing">Settings &mdash; Billing</a>.</p></div>`
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
