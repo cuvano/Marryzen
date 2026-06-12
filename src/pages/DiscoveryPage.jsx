@@ -822,7 +822,7 @@ const DiscoveryPage = () => {
           {/* Main Image */}
           <div className="relative h-96 overflow-hidden">
             <img 
-              src={heroPhoto || 'https://via.placeholder.com/800x600'} 
+              src={heroPhoto || '/profile-placeholder.svg'} 
               alt={profile.full_name}
               className="w-full h-full object-cover object-top"
             />
@@ -903,7 +903,7 @@ const DiscoveryPage = () => {
                   {photos.slice(0, 6).map((photo, idx) => (
                     <img 
                       key={idx}
-                      src={photo || 'https://via.placeholder.com/200x200'} 
+                      src={photo || '/profile-placeholder.svg'} 
                       alt={`${profile.full_name} photo ${idx + 2}`}
                       onClick={() => setPhotoIdx(idx)} className={`w-full aspect-square object-cover object-top rounded-lg cursor-pointer transition-all ${idx === photoIdx ? 'ring-4 ring-[#E6B450]' : 'opacity-80 hover:opacity-100'}`}
                     />
