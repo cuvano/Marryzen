@@ -18,6 +18,14 @@ import Step3a from '@/components/onboarding/Step3a';
 import Step3b from '@/components/onboarding/Step3b';
 import Step4 from '@/components/onboarding/Step4';
 import Step5 from '@/components/onboarding/Step5';
+
+// L3 hardening 2026-06-09: persist consent acceptance timestamps on profiles.
+// Bump these strings when the corresponding legal text changes; OnboardingPage
+// then writes the new version + new timestamp on the next user save. Schema:
+// 20260609020000_persist_consent_timestamps.sql.
+const TERMS_VERSION = '2026-06-08';                  // Termly-hosted ToS — last republish date
+const COMMUNITY_PLEDGE_VERSION = '2026-06-06';       // Community Guidelines v2.0
+const MARRIAGE_PROMISE_VERSION = '2026-06-08';       // Step5 wording effective date
 import PremiumTeaserModal from '@/components/onboarding/PremiumTeaserModal';
 
 const OnboardingPage = () => {
@@ -623,7 +631,19 @@ const OnboardingPage = () => {
                       serious_relationship: formData.seriousRelationship,
                       updated_at: new Date().toISOString()
                   };
-                  
+
+                  // L3: only stamp consent on FIRST acceptance, never overwrite.
+                  // Per Art. 7(1) GDPR the demonstrable timestamp is the moment
+                  // consent was first given, not the last re-save during a
+                  // re-entrant Step1. existingProfile is the row we just SELECTed;
+                  // a NULL means the consent has never been stamped.
+                  if (!isEditMode &&
+                      formData.agreeToTerms &&
+                      !existingProfile?.terms_accepted_at) {
+                      updateData.terms_accepted_at = new Date().toISOString();
+                      updateData.terms_accepted_version = TERMS_VERSION;
+                  }
+
                   // Only update onboarding_step and status if not in edit mode (use state variable)
                   if (!isEditMode) {
                       updateData.onboarding_step = 2;
@@ -656,6 +676,9 @@ const OnboardingPage = () => {
                   identify_as: formData.identifyAs,
                   looking_for_gender: formData.lookingForGender,
                   serious_relationship: formData.seriousRelationship,
+                  // L3 2026-06-09: stamp Terms acceptance at signup row creation
+                  terms_accepted_at: formData.agreeToTerms ? new Date().toISOString() : null,
+                  terms_accepted_version: formData.agreeToTerms ? TERMS_VERSION : null,
                           onboarding_step: 2,
                           status: 'pending_review'
                       });
@@ -829,11 +852,37 @@ const OnboardingPage = () => {
 
         // STEP 6: Finalize (Marriage Intent — Phase 2E renumbered)
         else if (currentStep === totalSteps) {
-             const { error } = await supabase.from('profiles').update({
+             // L3 hardening 2026-06-09: stamp Community Pledge + Marriage
+             // Promise acceptance timestamps. Per Art. 7(1) GDPR the
+             // demonstrable timestamp is the moment consent was FIRST given;
+             // never overwrite an existing stamp on re-entrant saves.
+             // Edit-mode preserves the originals (a version-bump re-prompt
+             // flow can re-stamp via a separate code path later).
+             const step6Update = {
                  relationship_goal: formData.relationshipGoal,
-                 // We could set a 'status' field here like 'active'
-                 onboarding_step: 6
-             }).eq('id', session.user.id);
+                 onboarding_step: 6,
+             };
+
+             // Read current consent stamps so we only fire on first-time.
+             const { data: priorConsent } = await supabase
+                 .from('profiles')
+                 .select('community_pledge_accepted_at, marriage_promise_accepted_at')
+                 .eq('id', session.user.id)
+                 .maybeSingle();
+
+             if (!isEditMode &&
+                 formData.agreeToTermsV2 &&
+                 !priorConsent?.community_pledge_accepted_at) {
+                 step6Update.community_pledge_accepted_at = new Date().toISOString();
+                 step6Update.community_pledge_version = COMMUNITY_PLEDGE_VERSION;
+             }
+             if (!isEditMode &&
+                 formData.confirmMarriageIntent &&
+                 !priorConsent?.marriage_promise_accepted_at) {
+                 step6Update.marriage_promise_accepted_at = new Date().toISOString();
+                 step6Update.marriage_promise_version = MARRIAGE_PROMISE_VERSION;
+             }
+             const { error } = await supabase.from('profiles').update(step6Update).eq('id', session.user.id);
 
              if (error) throw error;
 
