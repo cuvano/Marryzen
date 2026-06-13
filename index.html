@@ -22,189 +22,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph (Phase 38: og-image.jpg -> og-image.png, file now exists in /public) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Marryzen" />
     <meta property="og:url" content="https://www.marryzen.com/" />
     <meta property="og:title" content="Marryzen - A platform for serious marriage" />
     <meta property="og:description" content="A private, values-based platform for serious, long-term marriage. Verified profiles, marriage-intent only." />
-    <meta property="og:image" content="https://www.marryzen.com/og-image.jpg" />
+    <meta property="og:image" content="https://www.marryzen.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://www.marryzen.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Marryzen — Marriage-intent. Faith-first. Verified." />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://www.marryzen.com/" />
     <meta name="twitter:title" content="Marryzen - A platform for serious marriage" />
     <meta name="twitter:description" content="A private, values-based platform for serious, long-term marriage. Verified profiles, marriage-intent only." />
-    <meta name="twitter:image" content="https://www.marryzen.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://www.marryzen.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Marryzen — Marriage-intent. Faith-first. Verified." />
 
     <!-- reCAPTCHA v3 will be loaded dynamically -->
-    <!-- ============================================================ -->
-    <!-- Meta Pixel (Marryzen Web dataset ID: 1412304774265988).      -->
-    <!-- Blocked by Termly's autoBlock until user consents (GDPR).    -->
-    <!-- ============================================================ -->
-    <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '1412304774265988');
-      fbq('track', 'PageView');
-    </script>
-    <!-- End Meta Pixel -->
-      <style>
-      /* ===================================================================
-       * Global overflow guard (existing)
-       * =================================================================== */
-      html, body { overflow-x: hidden; }
-
-      /* ===================================================================
-       * Termly cookie banner + preferences modal - visual polish overrides
-       * (added 2026-06-01)
-       *
-       * Termly's free tier doesn't expose styling controls, so we override
-       * via CSS. Targets stable selectors: #termly-code-snippet-support host
-       * + .t-* semantic classes + [class*="termly-styles-..."] generated
-       * class fragments.
-       *
-       * Goals:
-       *  - Match Marryzen warm palette (cream / rose / gold)
-       *  - Narrower banner, softer corners, less visual weight
-       *  - Hide the cosmetic "(0)" / "(2)" vendor count brackets that look
-       *    like UI bugs on a single-purpose app
-       * =================================================================== */
-
-      /* Hide the vendor-count "(N)" brackets next to each category name in
-         the Preferences modal. They're meaningful for big ad networks with
-         50+ vendors, but on Marryzen most categories show "(0)" which reads
-         as a bug. */
-      #termly-code-snippet-support [class*="cookieCount"] {
-        display: none !important;
-      }
-
-      /* Main consent banner (bottom-bar) - narrow, soften corners, warm bg */
-      #termly-code-snippet-support [class*="termly-styles-banner"],
-      #termly-code-snippet-support [class*="termly-styles-Banner"] {
-        max-width: 900px !important;
-        margin: 0 auto 16px !important;
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 32px rgba(31, 31, 31, 0.18) !important;
-        border: 1px solid #E6DCD2 !important;
-        background: #FAF7F2 !important;
-        color: #1F1F1F !important;
-      }
-
-      /* Preferences modal - match brand palette + warmer surface */
-      #termly-code-snippet-support [class*="termly-styles-modal"],
-      #termly-code-snippet-support .t-preference-modal {
-        background: #FAF7F2 !important;
-        color: #1F1F1F !important;
-        border-radius: 16px !important;
-        border: 1px solid #E6DCD2 !important;
-      }
-
-      /* Heading inside preferences modal - dark brand color */
-      #termly-code-snippet-support [class*="preferenceTitle"],
-      #termly-code-snippet-support [class*="topHeader"] {
-        color: #1F1F1F !important;
-        font-weight: 700 !important;
-      }
-
-      /* Body copy - warm grey instead of flat black */
-      #termly-code-snippet-support [class*="termly-styles-copy"],
-      #termly-code-snippet-support [class*="termly-styles-description"],
-      #termly-code-snippet-support [class*="cbLabel"] {
-        color: #4A4541 !important;
-      }
-
-      /* Buttons - shape, weight, spacing.
-         Accept button: gold (brand primary).
-         Decline button: outline rose (brand secondary).
-         Preferences: subtle text-only link. */
-      #termly-code-snippet-support button[class*="termly-styles"],
-      #termly-code-snippet-support .t-acceptAllButton,
-      #termly-code-snippet-support .t-declineAllButton,
-      #termly-code-snippet-support .t-preferenceButtonContainer button {
-        border-radius: 10px !important;
-        font-weight: 600 !important;
-        padding: 10px 20px !important;
-        min-height: 40px !important;
-        font-size: 14px !important;
-        transition: transform .12s ease, opacity .12s ease !important;
-      }
-      #termly-code-snippet-support button[class*="termly-styles"]:hover {
-        opacity: .92 !important;
-        transform: translateY(-1px);
-      }
-
-      /* Accept (primary) - gold */
-      #termly-code-snippet-support .t-acceptAllButton,
-      #termly-code-snippet-support button[class*="accept"][class*="termly-styles"] {
-        background: #E6B450 !important;
-        color: #1F1F1F !important;
-        border: 1px solid #D0A23D !important;
-      }
-
-      /* Decline - outline rose */
-      #termly-code-snippet-support .t-declineAllButton,
-      #termly-code-snippet-support button[class*="decline"][class*="termly-styles"] {
-        background: transparent !important;
-        color: #C85A72 !important;
-        border: 1px solid #C85A72 !important;
-      }
-
-      /* Preferences toggle button (text-link style, subtle) */
-      #termly-code-snippet-support button[class*="preference"][class*="termly-styles"]:not(.t-acceptAllButton):not(.t-declineAllButton) {
-        background: transparent !important;
-        color: #706B67 !important;
-        border: 1px solid transparent !important;
-        text-decoration: underline !important;
-      }
-
-      /* Floating "Manage cookies" pill (bottom-left of every page) */
-      .termly-floating-preferences {
-        background: #1F1F1F !important;
-        color: #FAF7F2 !important;
-        border: 1px solid #1F1F1F !important;
-        border-radius: 999px !important;
-        padding: 8px 14px !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.18) !important;
-        opacity: .85 !important;
-      }
-      .termly-floating-preferences:hover {
-        opacity: 1 !important;
-      }
-
-      /* Cookie / Privacy policy text links inside the modal */
-      #termly-code-snippet-support .t-cookiePolicyLink,
-      #termly-code-snippet-support .t-privacyPolicyLink,
-      #termly-code-snippet-support a[class*="termly-styles"] {
-        color: #C85A72 !important;
-        text-decoration: underline !important;
-      }
-
-      /* Mobile: still cap width to viewport with sensible padding */
-      @media (max-width: 768px) {
-        #termly-code-snippet-support [class*="termly-styles-banner"],
-        #termly-code-snippet-support [class*="termly-styles-Banner"] {
-          max-width: calc(100vw - 24px) !important;
-          margin: 0 12px 12px !important;
-          left: 0 !important;
-          right: 0 !important;
-          transform: none !important;
-        }
-      }
-    </style>
+      <style>html, body { overflow-x: hidden; }</style>
   </head>
   <body>
     <div id="root"></div>
