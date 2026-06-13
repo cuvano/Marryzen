@@ -37,6 +37,7 @@ const Footer = ({ isProfileFooter = false }) => {
             <Link to="/founding-member-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Founding Member Terms</Link>
             <Link to="/referral-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Referral Terms</Link>
             <Link to="/app-store-disclosures" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">App Store Disclosures</Link>
+            <Link to="/press" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Press</Link>
             <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
         </div>
         <p className="text-xs text-[#706B67]">
