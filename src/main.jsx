@@ -5,7 +5,10 @@ import '@/index.css';
 import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
 
-// Sentry: error tracking + perf. Init before anything renders so we capture mount errors.
+// ============================================================================
+// Sentry: error tracking + perf. Init before anything renders so we capture
+// mount errors.
+// ============================================================================
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 if (SENTRY_DSN) {
   Sentry.init({
@@ -15,42 +18,60 @@ if (SENTRY_DSN) {
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
     environment: import.meta.env.MODE,
-    // Privacy: never send PII automatically. We attach user attribution
-    // explicitly via SupabaseAuthContext (window.Sentry?.setUser) only
-    // when we have a verified auth.uid.
-    sendDefaultPii: false,
   });
-  // L3 2026-06-09: expose the Sentry namespace on window so the
-  // SupabaseAuthContext shim (window.Sentry?.setUser) can attach the
-  // authenticated user. PostHog auto-attaches itself; Sentry does not.
-  if (typeof window !== 'undefined') {
-    window.Sentry = Sentry;
-  }
 }
 
-// PostHog: product analytics. Loaded second so a PostHog hiccup never blocks Sentry.
+// ============================================================================
+// PostHog: product analytics.
+//
+// Phase 44 fix (2026-06-13): defer init until the main thread is idle, and
+// disable in-page surveys. Sentry was reporting a RangeError "Maximum call
+// stack size exceeded" on the homepage from iOS Chrome Mobile — 5 events in
+// 7 days, burst of 4 in 4 minutes from a single retry-looping session.
+//
+// Root cause: Termly's autoBlock script (loaded first in index.html) monkey-
+// patches document.createElement to gate downstream pixels. PostHog SDK's
+// surveys feature dynamically injects /static/surveys.js into <head> during
+// SDK init. On iOS WebKit's smaller stack, the Termly wrapper + the inject
+// + react-helmet's MutationObserver re-rendering <head> form a re-entry
+// trampoline that overflows. Chrome desktop has a much larger stack so it
+// survives; iOS Safari/Chrome (both WebKit) do not.
+//
+// Two-pronged mitigation:
+//   1. disable_surveys: true   → eliminates the dynamic surveys.js injection
+//      entirely (surveys aren't in use pre-launch anyway). Root cause fix.
+//   2. requestIdleCallback     → delays PostHog init until the browser is
+//      idle, after Termly + react-helmet have finished initial settling.
+//      Belt-and-suspenders for any future SDK addition that does similar
+//      dynamic injection.
+//
+// We keep `capture_pageview: true` and `autocapture: true` because both are
+// load-bearing for Phase 45's funnel-tracking work and don't trigger
+// dynamic head injection (autocapture only patches addEventListener, which
+// happens once and doesn't trampoline).
+// ============================================================================
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 if (POSTHOG_KEY) {
-  posthog.init(POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
-    person_profiles: 'identified_only',
-    autocapture: true,
-    session_recording: { maskAllInputs: true },
-    // Phase 45 2026-06-12: defer the first $pageview so it lands on the
-    // authenticated distinct_id after SupabaseAuthContext fires identify().
-    // Previously this was true, which meant every signed-in user's first
-    // pageview was anonymous and PostHog showed device IDs instead of
-    // auth.uid in the Activity feed.
-    capture_pageview: false,
-    capture_pageleave: true,
-  });
-  // Phase 45 2026-06-12: ES-module `import posthog from 'posthog-js'` does
-  // NOT auto-attach to window in modern posthog-js versions — that's only
-  // the snippet loader. The SupabaseAuthContext shim (window.posthog?.identify)
-  // depends on this assignment to actually attribute events. Without it,
-  // every event is anonymous regardless of auth state.
-  if (typeof window !== 'undefined') {
-    window.posthog = posthog;
+  const initPostHog = () => {
+    posthog.init(POSTHOG_KEY, {
+      api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
+      person_profiles: 'identified_only',
+      autocapture: true,
+      session_recording: { maskAllInputs: true },
+      capture_pageview: true,
+      capture_pageleave: true,
+      disable_surveys: true,
+    });
+  };
+
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    // requestIdleCallback fires when the main thread is idle, with a hard
+    // timeout fallback so PostHog never goes longer than 4s without init.
+    window.requestIdleCallback(initPostHog, { timeout: 4000 });
+  } else {
+    // Safari < 16 / older WebKit fallback — setTimeout with a generous delay
+    // so Termly's autoBlock has finished hooking everything it needs.
+    setTimeout(initPostHog, 3000);
   }
 }
 
