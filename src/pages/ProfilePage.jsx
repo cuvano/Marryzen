@@ -1690,3 +1690,41 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
                   Reset
                 </Button>
               </div>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full"
+                disabled={uploading}
+              />
+            </div>
+            <p className="text-xs text-[#706B67] text-center">
+              Drag the image to reposition, adjust zoom, then click "Crop & Save"
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={uploading}>Cancel</Button>
+          <Button onClick={cropImage} disabled={uploading} className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]">
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Crop className="w-4 h-4 mr-2" />
+                Crop & Save
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ProfilePage;
