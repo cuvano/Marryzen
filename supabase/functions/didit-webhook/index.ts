@@ -1,6 +1,28 @@
 // supabase/functions/didit-webhook/index.ts
 //
-// Marryzen ID verification webhook (v11)
+// Marryzen ID verification webhook (v12)
+//
+// Significant changes vs v11:
+//
+//   * Verification result emails (Phase 52, 2026-06-12). Three new email
+//     hooks at terminal returns:
+//       - APPROVED ("verified" success) -> invoke send-verification-result
+//         in instant mode. User gets "You're verified" email within seconds.
+//       - REJECTED (status not approved, only the actual decline branch) ->
+//         enqueue into pending_verification_rejections with fire_at = now()
+//         + 1h, reason 'document_quality'. A pg_cron job processes the queue
+//         every 5min and cancels if user has since become verified.
+//       - NAME MISMATCH (pending_name_mismatch return) -> enqueue rejection
+//         with reason 'name_mismatch' (different template, surfaces the
+//         actual fix instead of a vague "we couldn't verify").
+//
+//     Three terminal states that DELIBERATELY don't email the user:
+//       - pending_face_review        (admin reviews, manual decision)
+//       - document_already_used      (T&S: don't help fraudsters)
+//       - underage                   (legal sensitivity around age detection)
+//
+//     All email triggers are best-effort: failures are logged but never block
+//     the 200 ack to Didit. Same pattern as purgeDiditSession.
 //
 // Significant changes vs v10:
 //
@@ -668,6 +690,58 @@ async function purgeDiditSession(sessionId: string | null | undefined): Promise<
   }
 }
 
+// ---------- Verification result emails (v12, Phase 52) ----------
+//
+// Approved: fires instantly via send-verification-result Edge Function.
+// Rejected: enqueued into pending_verification_rejections with fire_at = now() + 1h.
+// pg_cron processes the queue every 5 minutes and cancels the rejection if
+// the user has since become verified (Didit auto-retry resolved it).
+//
+// Best-effort: errors logged, never block the 200 ack to Didit.
+async function triggerVerificationEmail(
+  userId: string,
+  decision: "approved" | "rejected",
+  reason?: string,
+): Promise<void> {
+  try {
+    if (decision === "approved") {
+      const url = (Deno.env.get("SUPABASE_URL") ?? "") + "/functions/v1/send-verification-result";
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      const cronSecret = Deno.env.get("CRON_SECRET") ?? "marryzen-cron-2026";
+      const ctrl = new AbortController();
+      const timeoutId = setTimeout(() => ctrl.abort(), 4000);
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "X-Cron-Secret": cronSecret,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mode: "instant", user_id: userId, decision: "approved" }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!r.ok) {
+        console.warn(`didit-webhook v12: send-verification-result returned ${r.status} for ${userId}`);
+      }
+    } else {
+      const fireAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const { error } = await supabase
+        .from("pending_verification_rejections")
+        .insert({
+          user_id: userId,
+          reason: reason ?? "document_quality",
+          fire_at: fireAt,
+        });
+      if (error) {
+        console.warn(`didit-webhook v12: enqueue rejection failed for ${userId}: ${error.message}`);
+      }
+    }
+  } catch (err) {
+    console.warn(`didit-webhook v12: triggerVerificationEmail (${decision}) threw:`, err);
+  }
+}
+
 // ---------- Main handler ----------
 
 serve(async (req) => {
@@ -763,6 +837,16 @@ serve(async (req) => {
         .from("profiles")
         .update({ identity_verification_status: target })
         .eq("id", userId);
+      // v12 Phase 52: only enqueue email for an actual rejected outcome.
+      // 'pending' (in-review, abandoned, expired) leaves the user with the
+      // existing in-app state — admin handles or user resubmits silently.
+      if (target === "rejected") {
+        await triggerVerificationEmail(userId, "rejected", "document_quality");
+      }
+      // R2 2026-06-12: purge Didit session on rejected/pending terminal returns
+      // too. Every other terminal path purges; this one was missed in v11 and
+      // contradicts the DPIA process-and-purge claim. Best-effort, swallow errors.
+      await purgeDiditSession(purgeSessionId);
       return new Response(JSON.stringify({ ok: true, status: target }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -978,6 +1062,10 @@ serve(async (req) => {
 
     // Name mismatch — no credits on this path.
     if (!nameCheck.match) {
+      // v12 Phase 52: enqueue rejection email with name_mismatch template.
+      // Surfaces the actual fix (update profile name to match ID) instead
+      // of a vague "we couldn't verify".
+      await triggerVerificationEmail(userId, "rejected", "name_mismatch");
       await purgeDiditSession(purgeSessionId);
       return new Response(
         JSON.stringify({ ok: true, status: "pending_name_mismatch", score: nameCheck.score }),
@@ -1050,13 +1138,17 @@ serve(async (req) => {
       console.error("Referee bonus grant error (non-fatal):", e);
     }
 
+    // v12 Phase 52: purge Didit session FIRST so the 200 ack to Didit isn't
+    // delayed by Resend cold-start. Then fire the instant approved email —
+    // user sees "You're verified" within seconds.
     await purgeDiditSession(purgeSessionId);
+    await triggerVerificationEmail(userId, "approved");
     return new Response(JSON.stringify({ ok: true, status: "verified" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("didit-webhook v11: top-level error", err);
+    console.error("didit-webhook v12: top-level error", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
