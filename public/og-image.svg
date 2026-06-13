@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Cream background -->
+  <rect width="1200" height="630" fill="#FAF7F2"/>
+
+  <!-- Gold hairline border -->
+  <rect x="40" y="40" width="1120" height="550" fill="none" stroke="#E6B450" stroke-width="1.5"/>
+
+  <!-- Wordmark: "Marryzen" in ink, "." in rose (split for ImageMagick compatibility) -->
+  <text x="528" y="320" font-family="DejaVu Sans, Inter, Arial, sans-serif" font-weight="800" font-size="140" fill="#1F1F1F" text-anchor="middle">Marryzen</text>
+  <text x="858" y="320" font-family="DejaVu Sans, Inter, Arial, sans-serif" font-weight="800" font-size="140" fill="#C85A72" text-anchor="middle">.</text>
+
+  <!-- Rose accent line -->
+  <line x1="525" y1="365" x2="675" y2="365" stroke="#C85A72" stroke-width="2"/>
+
+  <!-- Tagline -->
+  <text x="600" y="430" font-family="DejaVu Sans, Inter, Arial, sans-serif" font-weight="500" font-size="38" fill="#1F1F1F" text-anchor="middle">Marriage-intent. Faith-first. Verified.</text>
+
+  <!-- Footer -->
+  <text x="600" y="540" font-family="DejaVu Sans, Inter, Arial, sans-serif" font-weight="400" font-size="22" fill="#706B67" text-anchor="middle" letter-spacing="2">marryzen.com</text>
+</svg>

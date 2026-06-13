@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  Phase 38 — maintenance.html (2026-06-13)
+
+  Static fallback served when Marryzen is intentionally down. Activation:
+    Option A (preferred): rename in Vercel via redirect rule:
+      add to vercel.json -> "redirects": [{ "source": "/(.*)", "destination": "/maintenance.html", "permanent": false }]
+      then redeploy. Restore by reverting.
+    Option B (manual): set env var MAINTENANCE_MODE=1, conditional in App.jsx renders <iframe src="/maintenance.html">.
+
+  Zero external requests on purpose — works even if Supabase/Resend/Termly are all down.
+  No JS, no CDN fonts, no analytics, no Termly script (the page is non-tracking by definition).
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Briefly down for maintenance &mdash; Marryzen</title>
+    <meta name="theme-color" content="#E6B450" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #FAF7F2; color: #1F1F1F;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased; min-height: 100vh; }
+      .frame { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+      .card { max-width: 560px; width: 100%; text-align: center; background: #ffffff;
+        border: 1px solid #E6DCD2; border-radius: 14px; padding: 48px 32px; }
+      .wordmark { font-size: 38px; font-weight: 800; letter-spacing: -1px; margin-bottom: 28px; }
+      .wordmark .dot { color: #C85A72; }
+      .accent { width: 80px; height: 2px; background: #C85A72; margin: 0 auto 28px; }
+      h1 { font-size: 26px; font-weight: 700; margin: 0 0 16px; line-height: 1.3; }
+      p { font-size: 16px; line-height: 1.7; color: #1F1F1F; margin: 0 0 14px; }
+      .muted { color: #706B67; }
+      .small { font-size: 12px; color: #706B67; margin-top: 32px; }
+      .btn { display: inline-block; margin-top: 24px; padding: 12px 22px; background: #E6B450; color: #1F1F1F;
+        font-weight: 700; text-decoration: none; border-radius: 999px; font-size: 15px; }
+      .btn:hover { background: #D0A23D; }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="card">
+        <div class="wordmark">Marryzen<span class="dot">.</span></div>
+        <div class="accent"></div>
+        <h1>Briefly down for maintenance</h1>
+        <p>Marryzen is undergoing scheduled maintenance. We&rsquo;ll be back shortly.</p>
+        <p class="muted">If you were in the middle of something, your data is safe.</p>
+        <a class="btn" href="/" rel="nofollow">Try again</a>
+        <p class="small">If this persists, email <a href="mailto:support@marryzen.com" style="color:#C85A72">support@marryzen.com</a>.</p>
+      </div>
+    </div>
+  </body>
+</html>
