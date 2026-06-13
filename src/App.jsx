@@ -16,6 +16,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AuthVerifyPage from '@/pages/AuthVerifyPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import PressKitPage from '@/pages/PressKitPage';
 
 // Authenticated Pages
 import DashboardPage from '@/pages/DashboardPage';
@@ -42,7 +43,6 @@ import CookiePolicy from '@/pages/legal/CookiePolicy';
 import AppStoreLegalDisclosures from '@/pages/legal/AppStoreLegalDisclosures';
 import InvestorLegalSummary from '@/pages/legal/InvestorLegalSummary';
 import ReferralTerms from '@/pages/legal/ReferralTerms';
-import FoundingMemberTerms from '@/pages/legal/FoundingMemberTerms';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 // Admin Pages
@@ -55,7 +55,6 @@ import PlatformSettings from '@/pages/admin/PlatformSettings';
 import AuditLogsPage from '@/pages/admin/AuditLogsPage';
 import ActivityDashboard from '@/pages/admin/ActivityDashboard';
 import VerificationQueue from '@/pages/admin/VerificationQueue';
-import AdminWelcomePage from '@/pages/admin/AdminWelcomePage';
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,6 +79,7 @@ function App() {
                       <Route path="/auth/verify" element={<AuthVerifyPage />} />
                       <Route path="/join" element={<OnboardingPage />} />
                       <Route path="/onboarding" element={<OnboardingPage />} />
+                      <Route path="/press" element={<PressKitPage />} />
 
                       {/* Authenticated Routes with Global Header */}
                       <Route element={<AuthenticatedLayout />}>
@@ -109,8 +109,8 @@ function App() {
                       <Route path="/refund-policy" element={<RefundPolicy />} />
                       <Route path="/cookie-policy" element={<CookiePolicy />} />
                       <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
+                      <Route path="/investor-legal" element={<InvestorLegalSummary />} />
                       <Route path="/referral-terms" element={<ReferralTerms />} />
-                      <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
                       {/* Admin Routes - Protected by AdminLayout logic */}
                       <Route path="/admin" element={<AdminLayout />}>
@@ -123,8 +123,6 @@ function App() {
                           <Route path="settings" element={<PlatformSettings />} />
                           <Route path="audit-logs" element={<AuditLogsPage />} />
                           <Route path="activity" element={<ActivityDashboard />} />
-                          <Route path="welcome" element={<AdminWelcomePage />} />
-                          <Route path="investor-legal" element={<InvestorLegalSummary />} />
                       </Route>
                     {/* 404 catch-all */}
             <Route path="*" element={<NotFoundPage />} />
