@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { Download, Trash2 } from 'lucide-react';
 import MatchPreferencesCard from '@/components/MatchPreferencesCard';
+import AgePreferencesCard from '@/components/AgePreferencesCard';
 import { funnel } from '@/lib/analytics';
 
 const AccountSettingsPage = () => {
@@ -319,6 +320,11 @@ const AccountSettingsPage = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Phase 41f — Preferred age range (closes 1b loop from Phase 41e) */}
+        <div id="age-preference" className="mb-6">
+          <AgePreferencesCard />
+        </div>
 
         {/* Phase 41a — Match preferences (deal-breakers) */}
         <div id="match-preferences" className="mb-6">
