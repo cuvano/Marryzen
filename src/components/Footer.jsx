@@ -34,7 +34,9 @@ const Footer = ({ isProfileFooter = false }) => {
             <Link to="/billing-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Billing Terms</Link>
             <Link to="/refund-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Refund Policy</Link>
             <Link to="/cookie-policy" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Cookie Policy</Link>
-            <Link to="/founding-member-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Founding Member Terms</Link>
+            {/* Phase 41h (2026-06-14): removed dead /founding-member-terms link
+                — route was never wired in App.jsx and was 404-ing for users
+                who clicked it from the footer. Restore once the page is added. */}
             <Link to="/referral-terms" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Referral Terms</Link>
             <Link to="/app-store-disclosures" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">App Store Disclosures</Link>
             <Link to="/press" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Press</Link>
