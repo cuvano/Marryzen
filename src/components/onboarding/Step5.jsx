@@ -1,33 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/lib/customSupabaseClient';
 import {
   RELATIONSHIP_GOAL_LABELS,
   RELATIONSHIP_GOAL_DESCRIPTIONS,
   RELATIONSHIP_GOALS_ORDERED,
 } from '@/lib/relationshipGoals';
 import FaithAlignedInterstitial from '@/components/onboarding/FaithAlignedInterstitial';
+import MatchPreferencesCard from '@/components/MatchPreferencesCard';
+import { funnel } from '@/lib/analytics';
 
 // Phase 41b (2026-06-13) — marriage intent options now driven by the
 // canonical constants file. TMM display label updated from "Marriage First
 // — No Dating Period" to "Marriage-bound, family-introduced" per board
 // verdict. Stored values unchanged (CHECK-constraint locked).
 //
-// Phase 41d (2026-06-13) — Muslim women see a faith-aligned matchmaking
-// interstitial at the top of Step5. The interstitial renders ONLY when
-// `religiousAffiliation === 'Islam' && identifyAs === 'Woman'` and the
-// user has not yet acknowledged. Either choice persists immediately to
-// profiles via supabase + writes faith_align_acknowledged_at for audit.
-// See Muslim_Women_Filter_Decision_2026-06-13.md for the full board
-// reasoning and the GDPR Art. 22 + UK Equality Act §13 considerations.
+// Phase 41c (2026-06-13) — full deal-breaker integration during onboarding.
+// MatchPreferencesCard mounts below the marriage intent radio. It loads
+// the user's current dealbreakers from supabase on mount and persists
+// changes via direct supabase writes (NOT via OnboardingPage's formData
+// flow). This avoids the B2 reviewer flag from Phase 41a where toggles
+// would silently fail to persist if OnboardingPage's step6Update didn't
+// include the columns.
 //
-// Deal-breaker hard-filter onboarding integration for the OTHER 3 fields
-// (marital_status / has_children / relationship_goal) is DEFERRED to
-// Phase 41c — reviewer flagged that without companion changes to
-// OnboardingPage's hydration + step6Update write path, those toggles
-// would be placebo. Settings-only ship is the safer surface.
+// Phase 41d (2026-06-13) — Muslim women see a Faith-aligned matchmaking
+// interstitial at the top of Step5. The interstitial sets dealbreaker_faith
+// for them; the MatchPreferencesCard below shows the resulting state.
+// See Muslim_Women_Filter_Decision_2026-06-13.md.
 
 const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
   const marriageIntents = RELATIONSHIP_GOALS_ORDERED.map((value) => ({
@@ -35,6 +37,100 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
     label: RELATIONSHIP_GOAL_LABELS[value],
     description: RELATIONSHIP_GOAL_DESCRIPTIONS[value],
   }));
+
+  // Phase 41c — local state for the 4 dealbreaker toggles. Initial values
+  // are all false (matches the migration column defaults); they get
+  // overwritten by the supabase load if the user already chose values
+  // (e.g. via the faith-aligned interstitial, or in a prior session).
+  const [dealbreakers, setDealbreakers] = useState({
+    dealbreaker_faith: false,
+    dealbreaker_marital_status: false,
+    dealbreaker_has_children: false,
+    dealbreaker_relationship_goal: false,
+  });
+  const [dealbreakersSaving, setDealbreakersSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('dealbreaker_faith, dealbreaker_marital_status, dealbreaker_has_children, dealbreaker_relationship_goal')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error && error.code && error.code !== 'PGRST116') {
+          console.error('Step5 dealbreakers load error:', error);
+          return;
+        }
+        if (data) {
+          setDealbreakers({
+            dealbreaker_faith: !!data.dealbreaker_faith,
+            dealbreaker_marital_status: !!data.dealbreaker_marital_status,
+            dealbreaker_has_children: !!data.dealbreaker_has_children,
+            dealbreaker_relationship_goal: !!data.dealbreaker_relationship_goal,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) console.error('Step5 dealbreakers load exception:', err);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // After the Faith-aligned interstitial completes, it has written
+  // dealbreaker_faith to profiles directly. Re-sync our local state so
+  // the MatchPreferencesCard reflects that.
+  const handleFaithAlignedComplete = async (chosenAligned) => {
+    setDealbreakers((prev) => ({ ...prev, dealbreaker_faith: !!chosenAligned }));
+  };
+
+  const handleDealbreakersChange = async (next) => {
+    const prev = dealbreakers;
+    setDealbreakers(next);
+    setDealbreakersSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setDealbreakers(prev);
+        return;
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update(next)
+        .eq('id', session.user.id);
+      if (error) {
+        setDealbreakers(prev);
+        console.error('Step5 dealbreakers save error:', error);
+        return;
+      }
+      try {
+        const activeCount = Object.values(next).filter(Boolean).length;
+        funnel.dealbreakersChanged({
+          from: prev,
+          to: next,
+          trigger: 'onboarding_step5',
+          active_count: activeCount,
+        });
+      } catch (_) {}
+    } finally {
+      setDealbreakersSaving(false);
+    }
+  };
+
+  // Profile context for the MatchPreferencesCard "Currently: X" hints.
+  // OnboardingPage's formData uses camelCase keys + writes maritalHistory
+  // for the marital_status column — map both forms here.
+  const profileContext = {
+    religious_affiliation: formData.religiousAffiliation,
+    marital_status: formData.maritalHistory,    // Phase 41a H1 fix — was maritalStatus
+    has_children: formData.hasChildren,
+    relationship_goal: formData.relationshipGoal,
+  };
 
   return (
     <>
@@ -50,7 +146,7 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
 
         {/* Phase 41d — Faith-aligned interstitial (Muslim + Woman only,
             renders itself; no-op for everyone else). */}
-        <FaithAlignedInterstitial formData={formData} />
+        <FaithAlignedInterstitial formData={formData} onComplete={handleFaithAlignedComplete} />
 
         <div>
           <Label className="text-[#333333] font-bold text-base mb-4 block">What is your marriage timeline? (Required)</Label>
@@ -112,6 +208,20 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
             </div>
           )}
         </div>
+
+        {/* Phase 41c — Optional deal-breaker toggles. All defaults off.
+            Card persists changes directly to supabase via its onChange
+            handler — no dependence on OnboardingPage's step6Update write
+            path. */}
+        <MatchPreferencesCard
+          value={dealbreakers}
+          onChange={handleDealbreakersChange}
+          profile={profileContext}
+          compact={true}
+        />
+        {dealbreakersSaving && (
+          <p className="text-xs text-[#706B67] mt-2 ml-2 text-center">Saving your preferences&hellip;</p>
+        )}
 
       </div>
 
