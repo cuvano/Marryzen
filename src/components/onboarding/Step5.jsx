@@ -8,19 +8,26 @@ import {
   RELATIONSHIP_GOAL_DESCRIPTIONS,
   RELATIONSHIP_GOALS_ORDERED,
 } from '@/lib/relationshipGoals';
+import FaithAlignedInterstitial from '@/components/onboarding/FaithAlignedInterstitial';
 
 // Phase 41b (2026-06-13) — marriage intent options now driven by the
 // canonical constants file. TMM display label updated from "Marriage First
 // — No Dating Period" to "Marriage-bound, family-introduced" per board
 // verdict. Stored values unchanged (CHECK-constraint locked).
 //
-// Deal-breaker hard-filter onboarding integration is DEFERRED to Phase 41c
-// — reviewer flagged that without companion changes to OnboardingPage's
-// hydration + step6Update write path, the Step5 toggles would be placebo.
-// Settings-only ship (AccountSettingsPage) is the safer surface for the
-// founding-500 cohort. The hard-filter feature is functional today via
-// Settings; onboarding sub-section can be added in a follow-up PR that
-// also patches OnboardingPage.jsx end-to-end.
+// Phase 41d (2026-06-13) — Muslim women see a faith-aligned matchmaking
+// interstitial at the top of Step5. The interstitial renders ONLY when
+// `religiousAffiliation === 'Islam' && identifyAs === 'Woman'` and the
+// user has not yet acknowledged. Either choice persists immediately to
+// profiles via supabase + writes faith_align_acknowledged_at for audit.
+// See Muslim_Women_Filter_Decision_2026-06-13.md for the full board
+// reasoning and the GDPR Art. 22 + UK Equality Act §13 considerations.
+//
+// Deal-breaker hard-filter onboarding integration for the OTHER 3 fields
+// (marital_status / has_children / relationship_goal) is DEFERRED to
+// Phase 41c — reviewer flagged that without companion changes to
+// OnboardingPage's hydration + step6Update write path, those toggles
+// would be placebo. Settings-only ship is the safer surface.
 
 const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
   const marriageIntents = RELATIONSHIP_GOALS_ORDERED.map((value) => ({
@@ -40,6 +47,10 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
             Verified Safe Space. Zero tolerance for harassment.
           </p>
         </div>
+
+        {/* Phase 41d — Faith-aligned interstitial (Muslim + Woman only,
+            renders itself; no-op for everyone else). */}
+        <FaithAlignedInterstitial formData={formData} />
 
         <div>
           <Label className="text-[#333333] font-bold text-base mb-4 block">What is your marriage timeline? (Required)</Label>
