@@ -1,6 +1,6 @@
 # Marryzen — Roadmap & Status
 
-Last updated: **2026-06-13** (post 16-hour overnight session)
+Last updated: **2026-06-13** (post-day-after-overnight session — Phase 38 through Phase 41d shipped)
 Soft launch: **2026-07-01** (18 days away)
 Hard launch: **2026-09-15** (was Aug 15, extended Jun 12)
 
@@ -10,107 +10,140 @@ Hard launch: **2026-09-15** (was Aug 15, extended Jun 12)
 
 | Stack | State |
 |---|---|
-| Frontend (Vercel) | Green on commit `aceb682` (post ProfilePage truncation rescue). All today's 5-file a11y + analytics work live. |
-| Backend (Supabase Edge Functions) | didit-webhook v12, email-cadence-tick, send-verification-result, storage-backup-tick all deployed and tested. |
-| DB | Migrations through 2026-06-13. Founding-500 trigger active. Pending verification queue table live. Storage backup tracking live. |
-| Backups | Daily Supabase DB backups + nightly Storage→S3 sync (operational; 65 photos verified in `marryzen-backups-eu-west-1`). PITR deferred per board. |
+| Frontend (Vercel) | Green on commit `4cce360` (Phase 41c — Step5 deal-breaker MatchPreferencesCard). All 11 commits from this session live (Phase 38 5x, Phase 44 1x, Phase 41/a/b/c/d 6x). |
+| Backend (Supabase Edge Functions) | didit-webhook v12, email-cadence-tick, send-verification-result, storage-backup-tick all deployed and tested. PostHog dynamic surveys.js disabled (Phase 44 iOS fix). |
+| DB | Migrations through 2026-06-13 04:00. 3 new migrations awaiting `supabase db push`: `matchmaking_v15_faith_reweight`, `phase41a_dealbreaker_columns`, `phase41d_faith_align_acknowledged_at`. |
+| Backups | Daily Supabase DB backups + nightly Storage→S3 sync (operational; 65 photos in `marryzen-backups-eu-west-1`). PITR deferred per board. |
 | Email | 11 transactional emails operational. Behavioral cadence (T+1h/24h/48h/10d) wired. Founding-500 founder welcome wired. Verification result emails wired with 60-min delay queue. |
-| Compliance | ROPA v1.0.5, DPIA v1.0.4, TOMs v1.0 (uploaded to Prighter slot, 2026-06-12). Prighter EU+UK reps Active. |
+| Compliance | ROPA v1.0.5, DPIA v1.0.4, TOMs v1.0 (uploaded to Prighter slot, 2026-06-12). Prighter EU+UK reps Active. **Pending bumps:** ROPA v1.0.6 + DPIA v1.0.5 + Termly Section 14 — all drafted in `Phase41d_Compliance_Updates_Pack_2026-06-13.md`, awaiting founder application. |
+| Public OG / Social previews | Working — `og-image.png` (1200x630, wordmark + tagline + gold border) live at `/og-image.png`. Twitter card validator + FB debugger should both render. |
 
 ---
 
-## Just shipped — overnight session 2026-06-12 → 2026-06-13
+## Just shipped — this session (2026-06-13 afternoon)
 
-### P0 launch blockers cleared (18 phases)
+### Code commits live on Vercel master
 
-| Phase | Description |
+| Phase | SHA | Description |
+|---|---|---|
+| 38 | `5dd08ca` | public/ bundle: og-image.png + og-image-square.png + og-image.svg + og-image-square.svg + maintenance.html + sitemap.xml refresh |
+| 38 | `4f387e2` | NotFoundPage 404 refresh ("This page doesn't exist — but your match might.") + new PressKitPage at /press |
+| 38 | `e31a886` | App.jsx wires /press route |
+| 38 | `e42a468` | Footer adds Press link |
+| 38 | `12314b5` | index.html OG/Twitter meta points to og-image.png + alt + secure_url |
+| 44 | `7fe5fd6` | iOS Chrome Mobile RangeError fix: defer PostHog init via requestIdleCallback + `disable_surveys: true` — breaks Termly autoBlock × PostHog surveys.js × react-helmet trampoline on WebKit |
+| 41 | `fd47a93` | matchmaking.js v1.5: faith weight 15→28, group bonus 0.6→0.4, + 3 reviewer-caught drift fixes (smoking 'Never'→'No', canonical seriousGoals + eduLevels) |
+| 41 | `c22c1ba` | matching_config seeded row updated to v1.5 weights via idempotent migration |
+| 41a | `ecb2c56` | 4 dealbreaker boolean columns on profiles + comments |
+| 41a/b | `d76eb0c` | matchmaking.js Phase 41a hard filters + Phase 41b intent matrix + relationshipGoals.js canonical constants + analytics.js new events |
+| 41a | `8ffdc59` | Reusable MatchPreferencesCard component (4 toggles, "Currently: X" hints, compact + card modes) |
+| 41a | `62f2eb8` | AccountSettingsPage integrates MatchPreferencesCard with supabase persistence + PostHog telemetry |
+| 41b | `e5f379e` | Step5 uses canonical relationshipGoals constants + renamed TMM display label to "Marriage-bound, family-introduced" |
+| 41d | `50c3d90` | faith_align_acknowledged_at audit column on profiles |
+| 41d | `eef8ca7` | FaithAlignedInterstitial component + Step5 conditional rendering |
+| 41c | `4cce360` | Step5 deal-breaker MatchPreferencesCard with direct supabase persistence |
+
+Plus the audit_logs column rename migration `5dd08ca`-era (`fix(audit): rename audit_logs columns to match log_admin_* RPC contract`) for Phase 60.
+
+### Verified live in production JS bundle (post-deploy grep)
+
+`/assets/index-44b54418.js` contains:
+- ✅ "Continue with faith-aligned matches" (interstitial primary CTA)
+- ✅ "Show me all faiths" (interstitial secondary CTA)
+- ✅ "Marriage-bound, family-introduced" (TMM rename)
+- ✅ "Your must-haves" (MatchPreferencesCard heading)
+- ✅ "faith_align_acknowledged_at" (Phase 41d audit column reference)
+
+### New compliance binder files (in C:\Marryzen)
+
+| File | Purpose |
 |---|---|
-| 29-32 | Admin UI dispatcher fix — role/status/verified/notes/identity writes now route through `log_admin_*` RPCs (audit logs land atomically) |
-| 33-34 | Verified didit-webhook v11 deployed + PostHog/Sentry events flowing |
-| 35 | Backup posture decision (PITR deferred → DIY S3 mirror) |
-| 36-37 | Email infrastructure audit + a11y/mobile audit (two deep agent passes) |
-| 39 | Annual compliance review scheduled (June 1 each year) |
-| 43 | FileReader fallback for iOS in-app webviews (closes 27 Sentry events / 14 users) |
-| 45 | PostHog `identify()` + Sentry `setUser()` actually wired — events now attributed to auth.uid instead of anonymous device IDs |
-| 46 | Storage backup to AWS S3 (3-file build + AWS console setup + RLS diagnosis: 65 photos confirmed in S3) |
-| 48 | Mojibake fix in Stripe receipts + dunning emails (every paying customer was seeing `Ã¢ÂÂ`) |
-| 49 | Gold-button WCAG contrast (Landing + Onboarding) |
-| 50 | email-cadence-tick Edge Function — was a 9-line stub, now full state machine with race-safe locking |
-| 51 | Founding-500 founder-signature welcome email (replaces institutional T+1h for cohort) |
-| 52 | Verification approved/rejected emails — instant approval, 60-min delay queue on rejection |
-| 53-55 | Mobile/a11y fixes — ProfilePage hover-only photo edit, Discovery carousel 300% overflow, filter-tag X buttons |
-| 56 | Dashboard Premium-locked blur a11y (CSS blur was being read by screen readers) |
-| 57 | Recovered truncated ProfilePage.jsx that froze prod for 7 hours |
-| 58 | Storage backup RPC diagnosis (tracking table shows 65, S3 verified — system in steady state) |
-
-### New infrastructure live
-
-- `pending_verification_rejections` table + 5-min cron processor (60-min delay queue, cancels on later verification)
-- `storage_backup_tracking` table + 03:00 UTC cron (nightly Storage→S3 sync)
-- `founding_member` column + atomic INSERT trigger (cohort closes at 500 OR 2026-09-15)
-- `email_cadence_state` jsonb on profiles (state machine: signup → welcomed → profile_nudged → verify_nudged → re_engaged → dormant/done)
-- AWS S3 bucket `marryzen-backups-eu-west-1` (eu-west-1) with lifecycle policy: 30d→Standard-IA, 90d→Glacier Flexible Retrieval
-- IAM policy `marryzen-storage-backup-write` attached to existing `marryzen-rekognition` user
-- Annual compliance review scheduled task (next: June 1, 2027)
+| `Matchmaking_v1.5_Decision_2026-06-13.md` | Board-approved v1.5 scope + faith re-weighting decision |
+| `Marriage_Intent_Matrix_Decision_2026-06-13.md` | 4x4 compatibility matrix decision (replaces flat 70% bothSerious) |
+| `Muslim_Women_Filter_Decision_2026-06-13.md` | Why P2 (strong default + interstitial), not P1 (hard rule). UK Equality Act §13 + GDPR Art. 22(3) reasoning. |
+| `Phase41d_Compliance_Updates_Pack_2026-06-13.md` | DPIA v1.0.5 + ROPA v1.0.6 + Termly Section 14 + admin SOP — ready to apply |
+| `Art34_Breach_Notification_Templates_v1.0.md` | 5 founder-signed templates (full breach / credentials / sub-processor / Art.9 / integrity-availability) |
+| `Payment_Processor_Decision_2026-06-13.md` | Engage PaymentCloud today + parallel deadline-anchored escalation |
+| `Segpay_CCBill_Escalation_Email_2026-06-13.md` | Ready-to-send chase email with June 16 deadline |
+| `DPA_Chase_Email_Pack_2026-06-13.md` | Didit (Joan Colomé) + Vercel + generic template |
+| `Prighter_Intake_Datamap_Checklist_2026-06-13.md` | Sub-processor list + Trust Center alignment + outstanding actions tracker |
 
 ### Strategic decisions locked
 
-- **PITR**: deferred. DIY S3 sync at ~$2/mo instead of $100/mo. Trigger to revisit: first paying customer OR 1,000 active users OR first bad-migration incident.
-- **Founding cohort**: closes at 500 OR 2026-09-15 (extended from Aug 15)
-- **Sender for Founding-500 founder welcome**: `hello@marryzen.com` (signed "Omer" — first name only). Reply opt-in, not blanket.
-- **Voice rules**: institutional default ("Marryzen", "we at Marryzen") — never "our team". Founder voice only for Founding-500 welcome + crisis comms.
+- **Matchmaking v1.5 faith re-weight**: ship the soft brand fix (faith weight up, group bonus tightened) **before** the deal-breaker hard filters. Both now live.
+- **Marriage intent matrix**: 4x4 tiered (TMM↔FSC = 0.9, TMM↔SRM = 0.3, etc.) replaces flat 70% bothSerious branch. TMM display label renamed; stored value unchanged.
+- **Muslim women filter posture**: P2 (strongly-defaulted opt-in + interstitial), NOT P1 (hard system rule). Board unanimous. The hard rule was rejected on UK §13 + GDPR Art. 22(3) grounds + because classical Islamic scholarship asks the woman to choose freely, not the platform to override.
+- **PaymentCloud**: engage TODAY in parallel with the Segpay/CCBill escalation. Decision doc covers branching logic.
+- **OG image**: cream + gold border + rose period wordmark + tagline. Twitter card + FB debugger should validate.
+- **404 page**: institutional voice, dual CTAs (Join + Home), no founder voice (low-stakes surfaces).
+- **Press kit**: stub route live at /press, factsheet + logo downloads + founder bio. Real screenshots to be added week of July 1.
 
 ---
 
 ## Open carryovers
 
-### Should-do before launch (18 days)
+### Should-do before launch (18 days) — compliance application
 
-- [ ] Phase 38 — 404 + maintenance pages + OG tags audit + press kit folder structure
-- [ ] Phase 40 — Art. 34 customer-facing breach notification templates (paired with IR Runbook v1.1)
-- [ ] Phase 44 — Homepage RangeError stack overflow (5 events in 6 days — diagnose root cause)
+- [ ] **Apply 3 Supabase migrations** in this order via SQL editor (Supabase dashboard hydrates Monaco editor only when foregrounded):
+  1. `20260613030000_matchmaking_v15_faith_reweight.sql` (idempotent — refresh seeded weights)
+  2. `20260613040000_phase41a_dealbreaker_columns.sql` (add 4 boolean columns)
+  3. `20260613050000_phase41d_faith_align_acknowledged_at.sql` (add timestamptz audit column)
+- [ ] **Bump DPIA → v1.0.5** with §6.5 Matchmaking automated processing (full text in `Phase41d_Compliance_Updates_Pack_2026-06-13.md`). Export PDF, upload to Prighter DPIA slot. ~30 min.
+- [ ] **Bump ROPA → v1.0.6** with new processing-activity row (drafted in same pack). Export PDF, upload to Prighter Controller RoPA slot. ~20 min.
+- [ ] **Update Termly privacy policy Section 14** (Automated decision-making) — add the one paragraph drafted. Republish + verify green Prighter indicator. ~15 min.
+- [ ] **File Admin Art. 22(3) Human-Intervention SOP** to `C:\Marryzen\Admin_Art22_Human_Intervention_SOP_2026-06-13.md`. ~5 min.
 
-### Strategic decisions worth board consult
+### Vendor outreach (ready to send — copy-paste emails)
 
-- [ ] Phase 41 — Matchmaking v1.5 scope (full v2 too big for launch; recommend weighting-only layer)
-- [ ] Phase 42 — PaymentCloud fallback if CCBill + Segpay don't respond (user said PaymentCloud is third-tier option)
+- [ ] **Send PaymentCloud intake form** at paymentcloudinc.com — TODAY per decision doc
+- [ ] **Send Segpay + CCBill escalation email** (ready in `Segpay_CCBill_Escalation_Email_2026-06-13.md`) — TODAY, June 16 deadline anchor
+- [ ] **Send Didit chase email to Joan Colomé** (Template A in `DPA_Chase_Email_Pack_2026-06-13.md`) — TODAY. Escalate to compliance@didit.me if silent past June 15.
+- [ ] **Send Vercel DPA confirmation email** (Template B in same pack) — fire-and-forget
 
-### Vendor follow-ups (waiting on humans, not code)
+### Live verification (low-effort smoke tests)
 
-- [ ] Joan Colomé / Didit second chase — silent since June 7 on SCC Module 2 annexes + UK IDTA + TIA (recommend Mon June 15 ping)
-- [ ] Vercel DPA chase email — drafted June 9, may not have been sent
-- [ ] Segpay + CCBill quote requests (Phase 31, long-pending)
+- [ ] **Walk Sandra account through onboarding as Muslim woman** to visually confirm Faith-aligned interstitial renders at Step5. Verify both buttons persist correctly to `dealbreaker_faith` + `faith_align_acknowledged_at`.
+- [ ] **Walk Sandra account through Settings** to confirm MatchPreferencesCard renders, all 4 toggles work, "Currently: X" hints display correct profile values.
+- [ ] **Smoke-test Discovery with dealbreakers enabled** — toggle on `dealbreaker_marital_status`, confirm Discovery hides candidates whose marital_status differs.
+- [ ] **Twitter Card validator** + **Facebook Sharing Debugger** on https://www.marryzen.com/ — both should render the new OG image.
+- [ ] **Watch Sentry 48h** for Phase 44 RangeError recurrence. If no new events from iOS Chrome Mobile, mark resolved.
 
-### Pre-launch operational
+### Pre-launch operational (carried over from prior roadmap)
 
 - [ ] Backup admin account — single super_admin on believerfellow@gmail.com is a single point of failure
 - [ ] Onboarding email sequence — Phase 50 cadence is wired; consider adding more drips beyond T+1h/24h/48h/10d
 - [ ] Final mobile responsive QA pass on key flows
-- [ ] Lighthouse + a11y audit on `/`, `/discovery`, `/profile`, `/onboarding`
+- [ ] Lighthouse + a11y audit on `/`, `/discovery`, `/profile`, `/onboarding`, `/press` (new)
 - [ ] Backup/restore drill — verify Supabase PITR-equivalent restore from a daily backup actually works
-- [ ] PostHog + Sentry smoke verify post-identify-wiring (confirm new events show user UUIDs not device IDs)
-- [ ] Press kit folder structure (logos, screenshots, copy, founder bio)
-- [ ] Customer support email triage flow (support@marryzen.com exists per user)
-- [ ] Founding-500 outreach strategy + invite list curation (user gated this on "running system A to Z first")
-- [ ] Facebook Ads — application pending per user
+- [ ] Customer support email triage flow (support@marryzen.com exists)
+- [ ] Founding-500 outreach strategy + invite list curation
+- [ ] Facebook Ads — application pending
 
 ### Compliance / TOMs follow-ups
 
 - [ ] Rotate `CRON_SECRET` from literal `marryzen-cron-2026` to a random 32-byte value before launch (env vars in send-verification-result, email-cadence-tick, storage-backup-tick must all match)
 - [ ] Confirm `marketing_emails_opt_out` column added to profiles (referenced by email-cadence-tick suppression check but column doesn't exist yet)
-- [ ] Bump TOMs to v1.1 with explicit RPO 24h / RTO 24h documented (per board recommendation)
-- [ ] One tested-restore drill documented (Art. 32 evidence for any audit)
+- [ ] Bump TOMs to v1.1 with explicit RPO 24h / RTO 24h documented
+- [ ] One tested-restore drill documented (Art. 32 evidence)
+
+### Future product polish (post-launch)
+
+- [ ] Phase 41e (next session candidate): Discovery EmptyState enhancement — when feed is empty AND `dealbreaker_*` is enabled, show "loosen a must-have in Settings" hint
+- [ ] Phase 41f: Daily-matches email + server-side scoring RPC (defer until daily-matches feature is greenlit — was rejected as standalone v1.5 work)
+- [ ] Phase 41g: Behavioral learning (likes/passes adjust scores) — REJECTED at <5k MAU; revisit then
+- [ ] Phase 41h: Full mutual-preference filtering — REJECTED at <2k users (empties feeds); revisit then
+- [ ] Stripe DPA revisit (Q1 2027) — 6 months of clean transaction history + zero chargebacks changes their underwriting math
 
 ---
 
 ## Launch sequence (2026-07-01 soft / 2026-09-15 hard)
 
-**T-18 days (NOW):** Pre-launch P1 items above
-**T-7 days:** Final QA pass, rotate secrets, founding-500 invite list locked
-**T-3 days:** Feature freeze, monitoring drill
-**T-1 day:** Founder pre-flight (verify all Vercel envs, all Supabase env vars, all Edge Functions deployed)
+**T-18 days (NOW):** Pre-launch P1 items above + 3 Supabase migrations + 3 compliance bumps
+**T-7 days:** Final QA pass, rotate secrets, founding-500 invite list locked, walk Sandra through full onboarding
+**T-3 days:** Feature freeze, monitoring drill (Sentry + PostHog event-flow verification)
+**T-1 day:** Founder pre-flight (Vercel envs, Supabase env vars, Edge Functions deployed)
 **T-0 (July 1):** Soft launch — first 500 invited only
-**T+45 days (Aug 15):** Original hard launch date — now extended
+**T+45 days (Aug 15):** Original hard-launch date — now extended
 **T+76 days (Sept 15):** Hard launch — founding cohort closes regardless of 500 count, public signup opens
 
 ---
@@ -120,6 +153,17 @@ Hard launch: **2026-09-15** (was Aug 15, extended Jun 12)
 - Brand voice rules: `CLAUDE.md` § "Brand naming convention"
 - File-delivery format (the "usual way"): `CLAUDE.md` § "Critical #1"
 - Canonical enum values for profiles.*: `CLAUDE.md` § "Canonical profiles.* enum values"
+- Canonical relationship_goal values + 4x4 matrix: `src/lib/relationshipGoals.js`
+- Faith-aligned interstitial decision basis: `Muslim_Women_Filter_Decision_2026-06-13.md`
+- Phase 41 series decision corpus: `Matchmaking_v1.5_Decision_*.md` + `Marriage_Intent_Matrix_Decision_*.md`
 - Prighter portal: `https://app.prighter.com/portal/marryzen` (business ID 11024664158)
 - AWS S3 backup bucket: `marryzen-backups-eu-west-1` (eu-west-1)
 - Supabase project: `adufstvmmzpqdcmpinqd`
+
+---
+
+## Session changelog
+
+**2026-06-13 (this update):** Shipped Phase 38, Phase 40 docs, Phase 41, Phase 41a, Phase 41b, Phase 41c, Phase 41d, Phase 42 docs, Phase 44, plus compliance work pack (Phase 28, Phase 27, Phase 31 escalation, Phase 60 audit_logs migration). 16 commits across Vercel. 9 new compliance / decision docs in C:\Marryzen.
+
+**2026-06-12 → 2026-06-13 overnight (prior session):** Phase 29-58 (admin UI dispatcher, didit-webhook v12, email infrastructure, mobile/a11y fixes, storage backup, ProfilePage truncation rescue, audit_logs rename).
