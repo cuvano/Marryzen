@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/customSupabaseClient';
+import {
+  relationshipGoalCompatibility,
+  RELATIONSHIP_GOAL_DEALBREAKER_THRESHOLD,
+} from '@/lib/relationshipGoals';
 
 // --- Mock Data for Fallbacks (Required for existing components) ---
 
@@ -142,7 +146,70 @@ const calculateProfileCompleteness = (profile) => {
 };
 
 /**
+ * Phase 41a — deal-breaker pre-score filter pass.
+ *
+ * Returns true when `candidate` violates one of `currentUser`'s ENABLED
+ * dealbreakers, false otherwise. Callers MUST short-circuit (skip the
+ * candidate / return null from calculateScore) when this returns true.
+ *
+ * All defaults are false (opt-in only) — see migration
+ * 20260613040000_phase41a_dealbreaker_columns.sql. So this function is a
+ * no-op for users who haven't opted in.
+ *
+ * Each check requires BOTH (a) the user opted into the dealbreaker AND
+ * (b) the user actually has a value for the field they're filtering on
+ * (otherwise the filter would silently exclude everyone). Equality is
+ * strict — there is no fuzzy/group fallback at the dealbreaker layer
+ * (that's the scorer's job).
+ */
+export const violatesDealbreakers = (currentUser, candidate) => {
+  if (!currentUser || !candidate) return false;
+
+  if (currentUser.dealbreaker_faith
+      && currentUser.religious_affiliation
+      && currentUser.religious_affiliation !== candidate.religious_affiliation) {
+    return true;
+  }
+
+  if (currentUser.dealbreaker_marital_status
+      && currentUser.marital_status
+      && currentUser.marital_status !== candidate.marital_status) {
+    return true;
+  }
+
+  // has_children is a tri-state: true/false/null. We only filter when BOTH
+  // sides have a defined value AND the user opted in. A user who hasn't
+  // declared has_children shouldn't accidentally filter out everyone.
+  if (currentUser.dealbreaker_has_children
+      && currentUser.has_children !== undefined && currentUser.has_children !== null
+      && candidate.has_children !== undefined && candidate.has_children !== null
+      && currentUser.has_children !== candidate.has_children) {
+    return true;
+  }
+
+  // Phase 41b matrix interaction: relationship_goal dealbreaker is NOT a
+  // binary equality check. Use the board-approved compatibility matrix and
+  // the T&S-set threshold (0.7) so a TMM dealbreaker user still sees FSC
+  // candidates (0.9 compat) but not M12 (0.5) or SRM (0.3). Exact-match
+  // dealbreaker semantics for the other 3 fields remain unchanged.
+  if (currentUser.dealbreaker_relationship_goal
+      && currentUser.relationship_goal
+      && candidate.relationship_goal) {
+    const compat = relationshipGoalCompatibility(
+      currentUser.relationship_goal,
+      candidate.relationship_goal
+    );
+    if (compat !== null && compat < RELATIONSHIP_GOAL_DEALBREAKER_THRESHOLD) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
  * V1.5 Matching Algorithm — weight-aware normalization + faith-first re-weighting
+ * + Phase 41a deal-breaker hard filter pass.
  *
  * Each dimension contributes both its earned points AND its weight to a denominator,
  * but ONLY if both profiles had the data needed to score it. The final score is
@@ -155,47 +222,42 @@ const calculateProfileCompleteness = (profile) => {
  * --------------------------------------------------------------------------------
  * v1.5 changes (Phase 41, 2026-06-13) — board-approved faith-first re-weighting
  * --------------------------------------------------------------------------------
- *
- * 1. Faith default weight 15 -> 28: Marryzen's wedge is "faith-first" but the v1
- *    defaults treated faith the same as age/distance/values. A Brand/Founder board
- *    review flagged this as a product-promise mismatch — devout founding-500 members
- *    will quit (and tweet) if denomination mismatches score in the 90s.
- *
- * 2. Faith same-religion-GROUP bonus 60% -> 40%: previously, a Catholic + Protestant
- *    pair earned 60% of the faith weight via the Christianity-group fallback. At
- *    weights.faith=15, that was 9 of 15 points (visible but not loud). At
- *    weights.faith=28 that would have been 16.8 of 28 — much louder. The board
- *    correctly identified this as a brand-damage vector. Tightening the group
- *    bonus to 40% keeps the signal that same-religion-group still matters (a
- *    Catholic and a Protestant share more than a Catholic and a Buddhist) without
- *    misrepresenting sub-denomination compatibility on a faith-first platform.
- *
- * 3. Completeness 5 -> 2 and Cultures 10 -> 7: surface area reduced for both
- *    because faith took the additional points. Completeness is a hygiene nudge,
- *    not a compatibility signal; cultures remains because cultural overlap is
- *    a real signal for the faith-first audience but does not deserve a third of
- *    the weight that faith does.
- *
- * Lifestyle 15 -> 8 and intent 20 -> 18, age/distance 15 -> 12 each: the rest
- * of the budget was rebalanced to sum to 100 exactly (admin UI's validator
- * requires that). All scorer math otherwise unchanged.
- *
- * The `matching_config` table's seeded weights row is also updated by a
- * companion migration (20260613XXX_matchmaking_v15_faith_reweight.sql) so the
- * admin UI sees the same defaults the code does. Super_admin can still override.
+ * 1. Faith default weight 15 -> 28
+ * 2. Faith same-religion-GROUP bonus 60% -> 40%
+ * 3. Completeness 5 -> 2 and Cultures 10 -> 7
+ * Plus 3 drift fixes: smoking/drinking 'Never' -> 'No', seriousGoals -> canonical
+ * Step5 values, eduLevels -> canonical sentence-case set.
  *
  * --------------------------------------------------------------------------------
- * v1.5 also fixes 3 silent dead-code regressions caught by reviewer pass:
- *   1. `smoking`/`drinking` partial-credit checked against literal 'Never';
- *      DB CHECK constraint enforces 'No'. Branch was dead. Fixed below.
- *   2. `seriousGoals` array used legacy ['Marriage', 'Long-term', 'Serious'];
- *      onboarding writes canonical Step5.jsx values. Branch was dead. Fixed.
- *   3. `eduLevels` ladder used short ['High School', 'Bachelor', 'Master', 'PhD'];
- *      DB stores sentence-case values like "Bachelor's Degree". Branch was dead.
- *      Fixed.
+ * Phase 41a (2026-06-13) — deal-breaker hard filters at top of scorer
  * --------------------------------------------------------------------------------
+ * 4 user-controlled dealbreakers (faith / marital_status / has_children /
+ * relationship_goal) applied BEFORE any scoring math. Returns `null` for
+ * filtered candidates so Discovery can distinguish "this candidate violated
+ * a dealbreaker" from "this candidate scored zero". All defaults are opt-out
+ * (column defaults are false in the migration); pre-launch behavior is
+ * unchanged unless the user explicitly enables one or more dealbreakers.
  */
 export const calculateScore = (currentUser, candidate, config = null) => {
+  // Phase 41a — deal-breaker hard filter pass. Runs BEFORE any scoring math.
+  //
+  // We return an object shape (not `null`) so that existing callers like
+  // DiscoveryPage and DashboardPage that destructure `const { score } = ...`
+  // do not throw "Cannot destructure property 'score' of 'null'". Callers
+  // that gate on `typeof score === 'number'` (DiscoveryPage already does)
+  // will correctly treat `score: null` as "skip / don't render". The
+  // `filtered: true` flag lets newer callers distinguish "filtered by
+  // dealbreaker" from "scored zero on the algorithm" without crashing.
+  if (violatesDealbreakers(currentUser, candidate)) {
+    return {
+      score: null,
+      filtered: true,
+      breakdown: {},
+      candidateAge: null,
+      candidateDistance: null,
+    };
+  }
+
   const weights = config?.weights || {
     age: 12,
     distance: 12,
@@ -249,34 +311,33 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     breakdown['Distance'] = Math.round(weights.distance * 0.4);
   }
 
-  // 3. INTENT / GOAL
+  // 3. INTENT / GOAL — Phase 41b 5x5 matrix scoring (2026-06-13).
+  //
+  // Replaces the v1.5 flat `bothSerious = 70%` partial-credit branch with a
+  // board-approved tiered compatibility matrix. Decision doc:
+  // C:\Marryzen\Marriage_Intent_Matrix_Decision_2026-06-13.md
+  //
+  // Diagonal cells (same value, exact match) score 100% of intent weight (= 18).
+  // Off-diagonal cells score per the matrix: TMM↔FSC 90%, M12↔SRM 70%, etc.
+  // Worst pair (TMM↔SRM) scores 30% — vs the old flat 70%, this corrects the
+  // brand-damage vector where structurally-incompatible pairings used to land
+  // at "high-quality match" UI scores.
+  //
+  // Non-canonical or missing values fall through to the family_goals heuristic.
   if (currentUser.relationship_goal && candidate.relationship_goal) {
     attempted += weights.intent;
-    if (currentUser.relationship_goal === candidate.relationship_goal) {
-      score += weights.intent;
-      breakdown['Intent'] = weights.intent;
-    } else {
-      // v1.5 drift fix (Phase 41): the old literal array
-      // ['Marriage', 'Long-term', 'Serious'] never matched a real
-      // `relationship_goal` value — the onboarding flow saves canonical
-      // Step5.jsx values per CLAUDE.md (2026-06-08 lockdown). This branch
-      // was effectively dead code in production. Restoring it to the
-      // canonical set so "both serious but not exact same goal" finally
-      // earns the 70%-of-intent partial credit.
-      const seriousGoals = [
-        'Marriage Within 1–2 Years',           // U+2013 en-dash
-        'Family-Supervised Courtship',
-        'Serious Relationship → Marriage',     // U+2192 right arrow
-        'Traditional Marriage Mindset',              // legacy value still in some profiles
-      ];
-      const bothSerious = seriousGoals.includes(currentUser.relationship_goal) && seriousGoals.includes(candidate.relationship_goal);
-      if (bothSerious) {
-        score += weights.intent * 0.7;
-        breakdown['Intent'] = Math.round(weights.intent * 0.7);
-      } else if (currentUser.family_goals === candidate.family_goals && currentUser.family_goals) {
-        score += weights.intent * 0.3;
-        breakdown['Intent'] = Math.round(weights.intent * 0.3);
-      }
+    const compat = relationshipGoalCompatibility(
+      currentUser.relationship_goal,
+      candidate.relationship_goal
+    );
+    if (compat !== null) {
+      const pts = weights.intent * compat;
+      score += pts;
+      breakdown['Intent'] = Math.round(pts);
+    } else if (currentUser.family_goals === candidate.family_goals && currentUser.family_goals) {
+      // Family-goals fallback retained for legacy / non-canonical values.
+      score += weights.intent * 0.3;
+      breakdown['Intent'] = Math.round(weights.intent * 0.3);
     }
   }
 
@@ -287,12 +348,6 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     if (currentUser.religious_affiliation === candidate.religious_affiliation) {
       pts = weights.faith;
     } else {
-      // Phase 2D: use canonical DB nouns (matches what onboarding actually saves).
-      // The old map used display-layer adjectives like 'Christian (Catholic)' which
-      // never appeared in the religious_affiliation column — fuzzy faith bonus
-      // was effectively dead code. With Phase 2C adding 5 more Christianity
-      // sub-options, fixing this is essential or sub-denomination users score
-      // zero against each other.
       const faithGroups = {
         Islam: ['Islam'],
         Christianity: [
@@ -304,14 +359,10 @@ export const calculateScore = (currentUser, candidate, config = null) => {
           "Christianity (Jehovah's Witness)",
         ],
         Judaism: ['Judaism'],
-        // 'Atheist' kept for back-compat with pre-Phase-2C profiles.
         NonReligious: ['Atheist', 'Non-religious', 'Spiritual but not religious'],
       };
       const userGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(currentUser.religious_affiliation));
       const candGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(candidate.religious_affiliation));
-      // v1.5: same-group bonus tightened from 0.6 -> 0.4. Two Christianity
-      // sub-denoms (e.g., Catholic + Protestant) now read as ~40% faith
-      // compatibility, not ~60%. Brand-promise alignment for a faith-FIRST app.
       if (userGroup && userGroup === candGroup) pts = weights.faith * 0.4;
     }
     if (currentUser.faith_lifestyle && candidate.faith_lifestyle && currentUser.faith_lifestyle === candidate.faith_lifestyle) {
@@ -334,18 +385,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     breakdown['Values'] = Math.round(pts);
   }
 
-  // 6. CULTURES — Phase 2H. Multi-select up to 3 per Phase 2G. Shared
-  // cultural heritage is a meaningful compatibility signal for a faith-first
-  // marriage app (e.g. two users who both selected 'South Asian' or both
-  // chose 'Turkish / Turkic' speak the same cultural language even before
-  // language matching kicks in).
-  //
-  // Scoring: we divide shared.length by the SMALLER of the two arrays so
-  // that a user who self-identified with exactly one culture and matched
-  // on it gets full credit, rather than being penalized by a partner who
-  // happened to list multiple. Two users sharing 1+ culture out of 1 each
-  // = 100%. Sharing 2 out of 3 each = 67%. No overlap = 0% (not penalized;
-  // attempted is added either way so the normalization stays honest).
+  // 6. CULTURES
   const userCultures = Array.isArray(currentUser.cultures) ? currentUser.cultures : [];
   const candCultures = Array.isArray(candidate.cultures) ? candidate.cultures : [];
   if (userCultures.length > 0 && candCultures.length > 0) {
@@ -362,16 +402,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     breakdown['Cultures'] = Math.round(pts);
   }
 
-  // 7. LIFESTYLE — always attempted (gives a partial signal even when most fields empty)
-  //
-  // v1.5 drift fix (Phase 41) — the old literals 'Never' (smoking, drinking) and
-  // the eduLevels ladder ['High School', 'Bachelor', 'Master', 'PhD'] never matched
-  // real profile values. Per CLAUDE.md (2026-06-08 lockdown), the database CHECK
-  // constraints enforce 'No' / 'Socially' / 'Regularly' for smoking and drinking,
-  // and the canonical education values are sentence-case ("Bachelor's Degree" etc.).
-  // The partial-credit branches were dead code for every real user pair.
-  // Restoring canonical literals so the asymmetric-tolerance and adjacent-tier
-  // branches finally score.
+  // 7. LIFESTYLE — always attempted, v1.5 drift fixes applied
   attempted += weights.lifestyle;
   let lifestyleRaw = 0;
   if (currentUser.smoking === candidate.smoking) lifestyleRaw += 4;
@@ -386,10 +417,6 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   ) lifestyleRaw += 2;
   if (currentUser.education === candidate.education) lifestyleRaw += 3;
   else if (currentUser.education && candidate.education) {
-    // Ordered ladder of canonical education values from CLAUDE.md. "Professional
-    // Degree" is intentionally placed between Master's and Doctorate because in
-    // practice (JD, MD, etc.) it sits at that academic tier; this gives JD+MD
-    // pairs the adjacent-tier partial credit they deserve.
     const eduLevels = [
       'High School',
       'Some College',
@@ -415,9 +442,6 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   score += completenessBonus;
   breakdown['Completeness'] = Math.round(completenessBonus);
 
-  // Normalize: percent of points earned out of points attempted (not full weight total)
-  // This means a profile with only partial data on both sides still gets a real percentage
-  // instead of being penalized to 0% by missing dimensions.
   const finalScore = attempted > 0 ? Math.min(Math.round((score / attempted) * 100), 100) : 0;
 
   return {
