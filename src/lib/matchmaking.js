@@ -101,9 +101,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
@@ -126,7 +126,7 @@ const calculateProfileCompleteness = (profile) => {
     'relationship_goal', 'core_values', 'languages', 'occupation', 'education',
     'location_city', 'location_country', 'family_goals', 'values'
   ];
-  
+
   let completed = 0;
   fields.forEach(field => {
     if (field === 'photos') {
@@ -137,12 +137,12 @@ const calculateProfileCompleteness = (profile) => {
       completed++;
     }
   });
-  
+
   return (completed / fields.length) * 100;
 };
 
 /**
- * V1 Matching Algorithm — weight-aware normalization
+ * V1.5 Matching Algorithm — weight-aware normalization + faith-first re-weighting
  *
  * Each dimension contributes both its earned points AND its weight to a denominator,
  * but ONLY if both profiles had the data needed to score it. The final score is
@@ -151,17 +151,60 @@ const calculateProfileCompleteness = (profile) => {
  *
  * Lifestyle and Completeness always score (lifestyle defaults to neutral when no
  * lifestyle fields are set on either side; completeness always has a value).
+ *
+ * --------------------------------------------------------------------------------
+ * v1.5 changes (Phase 41, 2026-06-13) — board-approved faith-first re-weighting
+ * --------------------------------------------------------------------------------
+ *
+ * 1. Faith default weight 15 -> 28: Marryzen's wedge is "faith-first" but the v1
+ *    defaults treated faith the same as age/distance/values. A Brand/Founder board
+ *    review flagged this as a product-promise mismatch — devout founding-500 members
+ *    will quit (and tweet) if denomination mismatches score in the 90s.
+ *
+ * 2. Faith same-religion-GROUP bonus 60% -> 40%: previously, a Catholic + Protestant
+ *    pair earned 60% of the faith weight via the Christianity-group fallback. At
+ *    weights.faith=15, that was 9 of 15 points (visible but not loud). At
+ *    weights.faith=28 that would have been 16.8 of 28 — much louder. The board
+ *    correctly identified this as a brand-damage vector. Tightening the group
+ *    bonus to 40% keeps the signal that same-religion-group still matters (a
+ *    Catholic and a Protestant share more than a Catholic and a Buddhist) without
+ *    misrepresenting sub-denomination compatibility on a faith-first platform.
+ *
+ * 3. Completeness 5 -> 2 and Cultures 10 -> 7: surface area reduced for both
+ *    because faith took the additional points. Completeness is a hygiene nudge,
+ *    not a compatibility signal; cultures remains because cultural overlap is
+ *    a real signal for the faith-first audience but does not deserve a third of
+ *    the weight that faith does.
+ *
+ * Lifestyle 15 -> 8 and intent 20 -> 18, age/distance 15 -> 12 each: the rest
+ * of the budget was rebalanced to sum to 100 exactly (admin UI's validator
+ * requires that). All scorer math otherwise unchanged.
+ *
+ * The `matching_config` table's seeded weights row is also updated by a
+ * companion migration (20260613XXX_matchmaking_v15_faith_reweight.sql) so the
+ * admin UI sees the same defaults the code does. Super_admin can still override.
+ *
+ * --------------------------------------------------------------------------------
+ * v1.5 also fixes 3 silent dead-code regressions caught by reviewer pass:
+ *   1. `smoking`/`drinking` partial-credit checked against literal 'Never';
+ *      DB CHECK constraint enforces 'No'. Branch was dead. Fixed below.
+ *   2. `seriousGoals` array used legacy ['Marriage', 'Long-term', 'Serious'];
+ *      onboarding writes canonical Step5.jsx values. Branch was dead. Fixed.
+ *   3. `eduLevels` ladder used short ['High School', 'Bachelor', 'Master', 'PhD'];
+ *      DB stores sentence-case values like "Bachelor's Degree". Branch was dead.
+ *      Fixed.
+ * --------------------------------------------------------------------------------
  */
 export const calculateScore = (currentUser, candidate, config = null) => {
   const weights = config?.weights || {
-    age: 15,
-    distance: 15,
-    intent: 20,
-    faith: 15,
-    values: 15,
-    cultures: 10,    // Phase 2H: shared cultural heritage (multi-select up to 3)
-    lifestyle: 15,
-    completeness: 5
+    age: 12,
+    distance: 12,
+    intent: 18,
+    faith: 28,        // v1.5: 15 -> 28 (faith-first re-weight)
+    values: 13,
+    cultures: 7,      // v1.5: 10 -> 7
+    lifestyle: 8,
+    completeness: 2,  // v1.5: 5 -> 2
   };
 
   let score = 0;
@@ -213,7 +256,19 @@ export const calculateScore = (currentUser, candidate, config = null) => {
       score += weights.intent;
       breakdown['Intent'] = weights.intent;
     } else {
-      const seriousGoals = ['Marriage Within 1–2 Years', 'Family-Supervised Courtship', 'Serious Relationship → Marriage', 'Traditional Marriage Mindset'];
+      // v1.5 drift fix (Phase 41): the old literal array
+      // ['Marriage', 'Long-term', 'Serious'] never matched a real
+      // `relationship_goal` value — the onboarding flow saves canonical
+      // Step5.jsx values per CLAUDE.md (2026-06-08 lockdown). This branch
+      // was effectively dead code in production. Restoring it to the
+      // canonical set so "both serious but not exact same goal" finally
+      // earns the 70%-of-intent partial credit.
+      const seriousGoals = [
+        'Marriage Within 1–2 Years',           // U+2013 en-dash
+        'Family-Supervised Courtship',
+        'Serious Relationship → Marriage',     // U+2192 right arrow
+        'Traditional Marriage Mindset',              // legacy value still in some profiles
+      ];
       const bothSerious = seriousGoals.includes(currentUser.relationship_goal) && seriousGoals.includes(candidate.relationship_goal);
       if (bothSerious) {
         score += weights.intent * 0.7;
@@ -225,7 +280,7 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     }
   }
 
-  // 4. FAITH
+  // 4. FAITH — v1.5 reweight (28 default, 0.4 group bonus)
   if (currentUser.religious_affiliation && candidate.religious_affiliation) {
     attempted += weights.faith;
     let pts = 0;
@@ -254,7 +309,10 @@ export const calculateScore = (currentUser, candidate, config = null) => {
       };
       const userGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(currentUser.religious_affiliation));
       const candGroup = Object.keys(faithGroups).find(g => faithGroups[g].includes(candidate.religious_affiliation));
-      if (userGroup && userGroup === candGroup) pts = weights.faith * 0.6;
+      // v1.5: same-group bonus tightened from 0.6 -> 0.4. Two Christianity
+      // sub-denoms (e.g., Catholic + Protestant) now read as ~40% faith
+      // compatibility, not ~60%. Brand-promise alignment for a faith-FIRST app.
+      if (userGroup && userGroup === candGroup) pts = weights.faith * 0.4;
     }
     if (currentUser.faith_lifestyle && candidate.faith_lifestyle && currentUser.faith_lifestyle === candidate.faith_lifestyle) {
       pts += weights.faith * 0.2;
@@ -305,15 +363,41 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   }
 
   // 7. LIFESTYLE — always attempted (gives a partial signal even when most fields empty)
+  //
+  // v1.5 drift fix (Phase 41) — the old literals 'Never' (smoking, drinking) and
+  // the eduLevels ladder ['High School', 'Bachelor', 'Master', 'PhD'] never matched
+  // real profile values. Per CLAUDE.md (2026-06-08 lockdown), the database CHECK
+  // constraints enforce 'No' / 'Socially' / 'Regularly' for smoking and drinking,
+  // and the canonical education values are sentence-case ("Bachelor's Degree" etc.).
+  // The partial-credit branches were dead code for every real user pair.
+  // Restoring canonical literals so the asymmetric-tolerance and adjacent-tier
+  // branches finally score.
   attempted += weights.lifestyle;
   let lifestyleRaw = 0;
   if (currentUser.smoking === candidate.smoking) lifestyleRaw += 4;
-  else if ((currentUser.smoking === 'No' && candidate.smoking === 'Socially') || (currentUser.smoking === 'Socially' && candidate.smoking === 'No')) lifestyleRaw += 2;
+  else if (
+    (currentUser.smoking === 'No' && candidate.smoking === 'Socially') ||
+    (currentUser.smoking === 'Socially' && candidate.smoking === 'No')
+  ) lifestyleRaw += 2;
   if (currentUser.drinking === candidate.drinking) lifestyleRaw += 4;
-  else if ((currentUser.drinking === 'No' && candidate.drinking === 'Socially') || (currentUser.drinking === 'Socially' && candidate.drinking === 'No')) lifestyleRaw += 2;
+  else if (
+    (currentUser.drinking === 'No' && candidate.drinking === 'Socially') ||
+    (currentUser.drinking === 'Socially' && candidate.drinking === 'No')
+  ) lifestyleRaw += 2;
   if (currentUser.education === candidate.education) lifestyleRaw += 3;
   else if (currentUser.education && candidate.education) {
-    const eduLevels = ['High School', 'Some College', "Bachelor's Degree", "Master's Degree", 'Professional Degree', 'Doctorate'];
+    // Ordered ladder of canonical education values from CLAUDE.md. "Professional
+    // Degree" is intentionally placed between Master's and Doctorate because in
+    // practice (JD, MD, etc.) it sits at that academic tier; this gives JD+MD
+    // pairs the adjacent-tier partial credit they deserve.
+    const eduLevels = [
+      'High School',
+      'Some College',
+      "Bachelor's Degree",
+      "Master's Degree",
+      'Professional Degree',
+      'Doctorate',
+    ];
     const ui = eduLevels.indexOf(currentUser.education);
     const ci = eduLevels.indexOf(candidate.education);
     if (ui >= 0 && ci >= 0 && Math.abs(ui - ci) <= 1) lifestyleRaw += 1.5;
