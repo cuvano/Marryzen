@@ -1,25 +1,13 @@
 // src/pages/PressKitPage.jsx
 //
-// Phase 38 — Press kit / media resources (2026-06-13)
+// Phase 38 — Press kit / media resources.
+// Phase 41h (2026-06-14) — UX revisions per founder UAT feedback:
+//   - Removed Founder section (founder privacy: name not exposed publicly).
+//   - Removed empty product-screenshot placeholders (sit-on-request only).
+//   - Updated Factsheet "Founded" line to reflect real timeline (concept 2025,
+//     CUVAN LLC formalized 2026).
 //
-// Pre-launch stub: route ready for the August NYT/Wired pitch + any inbound media.
-// Brand voice: institutional. NO founder signature here — press surfaces are
-// formal-institutional by convention (Wired won't quote "Omer says"; they'll
-// quote "Marryzen says").
-//
-// What's here:
-//   - Factsheet (~150 words)
-//   - Logo downloads (SVG + PNG, light + dark / wordmark + favicon)
-//   - Founder bio
-//   - 3 product screenshot slots (placeholders for now — real screenshots
-//     to be added week of July 1 by Omer, before any press distribution)
-//   - press@ contact
-//
-// What's deliberately NOT here:
-//   - "Press coverage" / "As seen in" section (no coverage yet — would be
-//     embarrassing if discovered empty)
-//   - Form-gated downloads (pre-launch friction is wrong-headed)
-//   - Brand guidelines PDF (overkill at this stage)
+// Voice rules: institutional. No founder voice/byline anywhere on this page.
 
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -28,13 +16,13 @@ import { Download, Mail, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 
 const PressKitPage = () => {
   const factSheet = [
-    { label: 'Founded', value: '2026 (CUVAN LLC, Florida USA)' },
+    { label: 'Founded', value: 'Concept 2025; CUVAN LLC formed 2026 (Florida USA).' },
     { label: 'Soft launch', value: 'July 1, 2026 (Founding-500 cohort)' },
     { label: 'Hard launch', value: 'September 15, 2026 (public)' },
     { label: 'Headquarters', value: 'Florida, USA. EU + UK GDPR representatives via Prighter (Vienna / London).' },
     { label: 'Category', value: 'Marriage-intent matchmaking. Not a dating app.' },
     { label: 'Differentiator', value: 'Verified-only membership. Identity verification (Didit) gates every profile. No casual dating. No swipe culture.' },
-    { label: 'Audience', value: 'Adults seeking serious, long-term marriage. Faith-first values, denomination-neutral.' },
+    { label: 'Audience', value: 'Adults seeking serious, long-term marriage. Denomination-neutral.' },
     { label: 'Privacy posture', value: 'GDPR-aligned. ROPA, DPIA, TOMs, Incident Response Runbook all maintained. EU-residency processing chain. Annual external pentest.' },
     { label: 'Press contact', value: 'press@marryzen.com' },
   ];
@@ -42,8 +30,6 @@ const PressKitPage = () => {
   return (
     <div className="min-h-screen bg-[#FAF7F2] py-12 px-4">
       <Helmet>
-        {/* Use real U+2014 em-dash inside Helmet <title> — &mdash; HTML
-            entities sometimes render literally in browser tabs. */}
         <title>Press & Media — Marryzen</title>
         <meta name="description" content="Press kit, logos, factsheet, and media contact for Marryzen — a marriage-intent matchmaking platform." />
       </Helmet>
@@ -69,9 +55,8 @@ const PressKitPage = () => {
           <p className="text-[#1F1F1F] leading-relaxed mb-4">
             Marryzen is a marriage-intent matchmaking platform built for people who want serious,
             long-term partnership &mdash; not casual dating. Every member is identity-verified before
-            their profile becomes searchable. The product is faith-first in design and denomination-neutral
-            in scope: profiles include family background, values, and intent, and matching is weighted
-            by what people actually need to know about each other before meeting.
+            their profile becomes searchable. Matching is weighted by what people actually need to
+            know about each other before meeting.
           </p>
           <p className="text-[#1F1F1F] leading-relaxed">
             Marryzen operates under GDPR-aligned controls (controller-of-record CUVAN LLC, EU + UK
@@ -188,37 +173,18 @@ const PressKitPage = () => {
           </div>
         </section>
 
-        {/* Founder */}
-        <section className="bg-white border border-[#E6DCD2] rounded-[14px] p-8 mb-8 shadow-sm">
-          <h2 className="text-xl font-bold text-[#1F1F1F] mb-4">Founder</h2>
-          <p className="text-[#1F1F1F] leading-relaxed mb-3">
-            <strong>Omer Cuvan</strong>, Founder &amp; CEO. Cuvan founded Marryzen to address a
-            gap in how matchmaking products are built &mdash; specifically, the absence of platforms
-            designed for people whose intent is marriage rather than dating, and whose values
-            shape who they want to meet.
-          </p>
-          <p className="text-[#706B67] text-sm">
-            Headshot and extended biography available on request &mdash;{' '}
-            <a href="mailto:press@marryzen.com" className="text-[#C85A72] hover:underline">press@marryzen.com</a>.
-          </p>
-        </section>
-
-        {/* Screenshots */}
+        {/* Product screenshots — Phase 41h: empty placeholder grid removed.
+            Replaced with a single explainer paragraph; real screenshots can
+            be sent on request, so press contacts who actually need them email
+            press@. Avoids the awkwardness of empty greyboxes pre-launch. */}
         <section className="bg-white border border-[#E6DCD2] rounded-[14px] p-8 mb-8 shadow-sm">
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-2">Product screenshots</h2>
-          <p className="text-sm text-[#706B67] mb-6">
+          <p className="text-sm text-[#706B67] leading-relaxed">
             High-resolution product screenshots are available on request. Email{' '}
             <a href="mailto:press@marryzen.com" className="text-[#C85A72] hover:underline">press@marryzen.com</a>{' '}
-            with the publication, deadline, and intended angle, and we&rsquo;ll send a curated set
-            within 24 hours.
+            with the publication, deadline, and intended angle, and we&rsquo;ll send a curated
+            set within 24 hours.
           </p>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {['Discovery', 'Profile', 'Matches'].map((label) => (
-              <div key={label} className="aspect-[3/4] rounded-lg border border-dashed border-[#E6DCD2] bg-[#FAF7F2] flex items-center justify-center text-[#706B67] text-sm">
-                {label}
-              </div>
-            ))}
-          </div>
         </section>
 
         {/* Contact */}
