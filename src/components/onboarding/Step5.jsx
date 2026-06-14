@@ -3,36 +3,31 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import {
+  RELATIONSHIP_GOAL_LABELS,
+  RELATIONSHIP_GOAL_DESCRIPTIONS,
+  RELATIONSHIP_GOALS_ORDERED,
+} from '@/lib/relationshipGoals';
+
+// Phase 41b (2026-06-13) — marriage intent options now driven by the
+// canonical constants file. TMM display label updated from "Marriage First
+// — No Dating Period" to "Marriage-bound, family-introduced" per board
+// verdict. Stored values unchanged (CHECK-constraint locked).
+//
+// Deal-breaker hard-filter onboarding integration is DEFERRED to Phase 41c
+// — reviewer flagged that without companion changes to OnboardingPage's
+// hydration + step6Update write path, the Step5 toggles would be placebo.
+// Settings-only ship (AccountSettingsPage) is the safer surface for the
+// founding-500 cohort. The hard-filter feature is functional today via
+// Settings; onboarding sub-section can be added in a follow-up PR that
+// also patches OnboardingPage.jsx end-to-end.
 
 const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
-  // Marriage intent — reframed per session-11 board verdict.
-  // IMPORTANT: `value` is the DB-stored string (back-compat with existing
-  // profiles). `label` is the warmer display string (new). Reviewer caught
-  // the breaking-rename risk — we use the display-label pattern instead.
-  // The 4th option ('Family-Supervised Courtship') is genuinely new but its
-  // value string is stable from launch.
-  const marriageIntents = [
-    {
-      value: 'Traditional Marriage Mindset',
-      label: 'Marriage First — No Dating Period',
-      description: 'I am only interested in communication that leads directly to marriage.'
-    },
-    {
-      value: 'Marriage Within 1–2 Years',
-      label: 'Marriage Within 1 to 2 Years',
-      description: 'I am actively preparing for marriage within the next 1 to 2 years.'
-    },
-    {
-      value: 'Family-Supervised Courtship',
-      label: 'Family-Supervised Courtship',
-      description: 'I want my family involved during a longer courtship that leads to marriage.'
-    },
-    {
-      value: 'Serious Relationship → Marriage',
-      label: 'Serious Relationship Leading to Marriage',
-      description: 'I want to build a serious relationship that leads to marriage at the right time.'
-    }
-  ];
+  const marriageIntents = RELATIONSHIP_GOALS_ORDERED.map((value) => ({
+    value,
+    label: RELATIONSHIP_GOAL_LABELS[value],
+    description: RELATIONSHIP_GOAL_DESCRIPTIONS[value],
+  }));
 
   return (
     <>
@@ -45,7 +40,7 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
             Verified Safe Space. Zero tolerance for harassment.
           </p>
         </div>
-        
+
         <div>
           <Label className="text-[#333333] font-bold text-base mb-4 block">What is your marriage timeline? (Required)</Label>
           <div role="radiogroup" aria-label="Marriage timeline" className="space-y-3">
@@ -91,7 +86,7 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
               I confirm that I am joining Marryzen with the <span className="font-bold text-[#C85A72]">Serious Intention of Marriage</span>, not casual dating or hookups.
             </Label>
           </div>
-          
+
           {!isEditMode && (
             <div className="flex items-start space-x-3 p-5 bg-[#F9E7EB]/30 rounded-xl border border-[#F9E7EB]">
               <Checkbox
@@ -108,7 +103,7 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
         </div>
 
       </div>
-      
+
     </>
   );
 };
