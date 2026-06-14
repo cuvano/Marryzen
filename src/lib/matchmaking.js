@@ -432,19 +432,34 @@ export const calculateScore = (currentUser, candidate, config = null) => {
     (currentUser.drinking === 'Socially' && candidate.drinking === 'No')
   ) lifestyleRaw += 2;
 
-  if (currentUser.education === candidate.education) lifestyleRaw += 3;
+  // Phase 41g defensive guard: require non-empty education on both sides
+  // before awarding exact-match credit. Previous code awarded 3 pts when
+  // both `education` were empty string (pre-existing v1.5 bug, caught by
+  // reviewer during Phase 41g pass).
+  if (currentUser.education && currentUser.education === candidate.education) lifestyleRaw += 3;
   else if (currentUser.education && candidate.education) {
-    const eduLevels = [
-      'High School',
-      'Some College',
-      "Bachelor's Degree",
-      "Master's Degree",
-      'Professional Degree',
-      'Doctorate',
-    ];
-    const ui = eduLevels.indexOf(currentUser.education);
-    const ci = eduLevels.indexOf(candidate.education);
-    if (ui >= 0 && ci >= 0 && Math.abs(ui - ci) <= 1) lifestyleRaw += 1.5;
+    // Phase 41g (2026-06-14): tier map (not linear array) so Doctorate and
+    // Professional Degree share the apex tier — they're PARALLEL terminal
+    // tracks (PhD vs JD/MD), not sequential. Under the old array order,
+    // Master's <-> Doctorate scored as gap=2 (no adjacent credit), which was
+    // wrong. Under the tier map below:
+    //   Master's (3) <-> Doctorate (4) -> adjacent (gap=1) ✓
+    //   Master's (3) <-> Professional (4) -> adjacent ✓
+    //   Doctorate (4) <-> Professional (4) -> same tier, adjacent credit ✓
+    // Exact-match credit (3 pts) still wins for same-string matches above.
+    const eduTiers = {
+      'High School': 0,
+      'Some College': 1,
+      "Bachelor's Degree": 2,
+      "Master's Degree": 3,
+      'Professional Degree': 4,
+      'Doctorate': 4,
+    };
+    const ui = eduTiers[currentUser.education];
+    const ci = eduTiers[candidate.education];
+    if (ui !== undefined && ci !== undefined && Math.abs(ui - ci) <= 1) {
+      lifestyleRaw += 1.5;
+    }
   }
 
   // Phase 41e 3b — marital-status compatibility matrix (replaces binary).
@@ -459,15 +474,23 @@ export const calculateScore = (currentUser, candidate, config = null) => {
   }
 
   // Phase 41e 2b — children mismatch now costs 6 of 19 (vs 2 of 15).
-  if (
+  // Phase 41g (2026-06-14) — dynamic denominator: if either side lacks
+  // has_children data, exclude the 6 child-points from the denominator so
+  // the user isn't silently penalized on lifestyle just because the
+  // candidate didn't fill that field in.
+  const childrenScorable =
     currentUser.has_children !== undefined && currentUser.has_children !== null
-    && candidate.has_children !== undefined && candidate.has_children !== null
-    && currentUser.has_children === candidate.has_children
-  ) {
+    && candidate.has_children !== undefined && candidate.has_children !== null;
+  if (childrenScorable && currentUser.has_children === candidate.has_children) {
     lifestyleRaw += 6;
   }
 
-  const LIFESTYLE_RAW_MAX = 19; // Phase 41e: 15 -> 19 because children weight tripled.
+  // Phase 41g — dynamic denominator. Base max is 13 (smoking 4 + drinking 4
+  // + education 3 + marital 2). Add children-6 only when both sides have data.
+  // This keeps the v1.5-equivalent scoring stable for profiles that don't
+  // have children data on either side — they no longer take a ~0.9% headline
+  // hit on lifestyle just because their data is incomplete.
+  const LIFESTYLE_RAW_MAX = childrenScorable ? 19 : 13;
   const lifestylePts = (weights.lifestyle * lifestyleRaw) / LIFESTYLE_RAW_MAX;
   score += lifestylePts;
   breakdown['Lifestyle'] = Math.round(lifestylePts);
