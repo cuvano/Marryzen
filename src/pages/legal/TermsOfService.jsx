@@ -30,7 +30,7 @@ const TermsOfService = () => {
       <div className="max-w-4xl mx-auto">
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center mb-8">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="text-brand-muted hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <div className="flex gap-2">
@@ -48,7 +48,7 @@ const TermsOfService = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-2">Terms of Service</h1>
-          <p className="text-[#706B67] font-medium">Maintained and kept current by our compliance partner. See the effective date inside the document below.</p>
+          <p className="text-brand-muted font-medium">Maintained and kept current by our compliance partner. See the effective date inside the document below.</p>
         </div>
 
         {/* Termly-hosted document */}
@@ -62,7 +62,7 @@ const TermsOfService = () => {
           />
         </div>
 
-        <div className="pt-6 text-[#706B67] text-sm space-y-1">
+        <div className="pt-6 text-brand-muted text-sm space-y-1">
           <p>
             Can&apos;t see the terms? <a href={TERMLY_URL} target="_blank" rel="noopener noreferrer" className="text-[#E6B450] font-bold hover:underline">Open them in a new tab</a>.
           </p>
