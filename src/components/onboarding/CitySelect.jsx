@@ -189,7 +189,7 @@ const CitySelect = ({
           })}
         </datalist>
       )}
-      <p className="text-[#706B67] text-xs mt-1 font-medium">{helperText}</p>
+      <p className="text-brand-muted text-xs mt-1 font-medium">{helperText}</p>
     </div>
   );
 };
