@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -1079,7 +1080,11 @@ const OnboardingPage = () => {
   const step1HintText = step1ContinueHint();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF7F2]">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-[#FAF7F2]">
+      <Helmet>
+        <title>Join Marryzen — A Platform for Serious Marriage</title>
+        <link rel="canonical" href="https://www.marryzen.com/onboarding" />
+      </Helmet>
       <div className="w-full max-w-3xl py-10">
         <ProgressIndicator currentStep={currentStep} totalSteps={totalSteps} />
 
@@ -1172,7 +1177,7 @@ const OnboardingPage = () => {
           navigate(postOnboardingNav || '/dashboard');
         }}
       />
-</div>
+</main>
   );
 };
 
