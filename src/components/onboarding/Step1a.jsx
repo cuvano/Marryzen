@@ -32,7 +32,7 @@ const Step1a = ({
     <div className="space-y-8">
       <div className="text-center mb-10">
         <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Create your account</h2>
-        <p className="text-[#706B67] text-lg font-medium">A few quick basics to get you in.</p>
+        <p className="text-brand-muted text-lg font-medium">A few quick basics to get you in.</p>
       </div>
 
       <div className="grid gap-6">
@@ -50,7 +50,7 @@ const Step1a = ({
           {errors.name ? (
             <p id="name-error" className="text-red-500 text-sm">{errors.name}</p>
           ) : (
-            <p id="name-helper" className="text-[#706B67] text-xs mt-1 font-medium">Enter your full legal name. This will be used when Marryzen verifies your identity as part of our safety process.</p>
+            <p id="name-helper" className="text-brand-muted text-xs mt-1 font-medium">Enter your full legal name. This will be used when Marryzen verifies your identity as part of our safety process.</p>
           )}
         </div>
 
@@ -70,13 +70,13 @@ const Step1a = ({
             <div id="email-error" className="flex flex-col gap-1">
               <p className="text-red-500 text-sm">{errors.email}</p>
               {errors.email.includes("already registered") && (
-                <button onClick={() => navigate('/login')} className="text-[#C85A72] text-sm font-bold hover:underline self-start">
+                <button onClick={() => navigate('/login')} className="text-brand-pink-strong text-sm font-bold hover:underline self-start">
                   Go to Login
                 </button>
               )}
             </div>
           ) : (
-            <p id="email-helper" className="text-[#706B67] text-xs mt-1 font-medium">We'll never share your email with other members.</p>
+            <p id="email-helper" className="text-brand-muted text-xs mt-1 font-medium">We'll never share your email with other members.</p>
           )}
         </div>
 
@@ -96,7 +96,7 @@ const Step1a = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-[#1F1F1F]"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -104,7 +104,7 @@ const Step1a = ({
               </div>
               {/* Phase 2F fix: always show the format hint, even when there's an error.
                   Previously the helper text disappeared on error, leaving users to guess what to fix. */}
-              <p className="text-[#706B67] text-xs font-medium">
+              <p className="text-brand-muted text-xs font-medium">
                 Minimum 8 characters, at least 1 letter and 1 number. Special characters are allowed.
               </p>
               {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
@@ -124,7 +124,7 @@ const Step1a = ({
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-[#1F1F1F]"
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -136,9 +136,9 @@ const Step1a = ({
         )}
 
         {showPasswordSettingsLink && (
-          <p className="text-[#706B67] text-xs font-medium -mt-1">
+          <p className="text-brand-muted text-xs font-medium -mt-1">
             To change your password, go to{' '}
-            <Link to="/account-settings" className="text-[#C85A72] font-semibold hover:underline">
+            <Link to="/account-settings" className="text-brand-pink-strong font-semibold hover:underline">
               Account settings
             </Link>
             .
