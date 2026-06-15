@@ -39,7 +39,7 @@ const FoundingMemberTerms = () => {
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
-            className="text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium"
+            className="text-brand-muted hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
@@ -71,7 +71,7 @@ const FoundingMemberTerms = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-2">
             Founding Member Terms & Conditions
           </h1>
-          <p className="text-[#706B67] font-medium">
+          <p className="text-brand-muted font-medium">
             500 founding members · 2 months free Premium · Verified-only.
           </p>
           <p className="text-xs text-[#8A857D] mt-3">
@@ -139,7 +139,7 @@ const FoundingMemberTerms = () => {
               Once the counter reaches zero, the offer ends. Members who reach verification after
               the cap is filled receive a standard account at the regular Premium price.
             </p>
-            <p className="text-sm text-[#706B67]">
+            <p className="text-sm text-brand-muted">
               <strong>What happens at #501:</strong> the offer simply closes. No partial
               free-period, no waitlist for a re-opening. Premium remains available at the standard
               $24.99/month price.
@@ -274,9 +274,9 @@ const FoundingMemberTerms = () => {
             </p>
             <p className="text-xs text-[#8A857D] pt-4">
               These Founding Member terms supplement, and do not replace, our{' '}
-              <a href="/terms" className="text-[#706B67] underline">Terms of Service</a>,{' '}
-              <a href="/billing-terms" className="text-[#706B67] underline">Billing Terms</a>, and{' '}
-              <a href="/refund-policy" className="text-[#706B67] underline">Refund Policy</a>.
+              <a href="/terms" className="text-brand-muted underline">Terms of Service</a>,{' '}
+              <a href="/billing-terms" className="text-brand-muted underline">Billing Terms</a>, and{' '}
+              <a href="/refund-policy" className="text-brand-muted underline">Refund Policy</a>.
               In the event of any conflict, those documents control on all matters except the
               specific terms of this Founding Member offer.
             </p>
