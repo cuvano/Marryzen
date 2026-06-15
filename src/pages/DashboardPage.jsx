@@ -514,7 +514,7 @@ const DashboardPage = () => {
         <Helmet><title>Dashboard ... Marryzen</title></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#706B67] font-medium">Finding your people...</p>
+          <p className="text-brand-muted font-medium">Finding your people...</p>
         </div>
       </div>
     );
@@ -571,7 +571,7 @@ const DashboardPage = () => {
           <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
-              <p className="text-[#706B67] mt-1">A marriage-focused platform for serious relationships.</p>
+              <p className="text-brand-muted mt-1">A marriage-focused platform for serious relationships.</p>
             </div>
           </div>
 
@@ -606,12 +606,12 @@ const DashboardPage = () => {
                       <h3 className="text-sm font-bold text-[#1F1F1F]">
                         {totalActionable === 1 ? '1 thing to take care of' : `${totalActionable} things to take care of`}
                       </h3>
-                      <p className="text-xs text-[#706B67] mt-0.5">{profileHealthExpanded ? 'Tap to collapse' : 'Tap to see what needs your attention'}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">{profileHealthExpanded ? 'Tap to collapse' : 'Tap to see what needs your attention'}</p>
                     </div>
                   </div>
                   {profileHealthExpanded
-                    ? <ChevronUp className="w-5 h-5 text-[#706B67] shrink-0" />
-                    : <ChevronDown className="w-5 h-5 text-[#706B67] shrink-0" />}
+                    ? <ChevronUp className="w-5 h-5 text-brand-muted shrink-0" />
+                    : <ChevronDown className="w-5 h-5 text-brand-muted shrink-0" />}
                 </button>
                 {profileHealthExpanded && (
                   <div className="px-4 pb-4 space-y-4 border-t border-[#F0EDE9] pt-4">
@@ -663,7 +663,7 @@ const DashboardPage = () => {
               <Gift className="w-6 h-6 text-[#8a6c1e] mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">{unclaimedCredits.length === 1 ? '1 free month of Premium is ready' : unclaimedCredits.length + ' free months of Premium ready'}</h3>
-                <p className="text-sm text-[#706B67] mb-3">Earned from your referrals. Activate when you're ready - the 30-day clock starts the moment you claim.</p>
+                <p className="text-sm text-brand-muted mb-3">Earned from your referrals. Activate when you're ready - the 30-day clock starts the moment you claim.</p>
                 <button onClick={() => handleClaimCredit(unclaimedCredits[0].id)} disabled={claimingCredit} className="bg-[#E6B450] hover:bg-[#D0A23D] disabled:opacity-50 text-[#1F1F1F] font-semibold px-4 py-2 rounded-lg text-sm transition-colors">{claimingCredit ? 'Activating...' : 'Activate 1 month'}</button>
               </div>
             </motion.div>
@@ -714,7 +714,7 @@ const DashboardPage = () => {
               className="bg-white border border-[#E6DCD2] rounded-xl p-4"
             >
               <h3 className="font-bold text-[#1F1F1F] mb-1">When are you hoping to get married?</h3>
-              <p className="text-sm text-[#706B67] mb-3">
+              <p className="text-sm text-brand-muted mb-3">
                 We show this on your profile so other members can see you're serious. You can change it later.
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -755,7 +755,7 @@ const DashboardPage = () => {
             >
               <div className="flex-1">
                 <h3 className="font-bold text-[#1F1F1F] mb-1">Help your future spouse meet you</h3>
-                <p className="text-sm text-[#706B67]">
+                <p className="text-sm text-brand-muted">
                   Pick three prompts and write short answers. Profiles with prompts get up to 3x more conversations.
                 </p>
               </div>
@@ -815,12 +815,12 @@ const DashboardPage = () => {
             onClick={() => navigate('/discovery')}
             className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#C85A72] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#C85A72]/40"
           >
-            <Heart className="w-8 h-8 text-[#C85A72] mx-auto mb-2" />
+            <Heart className="w-8 h-8 text-brand-pink-strong mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.potentialMatches}</div>
-            <div className="text-[#706B67] text-sm font-medium">
+            <div className="text-brand-muted text-sm font-medium">
               {stats.potentialMatches === 0 ? 'Find profiles' : 'Profiles for you'}
             </div>
-            <div className="text-[#C85A72] text-xs font-semibold mt-1">
+            <div className="text-brand-pink-strong text-xs font-semibold mt-1">
               {stats.potentialMatches === 0 ? 'Get started →' : 'Browse now →'}
             </div>
           </button>
@@ -831,7 +831,7 @@ const DashboardPage = () => {
           >
             <MessageCircle className="w-8 h-8 text-[#3B82F6] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.conversations}</div>
-            <div className="text-[#706B67] text-sm font-medium">
+            <div className="text-brand-muted text-sm font-medium">
               {stats.conversations === 0 ? 'Start chatting' : 'Conversations'}
             </div>
             <div className="text-[#3B82F6] text-xs font-semibold mt-1">
@@ -845,7 +845,7 @@ const DashboardPage = () => {
           >
             <Send className="w-8 h-8 text-[#EC4899] mx-auto mb-2" />
             <div className="text-3xl font-bold text-[#1F1F1F]">{stats.introductionsSent}</div>
-            <div className="text-[#706B67] text-sm font-medium">
+            <div className="text-brand-muted text-sm font-medium">
               {stats.introductionsSent === 0 ? 'Send your first' : 'Introductions'}
             </div>
             <div className="text-[#EC4899] text-xs font-semibold mt-1">
@@ -861,7 +861,7 @@ const DashboardPage = () => {
             {userProfile?.is_premium ? (
               <>
                 <div className="text-3xl font-bold text-[#1F1F1F]">{stats.profileInterest}</div>
-                <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
+                <div className="text-brand-muted text-sm font-medium">Profile Interest</div>
                 <div className="text-[#E6B450] text-xs font-semibold mt-1">View matches →</div>
               </>
             ) : (
@@ -873,7 +873,7 @@ const DashboardPage = () => {
                     instead of the real count (which they shouldn't see). */}
                 <div aria-hidden="true" className="text-3xl font-bold text-[#1F1F1F] blur-sm select-none">{stats.profileInterest || '?'}</div>
                 <span className="sr-only">Profile Interest count is hidden. Upgrade to Premium to see who&rsquo;s interested.</span>
-                <div className="text-[#706B67] text-sm font-medium">Profile Interest</div>
+                <div className="text-brand-muted text-sm font-medium">Profile Interest</div>
                 <div className="text-[#E6B450] text-xs font-semibold mt-1 flex items-center justify-center gap-1">
                   <Crown size={11} className="fill-[#E6B450]" />
                   Unlock with Premium
@@ -911,7 +911,7 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-[#1F1F1F] text-sm mb-1">{step.title}</h3>
-                          <p className="text-xs text-[#706B67]">{step.description}</p>
+                          <p className="text-xs text-brand-muted">{step.description}</p>
                         </div>
                       </div>
                     </div>
@@ -944,7 +944,7 @@ const DashboardPage = () => {
                     <tool.icon className={`w-6 h-6 ${tool.iconColor}`} />
                   </div>
                 <h3 className="text-lg font-bold text-[#1F1F1F] mb-1">{tool.title}</h3>
-                <p className="text-[#706B67] text-sm font-medium">{tool.description}</p>
+                <p className="text-brand-muted text-sm font-medium">{tool.description}</p>
                   {tool.disabled && (
                     <p className="text-xs text-orange-600 mt-2 font-medium">Requires profile approval</p>
                   )}
@@ -964,7 +964,7 @@ const DashboardPage = () => {
           <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-[#1F1F1F]">Top Compatibility Matches</h2>
-                <p className="text-[#706B67] text-sm mt-1">Ranked by compatibility algorithm</p>
+                <p className="text-brand-muted text-sm mt-1">Ranked by compatibility algorithm</p>
               </div>
               <Button variant="outline" onClick={() => navigate('/discovery')} className="border-[#E6B450] text-[#E6B450] hover:bg-[#FFFBEB]">
                 View All
@@ -1025,9 +1025,9 @@ const DashboardPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-[#E6DCD2] p-12 text-center">
-                <Search className="w-12 h-12 text-[#706B67] mx-auto mb-4 opacity-50" />
+                <Search className="w-12 h-12 text-brand-muted mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-[#1F1F1F] mb-2">No suggestions right now</h3>
-                <p className="text-[#706B67] mb-6">Check back soon for new profiles!</p>
+                <p className="text-brand-muted mb-6">Check back soon for new profiles!</p>
                 <Button onClick={() => navigate('/discovery')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]">
                   Browse Discovery
                 </Button>
