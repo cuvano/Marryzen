@@ -132,12 +132,12 @@ const FaithAlignedInterstitial = ({ formData, onComplete }) => {
       aria-label="Faith-aligned matchmaking"
     >
       <div className="flex items-start gap-3 mb-4">
-        <Shield className="w-6 h-6 text-[#C85A72] mt-1 shrink-0" />
+        <Shield className="w-6 h-6 text-brand-pink-strong mt-1 shrink-0" />
         <div>
           <h3 className="text-xl font-bold text-[#1F1F1F] leading-tight">
-            Faith-aligned matches <span className="text-sm font-medium text-[#C85A72] ml-1">(recommended)</span>
+            Faith-aligned matches <span className="text-sm font-medium text-brand-pink-strong ml-1">(recommended)</span>
           </h3>
-          <p className="text-sm text-[#706B67] mt-1 font-medium">
+          <p className="text-sm text-brand-muted mt-1 font-medium">
             For Muslim sisters following classical guidance.
           </p>
         </div>
@@ -146,8 +146,8 @@ const FaithAlignedInterstitial = ({ formData, onComplete }) => {
       <p className="text-[#1F1F1F] text-base leading-relaxed mb-3">
         Marryzen aligns with classical Islamic guidance: by default, your matches will be Muslim brothers only.
       </p>
-      <p className="text-[#706B67] text-sm leading-relaxed mb-6">
-        You can change this in Settings any time, and you can email <a href="mailto:admin@marryzen.com" className="text-[#C85A72] hover:underline">admin@marryzen.com</a> if your situation calls for a different approach. Whatever you choose now, you stay in control.
+      <p className="text-brand-muted text-sm leading-relaxed mb-6">
+        You can change this in Settings any time, and you can email <a href="mailto:admin@marryzen.com" className="text-brand-pink-strong hover:underline">admin@marryzen.com</a> if your situation calls for a different approach. Whatever you choose now, you stay in control.
       </p>
 
       {error && (
@@ -176,7 +176,7 @@ const FaithAlignedInterstitial = ({ formData, onComplete }) => {
         </button>
       </div>
 
-      <p className="text-xs text-[#706B67] mt-4 leading-relaxed">
+      <p className="text-xs text-brand-muted mt-4 leading-relaxed">
         We record your choice (date and time) so we can show it to you if you ever ask. We do not share this choice with anyone else.
       </p>
     </motion.div>
