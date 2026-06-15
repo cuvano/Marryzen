@@ -74,17 +74,17 @@ const MatchPreferencesCard = ({ value, onChange, profile, compact = false }) => 
     >
       <div className="mb-4">
         <div className="flex items-start gap-3 mb-2">
-          <Lock className="w-5 h-5 text-[#C85A72] mt-0.5 shrink-0" />
+          <Lock className="w-5 h-5 text-brand-pink-strong mt-0.5 shrink-0" />
           <div>
             <h3 className="text-lg font-bold text-[#1F1F1F] leading-tight">
               Your must-haves
               {activeCount > 0 && (
-                <span className="ml-2 text-sm font-semibold text-[#C85A72]">
+                <span className="ml-2 text-sm font-semibold text-brand-pink-strong">
                   {activeCount} active
                 </span>
               )}
             </h3>
-            <p className="text-sm text-[#706B67] mt-1">
+            <p className="text-sm text-brand-muted mt-1">
               Some things matter so much you can&rsquo;t compromise. Tell us which ones &mdash; Marryzen will skip profiles that don&rsquo;t match. You can change this any time.
             </p>
           </div>
@@ -110,10 +110,10 @@ const MatchPreferencesCard = ({ value, onChange, profile, compact = false }) => 
                 >
                   {field.label}
                 </label>
-                <p className="text-sm text-[#706B67] mt-1 leading-relaxed">
+                <p className="text-sm text-brand-muted mt-1 leading-relaxed">
                   {field.explainer}
                 </p>
-                <p className={`text-xs mt-1 ${formattedValue ? 'text-[#706B67]' : 'text-[#C85A72]'}`}>
+                <p className={`text-xs mt-1 ${formattedValue ? 'text-brand-muted' : 'text-brand-pink-strong'}`}>
                   {hint}
                 </p>
               </div>
@@ -131,7 +131,7 @@ const MatchPreferencesCard = ({ value, onChange, profile, compact = false }) => 
       </div>
 
       {activeCount > 0 && (
-        <div className="mt-6 pt-5 border-t border-[#FAF7F2] text-sm text-[#706B67]">
+        <div className="mt-6 pt-5 border-t border-[#FAF7F2] text-sm text-brand-muted">
           <strong className="text-[#1F1F1F]">Heads-up:</strong> the more must-haves you set, the smaller your match feed becomes. If your feed feels empty, try turning one off here.
         </div>
       )}
