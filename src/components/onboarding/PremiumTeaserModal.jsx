@@ -74,7 +74,7 @@ const PremiumTeaserModal = ({ open, onSkip, onUpgrade }) => {
               <h2 id="premium-teaser-title" className="text-2xl sm:text-[28px] font-bold tracking-tight text-[#1F1F1F] leading-tight">
                 Members already match your profile.
               </h2>
-              <p className="mt-2 text-[15px] text-[#706B67] leading-relaxed">
+              <p className="mt-2 text-[15px] text-brand-muted leading-relaxed">
                 Unlock unlimited messaging, see who liked you, and meet them today.
               </p>
             </div>
@@ -88,7 +88,7 @@ const PremiumTeaserModal = ({ open, onSkip, onUpgrade }) => {
                 >
                   <span className="text-[#1F1F1F]/40 text-2xl font-bold blur-[1.5px] select-none">{c.initials}</span>
                   <div className="absolute inset-0 backdrop-blur-[2px] bg-white/10" />
-                  <Heart size={14} className="absolute top-1.5 right-1.5 text-[#C85A72] fill-[#C85A72]" />
+                  <Heart size={14} className="absolute top-1.5 right-1.5 text-brand-pink-strong fill-[#C85A72]" />
                 </div>
               ))}
             </div>
@@ -125,7 +125,7 @@ const PremiumTeaserModal = ({ open, onSkip, onUpgrade }) => {
               <button
                 type="button"
                 onClick={onSkip}
-                className="w-full h-11 text-[#706B67] hover:text-[#1F1F1F] text-sm font-medium rounded-xl hover:bg-[#FAF7F2] transition-colors"
+                className="w-full h-11 text-brand-muted hover:text-[#1F1F1F] text-sm font-medium rounded-xl hover:bg-[#FAF7F2] transition-colors"
               >
                 Continue to Discovery
               </button>
