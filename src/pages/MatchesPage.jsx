@@ -543,7 +543,7 @@ const MatchesPage = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Your Matches</h1>
-          <p className="text-[#706B67] mb-2">
+          <p className="text-brand-muted mb-2">
             {activeTab === 'matches'
               ? (matches.length > 0
                   ? "Mutual likes turn into conversations. Be respectful and sincere."
@@ -551,7 +551,7 @@ const MatchesPage = () => {
               : "View profiles you've liked or passed on."}
           </p>
           {potentialMatchesCount !== null && (
-            <p className="text-sm text-[#706B67] mb-4">
+            <p className="text-sm text-brand-muted mb-4">
               <span className="font-medium text-[#1F1F1F]">Potential matches:</span> {potentialMatchesCount} — people you haven&apos;t liked or passed yet. Find them on <button type="button" onClick={() => navigate('/discovery')} className="text-[#E6B450] font-medium hover:underline">Profiles</button>.
             </p>
           )}
@@ -562,7 +562,7 @@ const MatchesPage = () => {
               className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'matches'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+                  : 'text-brand-muted hover:text-[#1F1F1F]'
               }`}
             >
               Matches ({matches.length})
@@ -573,7 +573,7 @@ const MatchesPage = () => {
                 className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === 'interactions'
                     ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                    : 'text-[#706B67] hover:text-[#1F1F1F]'
+                    : 'text-brand-muted hover:text-[#1F1F1F]'
                 }`}
               >
                 Past Interactions ({pastInteractions.length})
@@ -584,7 +584,7 @@ const MatchesPage = () => {
               className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'likes-you'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+                  : 'text-brand-muted hover:text-[#1F1F1F]'
               }`}
             >
               Likes You ({likesReceived.length})
@@ -595,7 +595,7 @@ const MatchesPage = () => {
                 className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === 'profile-views'
                     ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                    : 'text-[#706B67] hover:text-[#1F1F1F]'
+                    : 'text-brand-muted hover:text-[#1F1F1F]'
                 }`}
               >
                 Who Viewed You ({profileViews.length})
@@ -606,7 +606,7 @@ const MatchesPage = () => {
               className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'favorites'
                   ? 'text-[#E6B450] border-b-2 border-[#E6B450]'
-                  : 'text-[#706B67] hover:text-[#1F1F1F]'
+                  : 'text-brand-muted hover:text-[#1F1F1F]'
               }`}
             >
               Favorites ({favorites.length})
@@ -617,7 +617,7 @@ const MatchesPage = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-[#706B67] font-medium">Loading...</p>
+            <p className="text-brand-muted font-medium">Loading...</p>
           </div>
         ) : activeTab === 'likes-you' ? (
           // Likes You Tab - Show blurred profiles for basic users, full for premium
@@ -658,7 +658,7 @@ const MatchesPage = () => {
                     <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
                       {userProfile?.is_premium ? item.profile.full_name : 'Someone liked you'}
                     </h3>
-                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                    <div className="flex items-center gap-1 text-sm text-brand-muted mb-2">
                       {userProfile?.is_premium && item.profile.age && <span>{item.profile.age}</span>}
                       {userProfile?.is_premium && item.profile.location_city && (
                         <>
@@ -671,7 +671,7 @@ const MatchesPage = () => {
                         <span className="text-xs italic">Upgrade to see details</span>
                       )}
                     </div>
-                    <p className="text-xs text-[#706B67] mb-4">
+                    <p className="text-xs text-brand-muted mb-4">
                       {userProfile?.is_premium ? new Date(item.createdAt).toLocaleDateString() : 'Unlock Premium to see who liked you'}
                     </p>
                     <Button
@@ -690,9 +690,9 @@ const MatchesPage = () => {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-              <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+              <Heart className="w-16 h-16 mx-auto text-brand-pink-strong mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No likes yet</h3>
-              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+              <p className="text-brand-muted mb-8 max-w-md mx-auto">
                 When someone likes you, they’ll appear here.
               </p>
               <Button
@@ -738,7 +738,7 @@ const MatchesPage = () => {
                       <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">
                         {item.profile.full_name}
                       </h3>
-                      <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      <div className="flex items-center gap-1 text-sm text-brand-muted mb-2">
                         {item.profile.age && <span>{item.profile.age}</span>}
                         {item.profile.location_city && (
                           <>
@@ -748,7 +748,7 @@ const MatchesPage = () => {
                           </>
                         )}
                       </div>
-                      <p className="text-xs text-[#706B67] mb-4">
+                      <p className="text-xs text-brand-muted mb-4">
                         {new Date(item.viewedAt).toLocaleDateString()}
                       </p>
                       <Button
@@ -763,9 +763,9 @@ const MatchesPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-                <Eye className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+                <Eye className="w-16 h-16 mx-auto text-brand-pink-strong mb-4 opacity-50" />
                 <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profile views yet</h3>
-                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                <p className="text-brand-muted mb-8 max-w-md mx-auto">
                   When someone views your profile, they'll appear here.
                 </p>
                 <Button
@@ -780,7 +780,7 @@ const MatchesPage = () => {
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
               <Crown className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
-              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+              <p className="text-brand-muted mb-8 max-w-md mx-auto">
                 See who viewed your profile is a Premium feature. Upgrade to unlock this feature and see who's interested in you!
               </p>
               <Button
@@ -826,7 +826,7 @@ const MatchesPage = () => {
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
                     <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{item.profile.full_name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                    <div className="flex items-center gap-1 text-sm text-brand-muted mb-2">
                       {item.profile.age && <span>{item.profile.age}</span>}
                       {item.profile.location_city && (
                         <>
@@ -836,7 +836,7 @@ const MatchesPage = () => {
                         </>
                       )}
                     </div>
-                    <p className="text-xs text-[#706B67] mb-4">
+                    <p className="text-xs text-brand-muted mb-4">
                       Favorited {new Date(item.createdAt).toLocaleDateString()}
                     </p>
                     <div className="flex flex-col gap-2 mt-auto">
@@ -848,7 +848,7 @@ const MatchesPage = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
+                        className="w-full border-[#E6DCD2] text-brand-muted hover:border-red-300 hover:text-red-600"
                         onClick={async () => {
                           try {
                             await supabase.from('favorites').delete().eq('id', item.id);
@@ -869,7 +869,7 @@ const MatchesPage = () => {
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
               <Star className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No favorites yet</h3>
-              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+              <p className="text-brand-muted mb-8 max-w-md mx-auto">
                 Profiles you favorite will appear here. Click the heart icon on any profile to add them to your favorites!
               </p>
               <Button
@@ -923,7 +923,7 @@ const MatchesPage = () => {
                     </div>
                     <div className="p-4 flex-1 flex flex-col">
                       <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{interaction.profile.full_name}</h3>
-                      <div className="flex items-center gap-1 text-sm text-[#706B67] mb-2">
+                      <div className="flex items-center gap-1 text-sm text-brand-muted mb-2">
                         {interaction.profile.age && <span>{interaction.profile.age}</span>}
                         {interaction.profile.location_city && (
                           <>
@@ -933,7 +933,7 @@ const MatchesPage = () => {
                           </>
                         )}
                       </div>
-                      <p className="text-xs text-[#706B67] mb-4">
+                      <p className="text-xs text-brand-muted mb-4">
                         {new Date(interaction.createdAt).toLocaleDateString()}
                       </p>
                       <div className="flex flex-col gap-2 mt-auto">
@@ -945,7 +945,7 @@ const MatchesPage = () => {
                         </Button>
                         <Button
                           variant="outline"
-                          className="w-full border-[#E6DCD2] text-[#706B67] hover:border-red-300 hover:text-red-600"
+                          className="w-full border-[#E6DCD2] text-brand-muted hover:border-red-300 hover:text-red-600"
                           onClick={async () => {
                             try {
                               await supabase.from('user_interactions').delete().eq('id', interaction.id);
@@ -966,9 +966,9 @@ const MatchesPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-                <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+                <Heart className="w-16 h-16 mx-auto text-brand-pink-strong mb-4 opacity-50" />
                 <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No past interactions</h3>
-                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                <p className="text-brand-muted mb-8 max-w-md mx-auto">
                   Profiles you like or pass on will appear here. Start exploring to see your interaction history!
                 </p>
                 <Button 
@@ -983,7 +983,7 @@ const MatchesPage = () => {
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
               <Crown className="w-16 h-16 mx-auto text-[#E6B450] mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">Premium Feature</h3>
-              <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+              <p className="text-brand-muted mb-8 max-w-md mx-auto">
                 View Past Interactions is a Premium feature. Upgrade to unlock this feature and see your complete interaction history!
               </p>
               <Button
@@ -1024,7 +1024,7 @@ const MatchesPage = () => {
                         </div>
                         <div className="p-4 flex-1 flex flex-col">
                   <h3 className="font-bold text-lg text-[#1F1F1F] mb-1">{match.full_name}</h3>
-                  <div className="flex items-center gap-1 text-sm text-[#706B67] mb-1">
+                  <div className="flex items-center gap-1 text-sm text-brand-muted mb-1">
                     {match.age && <span>{match.age}</span>}
                     {match.location_city && (
                       <>
@@ -1073,18 +1073,18 @@ const MatchesPage = () => {
           <div className="space-y-6">
             {/* Empty State */}
             <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-12 text-center">
-              <Heart className="w-16 h-16 mx-auto text-[#C85A72] mb-4 opacity-50" />
+              <Heart className="w-16 h-16 mx-auto text-brand-pink-strong mb-4 opacity-50" />
               <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No matches yet</h3>
-              <p className="text-[#706B67] mb-2 max-w-md mx-auto">
+              <p className="text-brand-muted mb-2 max-w-md mx-auto">
                 <strong>Matches</strong> are people who liked you back. When you like someone and they like you, they show up here.
               </p>
               {potentialMatchesCount != null && potentialMatchesCount > 0 && (
-                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                <p className="text-brand-muted mb-8 max-w-md mx-auto">
                   You have <strong>{potentialMatchesCount} potential matches</strong> to explore — go to Profiles to see and like them.
                 </p>
               )}
               {(!potentialMatchesCount || potentialMatchesCount === 0) && (
-                <p className="text-[#706B67] mb-8 max-w-md mx-auto">
+                <p className="text-brand-muted mb-8 max-w-md mx-auto">
                   Keep exploring profiles on Discovery to find someone special!
                 </p>
               )}
@@ -1103,7 +1103,7 @@ const MatchesPage = () => {
                       </div>
                       <span className="text-[#1F1F1F] font-medium text-left">{suggestion.text}</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-[#706B67] group-hover:text-[#E6B450]" />
+                    <ArrowRight className="w-4 h-4 text-brand-muted group-hover:text-[#E6B450]" />
                   </button>
                 ))}
               </div>
@@ -1122,7 +1122,7 @@ const MatchesPage = () => {
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-xl font-bold text-[#1F1F1F]">Suggested Profiles</h2>
-                    <p className="text-sm text-[#706B67] mt-1">Start exploring these profiles to find matches</p>
+                    <p className="text-sm text-brand-muted mt-1">Start exploring these profiles to find matches</p>
                   </div>
                   <Button 
                     variant="outline" 
@@ -1159,7 +1159,7 @@ const MatchesPage = () => {
                       </div>
                       <h4 className="font-semibold text-sm text-[#1F1F1F] truncate">{profile.full_name}</h4>
                       {profile.age && (
-                        <p className="text-xs text-[#706B67]">{profile.age}</p>
+                        <p className="text-xs text-brand-muted">{profile.age}</p>
                       )}
                     </div>
                   ))}
