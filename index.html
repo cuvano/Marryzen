@@ -10,6 +10,70 @@
     <meta name="theme-color" content="#E6B450" />
 
     <!-- ============================================================ -->
+    <!-- B13 - Termly CMP. autoBlock=on prevents Meta/GA4/TikTok       -->
+    <!-- pixels from firing before consent is given.                  -->
+    <!--                                                              -->
+    <!-- Bundle Z (2026-06-15) — added async attribute so the Termly  -->
+    <!-- resource-blocker downloads in parallel with HTML parsing      -->
+    <!-- instead of blocking it. autoBlock=on patches                  -->
+    <!-- document.createElement / appendChild proxies once the script  -->
+    <!-- runs; in our app no marketing pixels are injected from        -->
+    <!-- index.html (they're added post-hydration by the React tree),  -->
+    <!-- so the small async-execution gap does not race the first      -->
+    <!-- pixel injection. NOTE: do not add `defer` here — Termly's     -->
+    <!-- docs recommend ASAP execution, defer pushes execution to      -->
+    <!-- after DOMContentLoaded which widens the at-risk window if     -->
+    <!-- any pixel is ever inlined into index.html in the future.      -->
+    <!-- ============================================================ -->
+    <script async src="https://app.termly.io/resource-blocker/04874b92-554a-4fee-9d8f-2becf5ed2d06?autoBlock=on"></script>
+
+    <link rel="canonical" href="https://www.marryzen.com/" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Open Graph (Phase 38: og-image.jpg -> og-image.png, file now exists in /public) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Marryzen" />
+    <meta property="og:url" content="https://www.marryzen.com/" />
+    <meta property="og:title" content="Marryzen - A platform for serious marriage" />
+    <meta property="og:description" content="A private, values-based platform for serious, long-term marriage. Verified profiles, marriage-intent only." />
+    <meta property="og:image" content="https://www.marryzen.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://www.marryzen.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Marryzen — Marriage-intent. Faith-first. Verified." />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.marryzen.com/" />
+    <meta name="twitter:title" content="Marryzen - A platform for serious marriage" />
+    <meta name="twitter:description" content="A private, values-based platform for serious, long-term marriage. Verified profiles, marriage-intent only." />
+    <meta name="twitter:image" content="https://www.marryzen.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Marryzen — Marriage-intent. Faith-first. Verified." />
+
+    <!-- reCAPTCHA v3 will be loaded dynamically -->
+      <style>html, body { overflow-x: hidden; }</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary -->
+    <title>Marryzen - A platform for serious marriage</title>
+    <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only - no casual dating." />
+    <meta name="theme-color" content="#E6B450" />
+
+    <!-- ============================================================ -->
     <!-- B13 - Termly CMP. MUST be the first <script> in <head> so it -->
     <!-- can block downstream pixels (Meta, GA4, TikTok, etc.) until -->
     <!-- consent is given. autoBlock=on does the blocking. -->
