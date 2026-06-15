@@ -6,7 +6,7 @@ const Footer = ({ isProfileFooter = false }) => {
   if (isProfileFooter) {
     return (
         <footer className="w-full mt-8 py-4 bg-[#FAF7F2] border-t border-[#E6DCD2] rounded-b-lg">
-             <div className="max-w-6xl mx-auto px-4 text-center text-[#706B67]">
+             <div className="max-w-6xl mx-auto px-4 text-center text-brand-muted">
                  <p className="text-xs font-medium">
                     Marryzen is a private, values-based marriage platform. Always communicate respectfully and report inappropriate behavior immediately.
                  </p>
@@ -22,7 +22,7 @@ const Footer = ({ isProfileFooter = false }) => {
           <Shield size={20} className="text-[#E6B450]" />
           <p className="text-base font-bold text-[#1F1F1F]">A Platform for Serious Marriage</p>
         </div>
-        <p className="text-sm max-w-2xl mx-auto mb-8 text-[#706B67] leading-relaxed">
+        <p className="text-sm max-w-2xl mx-auto mb-8 text-brand-muted leading-relaxed">
           Marryzen is a private, values-based platform created strictly for serious marriage and long-term commitment. Casual dating, hookups, and inappropriate behavior are not permitted.
         </p>
         <div className="flex justify-center gap-x-6 gap-y-2 text-sm mb-8 flex-wrap font-medium">
@@ -42,7 +42,7 @@ const Footer = ({ isProfileFooter = false }) => {
             <Link to="/press" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Press</Link>
             <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
         </div>
-        <p className="text-xs text-[#706B67]">
+        <p className="text-xs text-brand-muted">
           © {new Date().getFullYear()} Marryzen. All rights reserved. Users are responsible for their own conduct. We facilitate introductions; we are not responsible for offline interactions. You must be 18+ to use this service.
         </p>
       </div>
