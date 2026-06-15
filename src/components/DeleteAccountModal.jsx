@@ -63,7 +63,7 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-[#1F1F1F]">Delete your account</h2>
-                <p className="text-sm text-[#706B67] mt-1">
+                <p className="text-sm text-brand-muted mt-1">
                   This removes your profile and photos and signs you out. Your conversation history will remain visible to the other party. This cannot be undone.
                 </p>
               </div>
