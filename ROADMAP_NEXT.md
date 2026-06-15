@@ -1,8 +1,8 @@
 # Marryzen — Roadmap & Status
 
-Last updated: **2026-06-14** (day after 16-hour overnight + Day 2 morning)
-Soft launch: **2026-07-01** (17 days away)
-Hard launch: **2026-09-15**
+Last updated: **2026-06-15** (Day 3 — morning of)
+Soft launch: **2026-07-01** (16 days away)
+Hard launch: **2026-08-15** (60 days away — per CLAUDE.md identity record)
 
 ---
 
@@ -10,127 +10,87 @@ Hard launch: **2026-09-15**
 
 | Stack | State |
 |---|---|
-| Frontend (Vercel) | Green on commit `f99e32e` (Phase 41g scorer hygiene). 22 commits this 2-day block, all built green. |
-| Backend (Supabase Edge Functions) | didit-webhook v12, email-cadence-tick, send-verification-result, storage-backup-tick all operational. PostHog dynamic surveys.js disabled (Phase 44 iOS fix). |
-| DB | All Phase 41 series migrations applied to live: 4 dealbreaker columns, faith_align_acknowledged_at, preferred_age_min/max + CHECK constraints. No outstanding migrations. |
-| Backups | Daily Supabase DB backups + nightly Storage→S3 sync. PITR deferred. |
-| Email | 11 transactional emails operational. Behavioral cadence wired. Founding-500 founder welcome live. Verification result emails with 60-min delay queue. |
-| Compliance binder | ROPA v1.0.5, DPIA v1.0.4, TOMs v1.0 uploaded to Prighter. Prighter EU+UK reps Active. **Bumps pending application:** DPIA v1.0.5 (§6.5 matchmaking automated processing) + ROPA v1.0.6 + Termly Section 14 — all drafted in `Phase41d_Compliance_Updates_Pack_2026-06-13.md`. |
-| Live UAT (2026-06-14) | /account-settings + /press + /404 all verified working as Omer. AgePreferencesCard save+clear functional end-to-end. |
+| Frontend (Vercel) | Green. Bundle Z (perf code-splitting) committed 2026-06-15 — App.jsx React.lazy on every route + ChunkErrorBoundary + vite.config manualChunks + index.html async Termly. Expecting -150ms first-paint and -200KB landing chunk on next deploy. |
+| Backend (Supabase Edge Functions) | didit-webhook v12, email-cadence-tick with CAN-SPAM-compliant unsubscribe footer + UNSUB_TOKEN_SECRET HMAC verification, send-verification-result, storage-backup-tick, unsubscribe (new) all operational. CRON_SECRET rotated 2026-06-14 from literal to 32-byte random. |
+| DB | All Phase 41 series + marketing_emails_opt_out + marketing_emails_opt_out_at columns applied. CHECK constraints on marital_status/drinking/smoking enforced. No outstanding migrations. |
+| Backups | Supabase Pro daily snapshots ACTIVE (7-day rolling retention) + nightly Storage→S3 sync via storage-backup-tick. **PITR add-on NOT enabled** ($100/mo, deferred per cost-benefit; trigger criteria in TOMs v1.2 §2.9). Procedural drill executed 2026-06-15 with baseline snapshot + WAL position evidence. Full in-place drill committed by 2026-11-15 (ticket COMP-PITR-001). |
+| Email | 12 transactional emails operational. Marketing-cadence emails carry signed unsubscribe footer + CUVAN postal address. Founding-500 founder welcome live. |
+| Compliance binder | **ROPA v1.0.7** + **TOMs v1.2** in Prighter Compliance Documents. **DPIA v1.0.5** on disk (no Prighter slot). PITR Restore Runbook v1.1 + drill evidence filed at `C:\Marryzen\compliance\pitr_drill_2026-06-15\`. Prighter EU+UK reps Active. **TOMs v1.1 was withdrawn same day as v1.2 for PITR/snapshot conflation correction** — lesson logged in CLAUDE.md "Fact-checking platform features" section. |
+| SEO | Bundle X (canonical URLs + main landmark on 5 public pages + press underlines) + Bundle SEO-1 (AuthenticatedLayout noindex + SafetyDisclaimer canonical) shipped. GSC "Validate Fix" running on 6 indexing reasons since 2026-06-15. |
+| A11y | Bundle Y (Tailwind palette tokens + WCAG AA contrast pass via codemod, 52 files) + Bundle Y hotfix ('pink-strong' kebab-case Tailwind v3 JIT fix). Header bell + AccountSettings eye-button a11y patches shipped. |
 
 ---
 
-## Just shipped — 2026-06-13 → 2026-06-14
+## Just shipped — 2026-06-14 → 2026-06-15
 
-### 22 GitHub commits, all Vercel-green
+### P0a — Compliance binder updates (DONE)
 
-| Phase | SHA | Scope |
-|---|---|---|
-| 38 | `5dd08ca` | public/ bundle: og-image PNG+SVG + maintenance.html + sitemap refresh |
-| 38 | `4f387e2` | NotFoundPage 404 refresh + new PressKitPage at /press |
-| 38 | `e31a886` | App.jsx wires /press route |
-| 38 | `e42a468` | Footer adds Press link |
-| 38 | `12314b5` | index.html OG/Twitter meta -> og-image.png + alt + secure_url |
-| 44 | `7fe5fd6` | iOS Chrome Mobile RangeError fix (defer PostHog + disable_surveys) |
-| 41 | `fd47a93` | matchmaking.js v1.5: faith weight 15→28, group bonus 0.6→0.4, drift fixes |
-| 41 | `c22c1ba` | matching_config seeded weights migration (idempotent) |
-| 41a | `ecb2c56` | 4 dealbreaker boolean columns on profiles + comments |
-| 41a/b | `d76eb0c` | matchmaking.js Phase 41a hard filters + Phase 41b intent matrix + relationshipGoals.js + analytics events |
-| 41a | `8ffdc59` | MatchPreferencesCard reusable component |
-| 41a | `62f2eb8` | AccountSettingsPage integrates MatchPreferencesCard |
-| 41b | `e5f379e` | Step5 uses canonical relationshipGoals constants + TMM display rename |
-| 41d | `50c3d90` | faith_align_acknowledged_at audit column |
-| 41d | `eef8ca7` | FaithAlignedInterstitial + Step5 conditional rendering |
-| 41c | `4cce360` | Step5 deal-breaker MatchPreferencesCard with direct supabase persistence |
-| 60 | (earlier) | audit_logs column rename migration |
-| ROADMAP | `71893ba` | Post-session 2026-06-13 update |
-| 41e | `3def494` | preferred_age_min/max columns + CHECK constraints |
-| 41e | `0a9f2b1` | matchmaking.js Phase 41e: age preference + heavier children + marital matrix |
-| 41f | `52bbc67` | AgePreferencesCard component |
-| 41f | `7eed243` | AccountSettingsPage mounts AgePreferencesCard above MatchPreferencesCard |
-| 41g | `f99e32e` | Scorer hygiene: dynamic lifestyle denominator + education tier map + empty-string education guard |
+- Termly Privacy Policy Section 14 published live with Faith-aligned matchmaking + Article 22(3) clause + Marketing emails clause
+- DPIA v1.0.4 → v1.0.5, ROPA v1.0.5 → v1.0.7 (two bumps — Phase 41 matchmaking + marketing opt-out)
+- Both PDFs uploaded to Prighter Compliance Documents → Controller-RoPA slot
+- ROPA §3.10 PA-10 "Behavioral Marketing Email Cadence" added
 
-### Live DB state (verified via Monaco)
+### P0b — Vendor DPA chases (sent, awaiting reply)
 
-Three migrations applied today. Live `profiles` table now has all 5 new columns:
-- `dealbreaker_faith`, `dealbreaker_marital_status`, `dealbreaker_has_children`, `dealbreaker_relationship_goal` (boolean, NOT NULL, default false)
-- `faith_align_acknowledged_at` (timestamptz, nullable)
-- `preferred_age_min`, `preferred_age_max` (integer, nullable, CHECK 18-99 + min<=max)
+- Joan Colomé (Didit) — 2nd chase 2026-06-14; 3rd escalation 2026-06-21; switch to Didit Identity Spain SL by 2026-06-28 if silent
+- Vercel — 2nd chase 2026-06-14; 3rd escalation 2026-06-21; support ticket 2026-06-28 if silent
+- Segpay + CCBill — DROPPED 2026-06-14 (non-responsive)
+- PaymentCloud — founder handling intake directly
 
-### Matchmaking scorer state (Phase 41 series complete)
+### P0c — CRON_SECRET rotation (DONE)
 
-- **Headline weights** (admin tune): age 15, distance 15, intent 10, faith 25, values 10, cultures 10, lifestyle 10, completeness 5 — sum 100
-- **Faith**: 4 religion-group fallback (Christianity sub-denoms, Islam, Judaism, NonReligious). Group bonus 0.4 (v1.5 fix from 0.6).
-- **Intent**: 4x4 marriage-intent compatibility matrix (Phase 41b). TMM-FSC=0.9, M12-SRM=0.7, TMM-SRM=0.3, etc.
-- **Age**: preferred-range scoring when set (Phase 41e/f), v1.5 symmetric tier fallback otherwise.
-- **Lifestyle**: dynamic denominator (Phase 41g) — 19 when children data available on both sides, 13 when not. Marital status matrix (Phase 41e) + tripled children weight + empty-string education guard.
-- **4 user opt-in dealbreaker hard filters** (Phase 41a). Reversible via Settings or onboarding Step5 card.
-- **Muslim-women faith-aligned interstitial** (Phase 41d) — strong default at Step5 onboarding, full audit trail.
+- Rotated 2026-06-14 ~21:30 UTC. Supabase Edge Function secrets only. Literal fallback stripped from 4 Edge Functions.
 
-### Strategic decisions locked
+### MEDIUM #1 — Marketing-emails opt-out (DONE)
 
-- **Matchmaking v1.5 faith re-weight**: faith is highest non-intent dim. Brand wedge encoded.
-- **Marriage intent matrix**: 4x4 tiered, not flat 70%. TMM display label renamed to "Marriage-bound, family-introduced".
-- **Muslim women filter**: P2 (strong default + interstitial), board-rejected P1 hard rule on UK §13 + GDPR Art. 22 grounds.
-- **PaymentCloud**: engage TODAY per board decision (chase docs ready).
-- **Stripe DPA revisit**: deferred to Q1 2027 post-clean-history.
+- DB columns + unsubscribe Edge Function with HMAC-SHA-256 + Settings UI + ROPA v1.0.7 §3.10 + Termly Section 14 (2nd Additional Clause) live
 
-### New compliance / decision docs (in C:\Marryzen)
+### MEDIUM #2 — Mobile QA + Lighthouse + a11y audit (DONE)
 
-- `Matchmaking_v1.5_Decision_2026-06-13.md`
-- `Marriage_Intent_Matrix_Decision_2026-06-13.md`
-- `Muslim_Women_Filter_Decision_2026-06-13.md`
-- `Phase41d_Compliance_Updates_Pack_2026-06-13.md` — contains DPIA + ROPA + Termly + admin SOP all ready to apply
-- `Art34_Breach_Notification_Templates_v1.0.md`
-- `Payment_Processor_Decision_2026-06-13.md`
-- `Segpay_CCBill_Escalation_Email_2026-06-13.md` — deadline Jun 16
-- `DPA_Chase_Email_Pack_2026-06-13.md` — Didit (Joan) + Vercel + generic templates
-- `Prighter_Intake_Datamap_Checklist_2026-06-13.md`
+- Bundle X: canonical URLs on 5 public pages, `<main>` landmark, press underlines
+- Bundle Y: Tailwind brand-color tokens (52 files via codemod) — WCAG AA contrast pass (was 4.06:1 → now 4.5:1)
+- Bundle Y hotfix: `pinkStrong` camelCase didn't compile in Tailwind v3 JIT; fixed to quoted `'pink-strong'` kebab-case
+- A11y hotfix: Header bell aria-label + AccountSettings eye-toggle aria + Premium-icon Crown
+- Bundle SEO-1: AuthenticatedLayout `noindex,nofollow` + SafetyDisclaimer canonical
+- GSC "Validate Fix" triggered on all 6 indexing reasons
+
+### MEDIUM #3 — Backup/restore drill (DONE procedurally)
+
+- PITR Restore Runbook v1.1 (9-section in-place procedure, PITR-add-on forward-compatibility §5)
+- Baseline snapshot SQL captured 2026-06-15 18:35:10 UTC (WAL LSN `48/2E004538`, 12-table row counts, sample row hashes)
+- TOMs v1.2 corrects PITR/snapshot conflation (RPO 24h not 2min, RTO 60min internal)
+- Compliance ticket COMP-PITR-001 = full in-place drill by 2026-11-15
+
+### Bundle Z — perf code-splitting (DONE)
+
+- App.jsx React.lazy on every route + Suspense + ChunkErrorBoundary
+- ChunkErrorBoundary.jsx (new) — Chrome/Vite/Safari/Firefox/ChunkLoadError matching, branded reload UI
+- vite.config manualChunks: react-vendor + supabase-vendor + framer-vendor + generic vendor (lucide intentionally per-icon)
+- index.html `async` on Termly (NOT `defer`)
+- Bug log: initial autonomous commit at SHA `4ba1cc3` duplicated content (CodeMirror 6 select-all failure); user re-committed clean via Notepad path
 
 ---
 
-## What's waiting — organized by urgency
+## What's next
 
-### 🔴 URGENT this week (3 founder actions, ~2 hours total)
+### 🔴 P0a/b leftovers (external blockers)
 
-**P0a — Apply compliance binder updates (~70 min founder)**
-1. Bump DPIA → v1.0.5 with §6.5 matchmaking automated processing. Export PDF, upload to Prighter DPIA slot.
-2. Bump ROPA → v1.0.6 with new processing-activity row. Export PDF, upload to Prighter Controller RoPA slot.
-3. Update Termly privacy policy Section 14 with the one paragraph drafted. Republish + verify green in Prighter.
-4. File `Admin_Art22_Human_Intervention_SOP_2026-06-13.md` to `C:\Marryzen`.
+- **Joan Colomé reply** (third chase 2026-06-21 if silent)
+- **Vercel DPA reply** (third chase 2026-06-21 if silent)
+- **PaymentCloud intake completion** (founder-driven)
 
-All text drafted in `Phase41d_Compliance_Updates_Pack_2026-06-13.md` — copy-paste ready.
+### 🟡 MEDIUM (next 1-2 weeks)
 
-**P0b — Send vendor escalation emails (~30 min founder)**
-- Today: PaymentCloud intake form at paymentcloudinc.com (board flagged this as urgent)
-- Today: Segpay + CCBill escalation (deadline Monday June 16 — TOMORROW)
-- Today: Didit chase to Joan Colomé
-- Today: Vercel DPA confirmation
+- **Verify Bundle Z Vercel deploy green + Lighthouse delta** — confirm landing chunk dropped + LCP improved on `/`
+- **Backup admin account** — single super_admin on believerfellow@gmail.com is a SPOF. Create a second admin email or grant admin to a trusted second account.
+- **Founding-500 invite list curation** — strategy + actual invite list. Gated on "system A-Z first" per founder.
 
-Templates in `Segpay_CCBill_Escalation_Email_2026-06-13.md` + `DPA_Chase_Email_Pack_2026-06-13.md`.
+### 🟢 LOW (post-launch)
 
-**P0c — Rotate CRON_SECRET before launch**
-- Currently the literal `marryzen-cron-2026`. Change to a random 32-byte value in 3 Edge Function env vars: send-verification-result, email-cadence-tick, storage-backup-tick. Must all match.
-
-### 🟡 MEDIUM next 1-2 weeks (5 items)
-
-**Backup admin account** — single super_admin on believerfellow@gmail.com is a SPOF. Create a second admin email or grant admin to a trusted second account.
-
-**Confirm `marketing_emails_opt_out` column added** — referenced by email-cadence-tick suppression check but column doesn't exist yet. Verify or add via migration.
-
-**Founding-500 invite list curation** — strategy + actual invite list. Gated on "system A-Z first" per founder.
-
-**Final mobile responsive QA + Lighthouse + a11y audit** — `/`, `/discovery`, `/profile`, `/onboarding`, `/press` (new).
-
-**Backup/restore drill** — test that Supabase daily backup restore actually works. Document one tested restore (Art. 32 evidence).
-
-### 🟢 LOW post-launch (8 items)
-
-- TOMs v1.1 with explicit RPO 24h / RTO 24h documented (board recommendation)
-- Phase 41h: marital-status tooltip on DiscoveryPage ProfileCard breakdown (T&S deferred)
-- Phase 41i: telemetry post-launch — check score distribution shift after Phase 41e refinements
-- Phase 41j: dynamic denominator extended to other dimensions (lifestyle pattern proven)
-- Onboarding: surface Phase 41a dealbreakers more prominently (currently buried under Marriage Promise)
+- **Phase 41h:** marital-status tooltip on DiscoveryPage ProfileCard breakdown (T&S deferred)
+- **Phase 41i:** telemetry post-launch — score distribution shift after Phase 41e refinements
+- **Phase 41j:** dynamic denominator extended to other dimensions
+- Onboarding: surface Phase 41a dealbreakers more prominently
 - Press kit: real product screenshots to add week of July 1
 - Customer support email triage flow (support@marryzen.com)
 - Facebook Ads — application pending per founder
@@ -138,21 +98,22 @@ Templates in `Segpay_CCBill_Escalation_Email_2026-06-13.md` + `DPA_Chase_Email_P
 
 ### ⚪ Strategic decisions worth founder time later
 
-- Joan Colomé response review (if Joan replies with Module 2 annexes + UK IDTA + TIA)
-- PaymentCloud terms review (if PaymentCloud quotes within 48h)
-- Founding-500 founder welcome email finalization
+- Joan Colomé response review (if Joan replies)
+- PaymentCloud terms review
 - Post-launch retention telemetry baseline + dashboards
+- PITR add-on cost-benefit revisit per TOMs v1.2 §2.9 triggers
 
 ---
 
 ## Launch sequence
 
-**T-17 days (now)** → P0a + P0b + P0c. Compliance + vendor + secret rotation.
+**T-16 days (now)** → External blockers (Joan/Vercel/PaymentCloud). Bundle Z verify.
 **T-7 days (Jun 24)** → Final QA pass, founding-500 invite list locked, Sandra UAT
 **T-3 days (Jun 28)** → Feature freeze, monitoring drill
 **T-1 day (Jun 30)** → Founder pre-flight checklist
 **T-0 (Jul 1)** → Soft launch — Founding-500 only
-**T+76 days (Sep 15)** → Hard launch, founding cohort closes, public signup
+**T+45 days (Aug 15)** → Hard launch, public signup opens
+**T+90 days post-launch (Nov 15)** → Full measured PITR drill (ticket COMP-PITR-001)
 
 ---
 
@@ -166,13 +127,17 @@ Templates in `Segpay_CCBill_Escalation_Email_2026-06-13.md` + `DPA_Chase_Email_P
 - Prighter portal: `https://app.prighter.com/portal/marryzen` (business ID 11024664158)
 - AWS S3 backup bucket: `marryzen-backups-eu-west-1` (eu-west-1)
 - Supabase project: `adufstvmmzpqdcmpinqd`
+- PITR Restore Runbook: `C:\Marryzen\compliance\pitr_drill_2026-06-15\PITR_RUNBOOK_v1.1.md`
+- TOMs v1.2: `C:\Marryzen\handoff\toms_doc_v1.2\TOMs_v1.2_2026-06-15.pdf` (uploaded to Prighter TOM slot)
 
 ---
 
 ## Session changelog
 
-**2026-06-14 (morning) — Day 2:** Phase 41e applied + Phase 41f age preference UI + Phase 41g scorer hygiene. 4 commits. Live UAT pass on /account-settings + /press + /404.
+**2026-06-15 (Day 3):** P0a/b/c completed. MEDIUM #1 + #2 + #3 done. TOMs v1.0 → v1.1 → v1.2 (v1.1 withdrawn for PITR/snapshot conflation). Bundle Z (perf code-splitting) shipped 4 commits. CLAUDE.md PITR drill log + plan-feature locked-fact added.
 
-**2026-06-13 (afternoon) — Day 1:** Phase 38 + Phase 40 + Phase 41 + Phase 41a + Phase 41b + Phase 41c + Phase 41d + Phase 42 + Phase 44 + Phase 60 + compliance pack drafts. 18 commits + 9 decision docs.
+**2026-06-14 (Day 2):** Phase 41e + 41f + 41g. 4 commits. Live UAT pass.
 
-**2026-06-12 → 2026-06-13 overnight (prior session):** Phase 29-58. Admin UI dispatcher, didit-webhook v12, email infrastructure, mobile/a11y fixes, storage backup, ProfilePage rescue, audit_logs rename.
+**2026-06-13 (Day 1):** Phase 38 + 40 + 41 + 41a + 41b + 41c + 41d + 42 + 44 + 60 + compliance pack drafts. 18 commits + 9 decision docs.
+
+**2026-06-12 → 2026-06-13 overnight:** Phase 29-58. Admin UI dispatcher, didit-webhook v12, email infrastructure, mobile/a11y, storage backup, audit_logs rename.
