@@ -136,7 +136,7 @@ const VerificationCTAModal = ({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute top-3 right-3 text-[#706B67] hover:text-[#1F1F1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450] rounded-full p-1 transition-colors"
+              className="absolute top-3 right-3 text-brand-muted hover:text-[#1F1F1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450] rounded-full p-1 transition-colors"
             >
               <X size={20} />
             </button>
@@ -180,7 +180,7 @@ const VerificationCTAModal = ({
 
               <button
                 onClick={onClose}
-                className="mt-4 text-sm text-[#706B67] hover:text-[#1F1F1F] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450] rounded px-2 py-1 transition-colors"
+                className="mt-4 text-sm text-brand-muted hover:text-[#1F1F1F] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E6B450] rounded px-2 py-1 transition-colors"
               >
                 Maybe later
               </button>
