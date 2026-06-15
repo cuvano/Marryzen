@@ -142,14 +142,14 @@ const AgePreferencesCard = () => {
           <h3 className="text-lg font-bold text-[#1F1F1F] leading-tight">
             Preferred age range
           </h3>
-          <p className="text-sm text-[#706B67] mt-1">
+          <p className="text-sm text-brand-muted mt-1">
             Set the ages you&rsquo;d most like to meet. Profiles in this range score highest. Leave blank for no preference — the algorithm scores by closeness in age either way.
           </p>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#706B67]">Loading&hellip;</p>
+        <p className="text-sm text-brand-muted">Loading&hellip;</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4">
@@ -210,7 +210,7 @@ const AgePreferencesCard = () => {
                 type="button"
                 onClick={handleClear}
                 disabled={saving}
-                className="inline-flex items-center justify-center px-6 py-2.5 bg-white hover:bg-[#FAFAF7] text-[#706B67] hover:text-[#1F1F1F] font-medium rounded-full border border-[#E6DCD2] transition-colors focus:outline-none focus:ring-2 focus:ring-[#C85A72] focus:ring-offset-2 focus:ring-offset-white disabled:opacity-60 disabled:cursor-wait"
+                className="inline-flex items-center justify-center px-6 py-2.5 bg-white hover:bg-[#FAFAF7] text-brand-muted hover:text-[#1F1F1F] font-medium rounded-full border border-[#E6DCD2] transition-colors focus:outline-none focus:ring-2 focus:ring-[#C85A72] focus:ring-offset-2 focus:ring-offset-white disabled:opacity-60 disabled:cursor-wait"
               >
                 Clear (no preference)
               </button>
@@ -218,12 +218,12 @@ const AgePreferencesCard = () => {
           </div>
 
           {savedAt && !error && (
-            <p className="mt-3 text-xs text-[#706B67]">
+            <p className="mt-3 text-xs text-brand-muted">
               Saved {savedAt.toLocaleTimeString()}.
             </p>
           )}
 
-          <p className="mt-5 pt-4 border-t border-[#FAF7F2] text-xs text-[#706B67] leading-relaxed">
+          <p className="mt-5 pt-4 border-t border-[#FAF7F2] text-xs text-brand-muted leading-relaxed">
             <strong className="text-[#1F1F1F]">How this is used:</strong> the matchmaking algorithm gives full age credit to profiles inside your range. Candidates outside the range still appear, scored by how far outside they fall. We never silently exclude anyone based on age — for that, use the deal-breaker toggles below.
           </p>
         </>
