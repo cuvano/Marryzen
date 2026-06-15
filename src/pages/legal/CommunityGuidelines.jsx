@@ -15,7 +15,7 @@ const CommunityGuidelines = () => {
       <div className="max-w-4xl mx-auto">
          {/* Navigation Buttons */}
         <div className="flex justify-between items-center mb-8">
-             <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
+             <Button variant="ghost" onClick={() => navigate(-1)} className="text-brand-muted hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
             <div className="flex gap-2">
@@ -32,8 +32,8 @@ const CommunityGuidelines = () => {
 
         <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-2">Community Guidelines</h1>
-            <p className="text-[#706B67] font-medium">Marryzen is built on Respect, Honesty, and Intent.</p>
-            <p className="text-xs text-[#706B67] mt-2">Version 2.0 &bull; Last updated June 6, 2026</p>
+            <p className="text-brand-muted font-medium">Marryzen is built on Respect, Honesty, and Intent.</p>
+            <p className="text-xs text-brand-muted mt-2">Version 2.0 &bull; Last updated June 6, 2026</p>
         </div>
 
         <div className="bg-[#FFFFFF] border border-[#E6DCD2] rounded-2xl p-8 md:p-12 shadow-sm space-y-10">
@@ -41,7 +41,7 @@ const CommunityGuidelines = () => {
             {/* Core Pledge */}
             <div className="p-6 bg-[#F9E7EB] rounded-xl border border-[#E6B450]/20">
                 <div className="flex items-center gap-3 mb-2">
-                    <Heart className="text-[#C85A72] w-6 h-6" />
+                    <Heart className="text-brand-pink-strong w-6 h-6" />
                     <h2 className="text-xl font-bold text-[#1F1F1F]">Our Core Pledge</h2>
                 </div>
                 <p className="text-[#333333]">
@@ -96,7 +96,7 @@ const CommunityGuidelines = () => {
             {/* Communication Standards */}
             <div className="space-y-4 pt-6 border-t border-[#E6DCD2]">
                 <h3 className="text-xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                    <MessageCircle className="text-[#C85A72] w-5 h-5" /> 2. Communication Standards
+                    <MessageCircle className="text-brand-pink-strong w-5 h-5" /> 2. Communication Standards
                 </h3>
                 <p className="text-[#333333]">Disagreement is allowed. Disrespect is not. Use the line below as your guide.</p>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -117,13 +117,13 @@ const CommunityGuidelines = () => {
                         </ul>
                     </div>
                 </div>
-                <p className="text-sm text-[#706B67]">If a match doesn&apos;t respond, don&apos;t follow up more than once. Silence is an answer.</p>
+                <p className="text-sm text-brand-muted">If a match doesn&apos;t respond, don&apos;t follow up more than once. Silence is an answer.</p>
             </div>
 
             {/* Privacy */}
             <div className="space-y-4 pt-6 border-t border-[#E6DCD2]">
                 <h3 className="text-xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                    <Lock className="text-[#706B67] w-5 h-5" /> 3. Privacy of Other Members
+                    <Lock className="text-brand-muted w-5 h-5" /> 3. Privacy of Other Members
                 </h3>
                 <p className="text-[#333333]">Everything other members share with you on Marryzen is private and stays on Marryzen.</p>
                 <ul className="list-disc pl-5 space-y-2 text-[#333333]">
@@ -132,7 +132,7 @@ const CommunityGuidelines = () => {
                     <li>Do not reverse-image-search or otherwise dig into someone&apos;s identity without their consent.</li>
                     <li>Do not contact members off-platform until you have a mutual agreement to do so.</li>
                 </ul>
-                <p className="text-sm text-[#706B67]">For details on how Marryzen handles your data, see our <a href="/privacy-policy" className="text-[#C85A72] underline">Privacy Policy</a>.</p>
+                <p className="text-sm text-brand-muted">For details on how Marryzen handles your data, see our <a href="/privacy-policy" className="text-brand-pink-strong underline">Privacy Policy</a>.</p>
             </div>
 
             {/* Reporting & Safety */}
@@ -146,11 +146,11 @@ const CommunityGuidelines = () => {
                     <ul className="list-disc pl-5 text-sm text-[#333333] space-y-1">
                         <li>Tap the &ldquo;Report&rdquo; or &ldquo;Block&rdquo; button on the member&apos;s profile or in your chat.</li>
                         <li>Tell us briefly what happened &mdash; the more specific, the faster we can act.</li>
-                        <li>You can also email <a href="mailto:admin@marryzen.com" className="text-[#C85A72] underline">admin@marryzen.com</a> with details and screenshots.</li>
+                        <li>You can also email <a href="mailto:admin@marryzen.com" className="text-brand-pink-strong underline">admin@marryzen.com</a> with details and screenshots.</li>
                     </ul>
                 </div>
-                <p className="text-sm text-[#706B67]">Reports are confidential. The person you report will not see who reported them. False reports submitted in bad faith may themselves be a violation.</p>
-                <p className="text-sm text-[#706B67]"><strong>If you are in immediate danger</strong> &mdash; physical threat, blackmail, exploitation of a minor &mdash; contact your local emergency services first. Then notify us so we can preserve evidence and remove the account.</p>
+                <p className="text-sm text-brand-muted">Reports are confidential. The person you report will not see who reported them. False reports submitted in bad faith may themselves be a violation.</p>
+                <p className="text-sm text-brand-muted"><strong>If you are in immediate danger</strong> &mdash; physical threat, blackmail, exploitation of a minor &mdash; contact your local emergency services first. Then notify us so we can preserve evidence and remove the account.</p>
             </div>
 
             {/* Enforcement & Appeals */}
@@ -164,23 +164,23 @@ const CommunityGuidelines = () => {
                     <li><strong>Temporary suspension.</strong> Repeat violations or moderate-severity issues (e.g., off-platform contact pressure) result in 7&ndash;30 day suspensions.</li>
                     <li><strong>Permanent ban.</strong> Severe violations &mdash; harassment, scams, catfishing, sexual content requests, threats &mdash; result in immediate permanent removal. Banned accounts are not reinstated.</li>
                 </ul>
-                <p className="text-[#333333]"><strong>Appeals.</strong> If you believe your account was removed or restricted in error, email <a href="mailto:admin@marryzen.com" className="text-[#C85A72] underline">admin@marryzen.com</a> with your registered email address and a brief explanation. We review every appeal personally and respond within 5 business days. Decisions on appeals are final.</p>
+                <p className="text-[#333333]"><strong>Appeals.</strong> If you believe your account was removed or restricted in error, email <a href="mailto:admin@marryzen.com" className="text-brand-pink-strong underline">admin@marryzen.com</a> with your registered email address and a brief explanation. We review every appeal personally and respond within 5 business days. Decisions on appeals are final.</p>
             </div>
 
             {/* Contact */}
             <div className="space-y-4 pt-6 border-t border-[#E6DCD2]">
                 <h3 className="text-xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                    <Mail className="text-[#C85A72] w-5 h-5" /> 6. Contact
+                    <Mail className="text-brand-pink-strong w-5 h-5" /> 6. Contact
                 </h3>
-                <p className="text-[#333333]">Questions, safety concerns, suggestions: <a href="mailto:admin@marryzen.com" className="text-[#C85A72] underline">admin@marryzen.com</a>.</p>
-                <p className="text-sm text-[#706B67]">Marryzen is operated by CUVAN LLC (Florida, USA). For data protection inquiries from EU/UK residents, our Article 27 representative is Prighter Group GmbH (Vienna, Austria) &mdash; contact details are in our <a href="/privacy-policy" className="text-[#C85A72] underline">Privacy Policy</a>.</p>
+                <p className="text-[#333333]">Questions, safety concerns, suggestions: <a href="mailto:admin@marryzen.com" className="text-brand-pink-strong underline">admin@marryzen.com</a>.</p>
+                <p className="text-sm text-brand-muted">Marryzen is operated by CUVAN LLC (Florida, USA). For data protection inquiries from EU/UK residents, our Article 27 representative is Prighter Group GmbH (Vienna, Austria) &mdash; contact details are in our <a href="/privacy-policy" className="text-brand-pink-strong underline">Privacy Policy</a>.</p>
             </div>
 
             {/* Closing */}
             <div className="pt-6 border-t border-[#E6DCD2]">
                 <div className="flex items-start gap-3">
                     <ShieldCheck className="text-[#E6B450] w-5 h-5 mt-0.5 shrink-0" />
-                    <p className="text-sm text-[#706B67]">
+                    <p className="text-sm text-brand-muted">
                         These guidelines exist because what you share here matters and what you do here matters. We will keep updating them as the community grows. Members will be notified when material changes take effect.
                     </p>
                 </div>
