@@ -709,7 +709,7 @@ const ProfilePage = () => {
                 className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   isFavorited
                     ? 'text-[#1F1F1F] bg-[#FFF3D1] border-[#E6B450] hover:bg-[#FFE9B0]'
-                    : 'text-[#706B67] bg-white border-[#E0DDD9] hover:text-[#1F1F1F] hover:border-[#CCC]'
+                    : 'text-brand-muted bg-white border-[#E0DDD9] hover:text-[#1F1F1F] hover:border-[#CCC]'
                 }`}
               >
                 <Star
@@ -726,7 +726,7 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={() => setIsBlockModalOpen(true)}
-                className="text-sm font-medium text-[#706B67] hover:text-[#1F1F1F] border border-[#E0DDD9] hover:border-[#CCC] px-3 py-1.5 rounded-lg transition-colors"
+                className="text-sm font-medium text-brand-muted hover:text-[#1F1F1F] border border-[#E0DDD9] hover:border-[#CCC] px-3 py-1.5 rounded-lg transition-colors"
               >
                 Block
               </button>
@@ -816,7 +816,7 @@ const ProfilePage = () => {
                   {age && <span className="ml-2 text-lg sm:text-xl font-normal text-[#888]">{age}</span>}
                 </h1>
                 <p className="mt-1.5 flex items-center gap-1.5 text-sm sm:text-base text-[#555]">
-                  <MapPin size={15} className="shrink-0 text-[#C85A72]" />
+                  <MapPin size={15} className="shrink-0 text-brand-pink-strong" />
                   {[profile.location_city, profile.location_country].filter(Boolean).join(', ') || 'Location not set'}
                 </p>
                 {traitChips.length > 0 && (
@@ -825,7 +825,7 @@ const ProfilePage = () => {
                       const Icon = t.icon;
                       return (
                         <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F5F5F3] border border-[#E0DDD9] text-[#1F1F1F] text-xs sm:text-sm font-medium">
-                          {Icon && <Icon size={13} className="text-[#C85A72] shrink-0" />}
+                          {Icon && <Icon size={13} className="text-brand-pink-strong shrink-0" />}
                           {t.label}
                         </span>
                       );
@@ -1014,7 +1014,7 @@ const ProfilePage = () => {
                     <div className="flex items-start gap-3 border-l-4 border-[#E6B450] bg-[#FFFBEB] -mx-2 px-3 py-2 rounded-r">
                       <CalendarIcon className="w-5 h-5 mt-0.5 text-[#E6B450] shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-[#706B67] mb-0.5">{isOwnProfile && !isPreviewMode ? 'My goal' : 'Their goal'}</div>
+                        <div className="text-xs text-brand-muted mb-0.5">{isOwnProfile && !isPreviewMode ? 'My goal' : 'Their goal'}</div>
                         <div className="text-sm font-semibold text-[#1F1F1F]">{displayMarriageTimeline(profile.marriage_timeline)}</div>
                       </div>
                     </div>
@@ -1156,7 +1156,7 @@ const ProfilePage = () => {
               className="mt-2 min-h-[150px]"
               maxLength={1000}
             />
-            <p className="text-xs text-[#706B67] mt-2">
+            <p className="text-xs text-brand-muted mt-2">
               {editBio.length} / 1000 characters {editBio.length < 50 && '(Minimum 50 required)'}
             </p>
           </div>
@@ -1212,7 +1212,7 @@ const ProfilePage = () => {
             </CardDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="rounded-lg bg-[#FAF7F2] border border-[#E6DCD2] p-4 text-sm text-[#706B67]">
+            <div className="rounded-lg bg-[#FAF7F2] border border-[#E6DCD2] p-4 text-sm text-brand-muted">
               <p className="font-medium text-[#1F1F1F] mb-1">What happens next:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>You'll be redirected to Didit's secure page</li>
@@ -1701,7 +1701,7 @@ const ImageCropDialog = ({ open, imageSrc, onCropComplete, onCancel, uploading =
                 disabled={uploading}
               />
             </div>
-            <p className="text-xs text-[#706B67] text-center">
+            <p className="text-xs text-brand-muted text-center">
               Drag the image to reposition, adjust zoom, then click "Crop & Save"
             </p>
           </div>
