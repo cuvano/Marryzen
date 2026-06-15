@@ -34,8 +34,8 @@ const AuthVerifyPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
         <div className="text-center text-[#1F1F1F] max-w-md">
-          <p className="font-medium text-[#706B67]">{error}</p>
-          <p className="text-sm mt-2 text-[#706B67]">Please request a new link from the app.</p>
+          <p className="font-medium text-brand-muted">{error}</p>
+          <p className="text-sm mt-2 text-brand-muted">Please request a new link from the app.</p>
         </div>
       </div>
     );
@@ -46,7 +46,7 @@ const AuthVerifyPage = () => {
       <div className="flex flex-col items-center gap-6 max-w-md text-center">
         <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin shrink-0" />
         <p className="text-[#1F1F1F] font-medium">Taking you to reset your password…</p>
-        <p className="text-sm text-[#706B67]">If you are not redirected, click the button below.</p>
+        <p className="text-sm text-brand-muted">If you are not redirected, click the button below.</p>
         {verifyUrl && (
           <Button
             asChild
