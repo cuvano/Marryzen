@@ -25,13 +25,13 @@ module.exports = {
 				//   text-brand-muted        default body-secondary (was #706B67, now #5F5A56)
 				//   text-brand-muted-soft   explicit opt-in for de-emphasized (footnotes, disabled)
 				pink: '#C85A72',
-				pinkStrong: '#B14961',
+				'pink-strong': '#B14961',
 				gold: '#E6B450',
 				ink: '#1F1F1F',
 				muted: '#5F5A56',
-				mutedSoft: '#706B67',
+				'muted-soft': '#706B67',
 				cream: '#FAF7F2',
-				linkVisited: '#8B3A4E',
+				'link-visited': '#8B3A4E',
 			},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
