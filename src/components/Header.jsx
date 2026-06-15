@@ -98,13 +98,13 @@ const Header = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'new_match':
-        return <Heart className="w-4 h-4 text-[#C85A72]" />;
+        return <Heart className="w-4 h-4 text-brand-pink-strong" />;
       case 'new_message':
         return <MessageSquare className="w-4 h-4 text-blue-600" />;
       case 'intro_request':
         return <UserPlus className="w-4 h-4 text-[#E6B450]" />;
       case 'profile_approved':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-700" />;
       case 'profile_rejected':
         return <XCircle className="w-4 h-4 text-red-600" />;
       case 'referral_reward':
@@ -176,7 +176,7 @@ const Header = () => {
     <button
       onClick={() => { navigate(path); setIsMenuOpen(false); }}
       className={`flex items-center gap-2 px-4 py-2 text-sm font-bold transition-colors rounded-lg w-full md:w-auto
-        ${active ? 'bg-[#FAF7F2] text-[#C85A72]' : 'text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#FAF7F2]'}
+        ${active ? 'bg-[#FAF7F2] text-brand-pink-strong' : 'text-brand-muted hover:text-[#1F1F1F] hover:bg-[#FAF7F2]'}
       `}
     >
       {Icon && <Icon size={18} />}
@@ -206,7 +206,7 @@ const Header = () => {
               {/* Notifications */}
               <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-[#706B67] hover:text-[#1F1F1F]" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}>
+                <Button variant="ghost" size="icon" className="relative text-brand-muted hover:text-[#1F1F1F]" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}>
                     <Bell size={20} />
                     {unreadCount > 0 && (
                         <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
@@ -250,7 +250,7 @@ const Header = () => {
                                         <span className="font-semibold text-sm text-[#1F1F1F]">{n.title}</span>
                                         {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1"></span>}
                                     </div>
-                                    <p className="text-xs text-[#706B67] line-clamp-2 mt-1">{n.body}</p>
+                                    <p className="text-xs text-brand-muted line-clamp-2 mt-1">{n.body}</p>
                                     <span className="text-[10px] text-gray-400 mt-1 block">
                                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                     </span>
@@ -264,7 +264,7 @@ const Header = () => {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => navigate('/notifications')}
-                            className="text-center justify-center text-sm font-medium text-[#C85A72]"
+                            className="text-center justify-center text-sm font-medium text-brand-pink-strong"
                         >
                             View All Notifications
                         </DropdownMenuItem>
@@ -283,7 +283,7 @@ const Header = () => {
                         {avatar ? (
                             <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
-                            <User className="w-full h-full p-1.5 text-[#C85A72]" />
+                            <User className="w-full h-full p-1.5 text-brand-pink-strong" />
                         )}
                     </div>
                     <span className="text-sm font-bold text-[#1F1F1F]">{firstName}</span>
@@ -335,7 +335,7 @@ const Header = () => {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/login')}
-                className="text-[#706B67] hover:text-[#1F1F1F]"
+                className="text-brand-muted hover:text-[#1F1F1F]"
               >
                 Log In
               </Button>
