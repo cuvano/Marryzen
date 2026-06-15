@@ -76,7 +76,7 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
     <div className="space-y-8">
       <div className="text-center mb-10">
         <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">A little about you</h2>
-        <p className="text-[#706B67] text-lg font-medium">Help us find members compatible with where you are in life.</p>
+        <p className="text-brand-muted text-lg font-medium">Help us find members compatible with where you are in life.</p>
       </div>
 
       <div className="grid gap-6">
@@ -116,8 +116,8 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
                 );
               })}
             </select>
-            <p className="text-[#706B67] text-xs mt-1 font-medium">
-              Marryzen is growing carefully so we can serve every couple well. Countries marked "coming soon" aren't open yet — email <a href="mailto:admin@marryzen.com?subject=Marryzen%20waitlist%20-%20add%20my%20country" className="text-[#C85A72] underline">admin@marryzen.com</a> with your country and we'll let you know the moment we arrive.
+            <p className="text-brand-muted text-xs mt-1 font-medium">
+              Marryzen is growing carefully so we can serve every couple well. Countries marked "coming soon" aren't open yet — email <a href="mailto:admin@marryzen.com?subject=Marryzen%20waitlist%20-%20add%20my%20country" className="text-brand-pink-strong underline">admin@marryzen.com</a> with your country and we'll let you know the moment we arrive.
             </p>
             {errors.locationCountry && (
               <p className="text-red-500 text-sm mt-1">{errors.locationCountry}</p>
@@ -137,7 +137,7 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
                 <option key={country} value={country}>{country}</option>
               ))}
             </select>
-            <p className="text-[#706B67] text-xs mt-1 font-medium">
+            <p className="text-brand-muted text-xs mt-1 font-medium">
               The country you most identify with culturally or where your family is from.
             </p>
           </div>
@@ -202,7 +202,7 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
 
         <div className="space-y-2">
           <Label id="identifyAs" htmlFor="identifyAs" className="text-[#333333] font-bold text-base">I am a</Label>
-          <p id="gender-disclosure" className="text-[#706B67] text-xs font-medium -mt-1">Marryzen connects men and women for marriage. We do not currently support same-sex matching.</p>
+          <p id="gender-disclosure" className="text-brand-muted text-xs font-medium -mt-1">Marryzen connects men and women for marriage. We do not currently support same-sex matching.</p>
           <div role="radiogroup" aria-labelledby="identifyAs" aria-describedby="gender-disclosure" className="grid grid-cols-2 gap-4">
             <button
               type="button"
@@ -232,7 +232,7 @@ const Step1b = ({ formData, updateFormData, errors = {} }) => {
             </button>
           </div>
           {formData.identifyAs && (
-            <p className="text-xs text-[#706B67] mt-1 font-medium">
+            <p className="text-xs text-brand-muted mt-1 font-medium">
               You will be matched with: <span className="font-bold">{formData.identifyAs === 'Man' ? 'Women' : 'Men'}</span>
             </p>
           )}
