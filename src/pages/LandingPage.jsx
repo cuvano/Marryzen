@@ -183,10 +183,11 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#FAF7F2]">
+    <main className="min-h-screen relative overflow-hidden bg-[#FAF7F2]">
       <Helmet>
         <title>Marryzen | Serious Marriage Matchmaking Platform</title>
         <meta name="description" content="Marryzen is a private, values-based marriage matchmaking platform for serious, verified members seeking lifelong commitment." />
+        <link rel="canonical" href="https://www.marryzen.com/" />
       </Helmet>
 
       {/* --- PUBLIC NAV BAR --- */}
@@ -539,7 +540,7 @@ const LandingPage = () => {
          </div>
       </section>
 
-    </div>
+    </main>
   );
 };
 
