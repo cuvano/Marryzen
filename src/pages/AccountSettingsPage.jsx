@@ -256,13 +256,13 @@ const AccountSettingsPage = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/dashboard')}
-            className="mb-4 text-[#706B67] hover:text-[#1F1F1F]"
+            className="mb-4 text-brand-muted hover:text-[#1F1F1F]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold text-[#1F1F1F]">Account Settings</h1>
-          <p className="text-[#706B67] mt-2">Manage your account security and preferences</p>
+          <p className="text-brand-muted mt-2">Manage your account security and preferences</p>
         </div>
 
         {/* Email Information Card */}
@@ -282,8 +282,8 @@ const AccountSettingsPage = () => {
                   <div className="flex items-center gap-2 mt-1">
                     {emailVerified ? (
                       <>
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-green-600 font-medium">Verified</span>
+                        <CheckCircle className="w-4 h-4 text-green-700" />
+                        <span className="text-sm text-green-700 font-medium">Verified</span>
                       </>
                     ) : (
                       <>
@@ -296,7 +296,7 @@ const AccountSettingsPage = () => {
               </div>
             </div>
             {!emailVerified && (
-              <p className="text-sm text-[#706B67] mt-3">
+              <p className="text-sm text-brand-muted mt-3">
                 Confirm your email to be approved. Please check your inbox and click the verification link.
               </p>
             )}
@@ -339,7 +339,7 @@ const AccountSettingsPage = () => {
             compact={false}
           />
           {dealbreakersSaving && (
-            <p className="text-xs text-[#706B67] mt-2 ml-2">Saving&hellip;</p>
+            <p className="text-xs text-brand-muted mt-2 ml-2">Saving&hellip;</p>
           )}
         </div>
 
@@ -378,7 +378,7 @@ const AccountSettingsPage = () => {
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     aria-label={showCurrentPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-[#1F1F1F]"
                   >
                     {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -415,7 +415,7 @@ const AccountSettingsPage = () => {
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     aria-label={showNewPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-[#1F1F1F]"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -426,7 +426,7 @@ const AccountSettingsPage = () => {
                     {passwordErrors.newPassword}
                   </p>
                 )}
-                <p className="text-xs text-[#706B67]">
+                <p className="text-xs text-brand-muted">
                   Password must be at least 8 characters and include uppercase, lowercase, and a number.
                 </p>
               </div>
@@ -455,7 +455,7 @@ const AccountSettingsPage = () => {
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#706B67] hover:text-[#1F1F1F]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-[#1F1F1F]"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
