@@ -576,7 +576,7 @@ if (currentUser.status === 'suspended') {
                         <button
                           type="button"
                           onClick={() => setIsBlockModalOpen(true)}
-                          className="text-sm font-semibold text-[#706B67] hover:text-red-700 underline-offset-2 hover:underline"
+                          className="text-sm font-semibold text-brand-muted hover:text-red-700 underline-offset-2 hover:underline"
                         >
                           Block
                         </button>
@@ -603,7 +603,7 @@ if (currentUser.status === 'suspended') {
                                 </div>
                                 {/* Read Receipt (Premium only) */}
                                 {currentUser?.is_premium && msg.sender_id === currentUser.id && (
-                                  <div className="mt-1 text-[10px] text-[#706B67] text-right">
+                                  <div className="mt-1 text-[10px] text-brand-muted text-right">
                                     {msg.read_at ? 'Seen' : 'Delivered'}
                                   </div>
                                 )}
@@ -660,7 +660,7 @@ if (currentUser.status === 'suspended') {
                     ) : (
                         <>
                             {!currentUser?.is_premium && (
-                                <div className="mb-2 text-xs text-center text-[#706B67]">
+                                <div className="mb-2 text-xs text-center text-brand-muted">
                                     Messages today: <span className="font-bold">{dailyMessageCount}/10</span>
                                     {dailyMessageCount >= 8 && <span className="text-yellow-600 ml-2">... Limit soon</span>}
                                 </div>
