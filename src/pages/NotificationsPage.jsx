@@ -130,13 +130,13 @@ const NotificationsPage = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'new_match':
-        return <Heart className="w-5 h-5 text-[#C85A72]" />;
+        return <Heart className="w-5 h-5 text-brand-pink-strong" />;
       case 'new_message':
         return <MessageSquare className="w-5 h-5 text-blue-600" />;
       case 'intro_request':
         return <UserPlus className="w-5 h-5 text-[#E6B450]" />;
       case 'profile_approved':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="w-5 h-5 text-green-700" />;
       case 'profile_rejected':
         return <XCircle className="w-5 h-5 text-red-600" />;
       case 'referral_reward':
@@ -290,10 +290,10 @@ const NotificationsPage = () => {
             Back
           </Button>
           <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2 flex items-center gap-2">
-            <Bell className="text-[#C85A72]" />
+            <Bell className="text-brand-pink-strong" />
             Notifications
           </h1>
-          <p className="text-[#706B67]">Stay updated with your matches, messages, and rewards</p>
+          <p className="text-brand-muted">Stay updated with your matches, messages, and rewards</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -359,7 +359,7 @@ const NotificationsPage = () => {
                                   <Badge className="bg-blue-500 text-white text-xs">New</Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-[#706B67] mb-2">{notification.body}</p>
+                              <p className="text-sm text-brand-muted mb-2">{notification.body}</p>
                               <span className="text-xs text-gray-400">
                                 {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                               </span>
@@ -396,10 +396,10 @@ const NotificationsPage = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-[#FAF7F2] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-[#706B67]" />
+                  <Mail className="w-5 h-5 text-brand-muted" />
                   <div>
                     <Label className="text-[#1F1F1F] font-medium">Email Notifications</Label>
-                    <p className="text-xs text-[#706B67]">Receive notifications via email</p>
+                    <p className="text-xs text-brand-muted">Receive notifications via email</p>
                   </div>
                 </div>
                 <Switch 
@@ -410,10 +410,10 @@ const NotificationsPage = () => {
 
               <div className="flex items-center justify-between p-4 bg-[#FAF7F2] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-[#706B67]" />
+                  <Smartphone className="w-5 h-5 text-brand-muted" />
                   <div>
                     <Label className="text-[#1F1F1F] font-medium">Push Notifications</Label>
-                    <p className="text-xs text-[#706B67]">Receive push notifications in browser</p>
+                    <p className="text-xs text-brand-muted">Receive push notifications in browser</p>
                   </div>
                 </div>
                 <Switch 
@@ -430,7 +430,7 @@ const NotificationsPage = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-[#C85A72]" />
+                      <Heart className="w-4 h-4 text-brand-pink-strong" />
                       <Label>New Matches</Label>
                     </div>
                     <Switch 
@@ -460,7 +460,7 @@ const NotificationsPage = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <CheckCircle className="w-4 h-4 text-green-700" />
                       <Label>Profile Status Updates</Label>
                     </div>
                     <Switch 
