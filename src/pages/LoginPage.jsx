@@ -162,8 +162,11 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
-      <Helmet><title>Log in — Marryzen</title></Helmet>
+    <main className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
+      <Helmet>
+        <title>Log in — Marryzen</title>
+        <link rel="canonical" href="https://www.marryzen.com/login" />
+      </Helmet>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#E6DCD2] p-8 md:p-10">
         <div className="text-center mb-10">
             <div className="w-16 h-16 bg-[#F9E7EB] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -214,7 +217,7 @@ const LoginPage = () => {
             </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 
