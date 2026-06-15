@@ -104,10 +104,10 @@ const RewardsPage = () => {
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-2">
-          <Gift className="w-8 h-8 text-[#C85A72]" />
+          <Gift className="w-8 h-8 text-brand-pink-strong" />
           <h1 className="text-3xl font-bold text-[#1F1F1F]">My Rewards</h1>
         </div>
-        <p className="text-[#706B67] mb-8">Manage and claim your referral rewards.</p>
+        <p className="text-brand-muted mb-8">Manage and claim your referral rewards.</p>
 
         {/* Premium status card */}
         {premium.is_premium && premiumExpiryStr && (
@@ -116,7 +116,7 @@ const RewardsPage = () => {
               <Crown className="w-6 h-6 text-[#8a6c1e]" />
               <div>
                 <div className="font-bold text-[#1F1F1F]">Premium active</div>
-                <div className="text-sm text-[#706B67]">Renews / ends on {premiumExpiryStr}</div>
+                <div className="text-sm text-brand-muted">Renews / ends on {premiumExpiryStr}</div>
               </div>
             </CardContent>
           </Card>
@@ -136,7 +136,7 @@ const RewardsPage = () => {
               <div className="text-center py-8 bg-[#FAF7F2] rounded-lg border border-dashed border-[#E6DCD2]">
                 <Gift className="w-12 h-12 text-[#E6DCD2] mx-auto mb-3" />
                 <p className="text-[#1F1F1F] font-medium mb-1">No available rewards</p>
-                <p className="text-sm text-[#706B67] mb-4">Invite friends to earn premium perks.</p>
+                <p className="text-sm text-brand-muted mb-4">Invite friends to earn premium perks.</p>
                 <Button variant="outline" onClick={() => navigate('/referrals')}>Go to Referrals</Button>
               </div>
             ) : (
@@ -145,10 +145,10 @@ const RewardsPage = () => {
                   <div key={credit.id} className="flex items-center justify-between p-4 bg-[#FFFBEB] border border-[#E6B450] rounded-lg gap-3">
                     <div className="flex-1">
                       <div className="font-bold text-[#1F1F1F]">{credit.days} free days of Premium</div>
-                      <div className="text-xs text-[#706B67] mt-0.5">
+                      <div className="text-xs text-brand-muted mt-0.5">
                         {SOURCE_LABELS[credit.source] || credit.source} - earned {new Date(credit.earned_at).toLocaleDateString()}
                       </div>
-                      <div className="text-xs text-[#706B67]">
+                      <div className="text-xs text-brand-muted">
                         Expires {new Date(credit.expires_at).toLocaleDateString()}
                       </div>
                     </div>
@@ -170,7 +170,7 @@ const RewardsPage = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-green-700" />
               Activated history ({claimed.length})
             </CardTitle>
             <CardDescription>Rewards you've already activated.</CardDescription>
@@ -183,15 +183,15 @@ const RewardsPage = () => {
                 {claimed.map(credit => (
                   <div key={credit.id} className="flex items-center justify-between p-3 bg-[#FAF7F2] border border-[#E6DCD2] rounded-lg">
                     <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="w-5 h-5 text-green-700 flex-shrink-0" />
                       <div>
                         <div className="text-sm font-medium text-[#1F1F1F]">{credit.days} days of Premium</div>
-                        <div className="text-xs text-[#706B67]">
+                        <div className="text-xs text-brand-muted">
                           {SOURCE_LABELS[credit.source] || credit.source}
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs text-[#706B67] text-right">
+                    <div className="text-xs text-brand-muted text-right">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         Claimed {new Date(credit.claimed_at).toLocaleDateString()}
