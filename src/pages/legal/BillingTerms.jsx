@@ -13,7 +13,7 @@ const BillingTerms = () => {
       <div className="max-w-4xl mx-auto">
          {/* Navigation Buttons */}
         <div className="flex justify-between items-center mb-8">
-             <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
+             <Button variant="ghost" onClick={() => navigate(-1)} className="text-brand-muted hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
             <div className="flex gap-2">
@@ -30,7 +30,7 @@ const BillingTerms = () => {
 
         <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-2">Premium Billing Terms</h1>
-            <p className="text-[#706B67] font-medium">Effective Date: June 3, 2026</p>
+            <p className="text-brand-muted font-medium">Effective Date: June 3, 2026</p>
         </div>
 
         <div className="bg-[#FFFFFF] border border-[#E6DCD2] rounded-2xl p-8 md:p-12 shadow-sm space-y-8">
@@ -61,7 +61,7 @@ const BillingTerms = () => {
             <div className="space-y-4">
                 <h3 className="text-xl font-bold text-[#1F1F1F]">No Refunds (Except as Stated in Our Refund Policy)</h3>
                 <p className="leading-relaxed text-[#333333]">
-                    All charges for Premium subscriptions are non-refundable, and there are no refunds or credits for partially used periods, except in the specific cases described in our <a href="/refund-policy" className="text-[#C85A72] underline">Refund Policy</a> (technical errors, extended service outage, or accidental upgrades within 24 hours) or as required by applicable law.
+                    All charges for Premium subscriptions are non-refundable, and there are no refunds or credits for partially used periods, except in the specific cases described in our <a href="/refund-policy" className="text-brand-pink-strong underline">Refund Policy</a> (technical errors, extended service outage, or accidental upgrades within 24 hours) or as required by applicable law.
                 </p>
             </div>
 
@@ -82,7 +82,7 @@ const BillingTerms = () => {
             <div className="space-y-4">
                 <h3 className="text-xl font-bold text-[#1F1F1F]">Questions</h3>
                 <p className="leading-relaxed text-[#333333]">
-                    Email <a href="mailto:admin@marryzen.com" className="text-[#C85A72] underline">admin@marryzen.com</a> with any billing question. We respond within 1–2 business days.
+                    Email <a href="mailto:admin@marryzen.com" className="text-brand-pink-strong underline">admin@marryzen.com</a> with any billing question. We respond within 1–2 business days.
                 </p>
             </div>
 
