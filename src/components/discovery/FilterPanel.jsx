@@ -247,8 +247,8 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                     {filters.distance != null && Number.isFinite(filters.distance) ? (
                       <div className="space-y-2 relative z-10">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-[#706B67]">Max radius</span>
-                          <span className="text-xs font-medium text-[#706B67]">
+                          <span className="text-xs text-brand-muted">Max radius</span>
+                          <span className="text-xs font-medium text-brand-muted">
                             {filters.distance} km
                           </span>
                         </div>
@@ -261,7 +261,7 @@ const FilterPanel = ({ filters, setFilters, isPremium, onApply, onClose, results
                         />
                       </div>
                     ) : (
-                      <p className="text-xs text-[#706B67] leading-relaxed">
+                      <p className="text-xs text-brand-muted leading-relaxed">
                         Any — no distance limit. Turn on to filter by how far away matches can be (requires
                         location on your profile and theirs).
                       </p>
