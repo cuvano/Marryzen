@@ -206,7 +206,7 @@ const Header = () => {
               {/* Notifications */}
               <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-[#706B67] hover:text-[#1F1F1F]">
+                <Button variant="ghost" size="icon" className="relative text-[#706B67] hover:text-[#1F1F1F]" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}>
                     <Bell size={20} />
                     {unreadCount > 0 && (
                         <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
