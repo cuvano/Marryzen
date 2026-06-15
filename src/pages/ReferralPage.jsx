@@ -124,7 +124,7 @@ const ReferralPage = () => {
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-[#1F1F1F] mb-2">Invite Friends</h1>
-        <p className="text-[#706B67] mb-8">Help friends find serious partners and earn premium rewards.</p>
+        <p className="text-brand-muted mb-8">Help friends find serious partners and earn premium rewards.</p>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -151,7 +151,7 @@ const ReferralPage = () => {
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
-              <Gift className="w-8 h-8 mx-auto text-[#C85A72] mb-2" />
+              <Gift className="w-8 h-8 mx-auto text-brand-pink-strong mb-2" />
               <div className="text-2xl font-bold">{stats.rewards}</div>
               <div className="text-xs text-gray-500 font-medium">Rewards Available</div>
             </CardContent>
@@ -177,7 +177,7 @@ const ReferralPage = () => {
                 </Button>
               </div>
             </div>
-            <div className="mt-4 text-sm text-[#706B67] font-medium">
+            <div className="mt-4 text-sm text-brand-muted font-medium">
               Your Referral Code:
               <span
                 className="font-bold text-[#1F1F1F] bg-white px-2 py-1 rounded border border-[#E6DCD2] ml-1 select-all cursor-pointer hover:bg-[#FAF7F2]"
@@ -197,7 +197,7 @@ const ReferralPage = () => {
 
             {/* Share Via Section */}
             <div className="mt-6 pt-6 border-t border-[#E6DCD2]">
-              <p className="text-sm font-medium text-[#706B67] mb-3">Share via:</p>
+              <p className="text-sm font-medium text-brand-muted mb-3">Share via:</p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -224,7 +224,7 @@ const ReferralPage = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-[#706B67] text-[#706B67] hover:bg-[#FAF7F2]"
+                  className="border-[#706B67] text-brand-muted hover:bg-[#FAF7F2]"
                   onClick={shareViaEmail}
                 >
                   <MessageSquare className="w-4 h-4 mr-2" /> Email
@@ -249,21 +249,21 @@ const ReferralPage = () => {
                   <UserPlus className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">1. Friend Signs Up</h3>
-                <p className="text-sm text-[#706B67]">Your friend uses your referral link or code to create their account</p>
+                <p className="text-sm text-brand-muted">Your friend uses your referral link or code to create their account</p>
               </div>
               <div className="text-center p-6 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                 <div className="w-16 h-16 bg-[#C85A72] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">2. Friend Verifies</h3>
-                <p className="text-sm text-[#706B67]">They complete Marryzen ID verification with a government-issued document</p>
+                <p className="text-sm text-brand-muted">They complete Marryzen ID verification with a government-issued document</p>
               </div>
               <div className="text-center p-6 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                 <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Gift className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">3. You Both Get Premium</h3>
-                <p className="text-sm text-[#706B67]">You both get a free month of Premium. If they upgrade to a paid plan, you get one more month on top.</p>
+                <p className="text-sm text-brand-muted">You both get a free month of Premium. If they upgrade to a paid plan, you get one more month on top.</p>
               </div>
             </div>
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -328,7 +328,7 @@ const ReferralPage = () => {
                         </td>
                         <td className="px-4 py-3">
                           {ref.status === 'completed' ? (
-                            <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Earned</span>
+                            <span className="text-green-700 font-bold flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Earned</span>
                           ) : (
                             <span className="text-gray-400">Locked</span>
                           )}
@@ -346,7 +346,7 @@ const ReferralPage = () => {
         <div className="my-8 text-center">
           <Button
             variant="link"
-            className="text-[#706B67] hover:text-[#1F1F1F]"
+            className="text-brand-muted hover:text-[#1F1F1F]"
             onClick={() => navigate('/referral-terms')}
           >
             <FileText className="w-4 h-4 mr-2" />
