@@ -35,7 +35,7 @@ const Step3b = ({ formData, updateFormData, coreValues }) => {
       <div className="space-y-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Your Lifestyle</h2>
-          <p className="text-[#706B67] text-lg">The everyday context for the life you want to build together.</p>
+          <p className="text-brand-muted text-lg">The everyday context for the life you want to build together.</p>
         </div>
 
         {/* Lifestyle Details */}
