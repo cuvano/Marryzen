@@ -78,19 +78,19 @@ const Step3a = ({ formData, updateFormData, cultures }) => {
       <div className="space-y-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Your Identity &amp; Faith</h2>
-          <p className="text-[#706B67] text-lg">Who you are culturally and spiritually — the foundation for finding a true match.</p>
+          <p className="text-brand-muted text-lg">Who you are culturally and spiritually — the foundation for finding a true match.</p>
         </div>
 
         {/* Cultural Heritage & Ethnicity */}
         <div>
           <Label className="text-[#333333] font-semibold text-base mb-2 block">Which best describes your heritage?</Label>
           <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
-            <span className="font-semibold">Privacy:</span> Cultural heritage and ethnic background are sensitive personal data under data-protection law (GDPR Article 9). We process this solely to suggest more compatible matches, never share it with third parties, and you may choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
+            <span className="font-semibold">Privacy:</span> Cultural heritage and ethnic background are sensitive personal data under data-protection law (GDPR Article 9). We process this solely to suggest more compatible matches, never share it with third parties, and you may choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-brand-pink-strong">Privacy Policy</a>.
           </p>
           {/* Phase 2G: counter shows progress against the 3-cap. */}
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[#706B67] text-xs font-medium">Select up to {MAX_CULTURES}. Mix &amp; match if you identify with several.</p>
-            <span className={`text-xs font-semibold tabular-nums ${selectedCultures.length === MAX_CULTURES ? 'text-[#C85A72]' : 'text-[#706B67]'}`} aria-live="polite">
+            <p className="text-brand-muted text-xs font-medium">Select up to {MAX_CULTURES}. Mix &amp; match if you identify with several.</p>
+            <span className={`text-xs font-semibold tabular-nums ${selectedCultures.length === MAX_CULTURES ? 'text-brand-pink-strong' : 'text-brand-muted'}`} aria-live="polite">
               {selectedCultures.length} / {MAX_CULTURES}
             </span>
           </div>
@@ -178,9 +178,9 @@ const Step3a = ({ formData, updateFormData, cultures }) => {
         {/* Religious Affiliation */}
         <div>
              <Label htmlFor="religiousAffiliation" className="text-[#333333] font-semibold text-base mb-2 block">Religious Affiliation (Optional)</Label>
-             <p className="text-[#706B67] text-sm mb-2">This helps us suggest more compatible matches.</p>
+             <p className="text-brand-muted text-sm mb-2">This helps us suggest more compatible matches.</p>
              <p className="text-[#8A857D] text-xs mb-3 leading-relaxed">
-               <span className="font-semibold">Privacy:</span> Religious affiliation and your level of religious practice (selected above) are sensitive personal data under data-protection law (GDPR Article 9). We process this solely for matching, never share it with third parties, and you may leave this blank or choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a> for details.
+               <span className="font-semibold">Privacy:</span> Religious affiliation and your level of religious practice (selected above) are sensitive personal data under data-protection law (GDPR Article 9). We process this solely for matching, never share it with third parties, and you may leave this blank or choose "Prefer not to say." See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-brand-pink-strong">Privacy Policy</a> for details.
              </p>
              <select
                 id="religiousAffiliation"
