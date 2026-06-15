@@ -83,7 +83,7 @@ const BlockUserModal = ({ isOpen, onClose, blockedUserName, blockedUserId, onBlo
               </div>
               <div>
                 <h2 className="text-xl font-bold text-[#1F1F1F]">Block {blockedUserName || 'this member'}?</h2>
-                <p className="text-sm text-[#706B67] mt-1">
+                <p className="text-sm text-brand-muted mt-1">
                   They won't be able to view your profile, like you, or send you messages.
                 </p>
               </div>
