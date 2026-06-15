@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import Header from '@/components/Header';
 import { supabase } from '@/lib/customSupabaseClient';
 import { touchLastActiveIfDue } from '@/lib/profileActivity';
@@ -82,6 +83,7 @@ const AuthenticatedLayout = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+        <Helmet><meta name="robots" content="noindex,nofollow" /></Helmet>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-brand-muted font-medium">Loading...</p>
@@ -96,6 +98,7 @@ const AuthenticatedLayout = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex flex-col">
+      <Helmet><meta name="robots" content="noindex,nofollow" /></Helmet>
       <Header />
       <main className="flex-grow">
         <Outlet />
