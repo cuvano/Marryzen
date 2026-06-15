@@ -59,7 +59,7 @@ const Step4 = ({ formData, updateFormData, languages }) => {
       <div className="space-y-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Tell Your Story</h2>
-          <p className="text-[#706B67] text-lg">Your story helps create deeper, more meaningful matches.</p>
+          <p className="text-brand-muted text-lg">Your story helps create deeper, more meaningful matches.</p>
         </div>
         
         {/* Bio Section */}
@@ -78,7 +78,7 @@ const Step4 = ({ formData, updateFormData, languages }) => {
              ) : (
                  <div />
              )}
-             <p className="text-[#706B67]">{formData.bio ? formData.bio.length : 0} / 50 characters</p>
+             <p className="text-brand-muted">{formData.bio ? formData.bio.length : 0} / 50 characters</p>
           </div>
         </div>
         
@@ -133,7 +133,7 @@ const Step4 = ({ formData, updateFormData, languages }) => {
         {/* Languages Section */}
         <div>
           <Label className="text-[#333333] font-semibold text-base mb-2 block">Languages You Can Communicate In</Label>
-          <p className="text-[#706B67] text-sm mb-4">Select all languages you can comfortably communicate in.</p>
+          <p className="text-brand-muted text-sm mb-4">Select all languages you can comfortably communicate in.</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {languages.map((language) => (
               <div key={language} className={`flex items-center space-x-3 p-3 rounded-xl transition-colors ${formData.languages?.includes(language) ? 'bg-[#FAF7F2] border border-[#E6DCD2]' : 'bg-white border border-transparent hover:bg-[#FAF7F2]'}`}>
