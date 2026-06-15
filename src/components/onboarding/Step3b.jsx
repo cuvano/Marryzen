@@ -93,7 +93,7 @@ const Step3b = ({ formData, updateFormData, coreValues }) => {
                     <button
                         type="button"
                         onClick={() => updateFormData('hasChildren', true)}
-                        className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                        className={`flex-1 py-3 rounded-lg border text-sm font-medium min-h-[44px] ${
                             formData.hasChildren === true
                                 ? 'bg-[#E6B450] text-white border-[#E6B450]'
                                 : 'bg-white text-[#333333] border-[#E6DCD2]'
@@ -107,7 +107,7 @@ const Step3b = ({ formData, updateFormData, coreValues }) => {
                             updateFormData('hasChildren', false);
                             updateFormData('childrenLiveWithYou', undefined);
                         }}
-                        className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                        className={`flex-1 py-3 rounded-lg border text-sm font-medium min-h-[44px] ${
                             formData.hasChildren === false
                                 ? 'bg-[#E6B450] text-white border-[#E6B450]'
                                 : 'bg-white text-[#333333] border-[#E6DCD2]'
@@ -127,7 +127,7 @@ const Step3b = ({ formData, updateFormData, coreValues }) => {
                             <button
                                 type="button"
                                 onClick={() => updateFormData('childrenLiveWithYou', true)}
-                                className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                                className={`flex-1 py-3 rounded-lg border text-sm font-medium min-h-[44px] ${
                                     formData.childrenLiveWithYou === true
                                         ? 'bg-[#E6B450] text-white border-[#E6B450]'
                                         : 'bg-white text-[#333333] border-[#E6DCD2]'
@@ -138,7 +138,7 @@ const Step3b = ({ formData, updateFormData, coreValues }) => {
                             <button
                                 type="button"
                                 onClick={() => updateFormData('childrenLiveWithYou', false)}
-                                className={`flex-1 py-2 rounded-lg border text-sm font-medium ${
+                                className={`flex-1 py-3 rounded-lg border text-sm font-medium min-h-[44px] ${
                                     formData.childrenLiveWithYou === false
                                         ? 'bg-[#E6B450] text-white border-[#E6B450]'
                                         : 'bg-white text-[#333333] border-[#E6DCD2]'
