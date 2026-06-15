@@ -1116,7 +1116,7 @@ const OnboardingPage = () => {
                 <Button
                   variant="ghost"
                   onClick={() => navigate('/profile')}
-                  className="text-[#706B67] hover:bg-[#F3E8D9] hover:text-[#1F1F1F] font-semibold px-6"
+                  className="text-brand-muted hover:bg-[#F3E8D9] hover:text-[#1F1F1F] font-semibold px-6"
                 >
                   Cancel
                 </Button>
@@ -1125,7 +1125,7 @@ const OnboardingPage = () => {
             
             <div className="flex flex-col items-end">
                 {currentStep === totalSteps && (
-                    <p className="text-xs text-[#706B67] mb-3 font-medium max-w-xs text-right">
+                    <p className="text-xs text-brand-muted mb-3 font-medium max-w-xs text-right">
                         You're about to join Marryzen, a serious community built for real marriage.
                     </p>
                 )}
