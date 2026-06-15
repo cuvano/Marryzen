@@ -903,7 +903,7 @@ const DiscoveryPage = () => {
             {profile.bio && (
               <div>
                 <h3 className="font-bold text-lg text-[#1F1F1F] mb-2">About</h3>
-                <p className="text-[#706B67] leading-relaxed">{profile.bio}</p>
+                <p className="text-brand-muted leading-relaxed">{profile.bio}</p>
               </div>
             )}
 
@@ -928,25 +928,25 @@ const DiscoveryPage = () => {
             <div className="grid grid-cols-2 gap-4">
               {profile.faith_lifestyle && (
                 <div>
-                  <span className="text-sm text-[#706B67]">Faith Lifestyle</span>
+                  <span className="text-sm text-brand-muted">Faith Lifestyle</span>
                   <p className="font-medium text-[#1F1F1F]">{displayFaithLifestyle(profile.faith_lifestyle)}</p>
                 </div>
               )}
               {profile.marital_status && (
                 <div>
-                  <span className="text-sm text-[#706B67]">Marital Status</span>
+                  <span className="text-sm text-brand-muted">Marital Status</span>
                   <p className="font-medium text-[#1F1F1F]">{displayMaritalStatus(profile.marital_status)}</p>
                 </div>
               )}
               {profile.education && (
                 <div>
-                  <span className="text-sm text-[#706B67]">Education</span>
+                  <span className="text-sm text-brand-muted">Education</span>
                   <p className="font-medium text-[#1F1F1F]">{displayEducation(profile.education)}</p>
                 </div>
               )}
               {profile.zodiac_sign && (
                 <div>
-                  <span className="text-sm text-[#706B67]">Zodiac Sign</span>
+                  <span className="text-sm text-brand-muted">Zodiac Sign</span>
                   <p className="font-medium text-[#1F1F1F]">{profile.zodiac_sign}</p>
                 </div>
               )}
@@ -1035,7 +1035,7 @@ const DiscoveryPage = () => {
         title: 'Increase Distance',
         description: `Currently ${filters.distance} km. Increase to see more matches nearby.`,
         action: onIncreaseDistance,
-        color: 'text-green-600',
+        color: 'text-green-700',
         bg: 'bg-green-50'
       });
     }
@@ -1077,9 +1077,9 @@ const DiscoveryPage = () => {
     return (
       <div className="bg-white rounded-2xl border border-dashed border-[#E6DCD2] p-8 md:p-12">
         <div className="text-center max-w-2xl mx-auto">
-          <Search className="w-16 h-16 mx-auto text-[#706B67] mb-4 opacity-50" />
+          <Search className="w-16 h-16 mx-auto text-brand-muted mb-4 opacity-50" />
           <h3 className="text-2xl font-bold text-[#1F1F1F] mb-2">No profiles found</h3>
-          <p className="text-[#706B67] mb-8">
+          <p className="text-brand-muted mb-8">
             {hasActiveFilters 
               ? "Your current filters are too specific. Try adjusting them to see more matches."
               : "No matches found right now. Check back soon or adjust your preferences."}
@@ -1102,7 +1102,7 @@ const DiscoveryPage = () => {
                       </div>
                       <div className="flex-1">
                         <h5 className="font-bold text-[#1F1F1F] mb-1">{suggestion.title}</h5>
-                        <p className="text-sm text-[#706B67]">{suggestion.description}</p>
+                        <p className="text-sm text-brand-muted">{suggestion.description}</p>
                       </div>
                       <ArrowRight className={`w-4 h-4 ${suggestion.color} opacity-0 group-hover:opacity-100 transition-opacity mt-1`} />
                     </div>
@@ -1281,7 +1281,7 @@ const DiscoveryPage = () => {
                     {/* Filter Summary Tags ... only render when any filter is active */}
                     {(filters.faith || filters.city || filters.recentActive) && (
                       <div className="flex flex-wrap gap-2 items-center">
-                          <span className="text-xs font-bold text-[#706B67] uppercase tracking-wider mr-1">Active:</span>
+                          <span className="text-xs font-bold text-brand-muted uppercase tracking-wider mr-1">Active:</span>
                           {filters.faith && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.faith} <button type="button" aria-label={`Remove ${filters.faith} filter`} onClick={() => setFilters({...filters, faith: ''})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-[#E6B450]"><X className="w-3.5 h-3.5"/></button></Badge>}
                           {filters.city && <Badge variant="secondary" className="bg-[#FFFBEB] border border-[#E6B450] text-[#1F1F1F] gap-1">{filters.city} <button type="button" aria-label={`Remove ${filters.city} filter`} onClick={() => setFilters({...filters, city: ''})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-[#E6B450]"><X className="w-3.5 h-3.5"/></button></Badge>}
                           {filters.recentActive && <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1">Active Today <button type="button" aria-label="Remove Active Today filter" onClick={() => setFilters({...filters, recentActive: false})} className="ml-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"><X className="w-3.5 h-3.5"/></button></Badge>}
@@ -1315,11 +1315,11 @@ const DiscoveryPage = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4">
                         <Loader2 className="w-10 h-10 animate-spin text-[#E6B450]" />
-                        <p className="text-[#706B67]">Finding compatible matches...</p>
+                        <p className="text-brand-muted">Finding compatible matches...</p>
                     </div>
                 ) : loadError && profiles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-6 bg-white rounded-2xl border border-[#E6DCD2] p-8">
-                        <p className="text-[#706B67] text-center max-w-sm">Something went wrong loading profiles. This can happen briefly ... try again.</p>
+                        <p className="text-brand-muted text-center max-w-sm">Something went wrong loading profiles. This can happen briefly ... try again.</p>
                         <Button
                             onClick={() => fetchProfiles()}
                             className="bg-[#E6B450] text-[#1F1F1F] hover:bg-[#D0A23D]"
