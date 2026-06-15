@@ -221,7 +221,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
       </div>
       
       <div className="space-y-2">
-        <div className="flex justify-between text-xs text-[#706B67] font-medium">
+        <div className="flex justify-between text-xs text-brand-muted font-medium">
             <span className="flex items-center gap-1"><ZoomIn size={14}/> Zoom / Fit</span>
             <span>{Math.round(zoom * 100)}%</span>
         </div>
@@ -245,7 +245,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
           >
             Reset
           </Button>
-          <p className="text-[10px] text-[#706B67] text-center">
+          <p className="text-[10px] text-brand-muted text-center">
             Drag to reposition â¢ Zoom to adjust
           </p>
         </div>
@@ -309,14 +309,14 @@ const PhotoUploadBox = ({ index, photo, onUpload, onRemove, isMain, isLocked }) 
            <>
             {isMain ? (
                 <div className="w-12 h-12 bg-[#F9E7EB] rounded-full flex items-center justify-center mb-2">
-                  <Camera className="w-6 h-6 text-[#C85A72]" />
+                  <Camera className="w-6 h-6 text-brand-pink-strong" />
                 </div>
               ) : (
                 <div className="w-12 h-12 bg-[#FAF7F2] rounded-full flex items-center justify-center mb-2">
-                   <Upload className="w-6 h-6 text-[#C85A72]" />
+                   <Upload className="w-6 h-6 text-brand-pink-strong" />
                 </div>
               )}
-              <span className={`font-bold text-sm mt-2 ${isMain ? 'text-[#C85A72]' : 'text-[#333333]'}`}>
+              <span className={`font-bold text-sm mt-2 ${isMain ? 'text-brand-pink-strong' : 'text-[#333333]'}`}>
                 {isMain ? 'Main Photo *' : `Photo ${index + 1}`}
               </span>
            </>
@@ -476,7 +476,7 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
       <div className="space-y-8">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">Add Your Photos</h2>
-          <p className="text-[#706B67] text-lg">Clear, modest photos help build trust and lead to better matches.</p>
+          <p className="text-brand-muted text-lg">Clear, modest photos help build trust and lead to better matches.</p>
         </div>
 
         {/* GDPR Article 9 biometric-data consent disclosure. Face detection
@@ -484,8 +484,8 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
             This is special-category data under GDPR Article 9; explicit
             consent is captured by proceeding with upload. */}
         <div className="bg-[#FAF7F2] p-4 rounded-xl border border-[#E6DCD2] mb-4">
-          <p className="text-[#706B67] text-xs leading-relaxed">
-            <span className="font-semibold text-[#1F1F1F]">Privacy:</span> Marryzen uses automated face detection on uploaded photos to confirm your main photo contains a visible face. This is biometric data under data-protection law (GDPR Article 9). By uploading a photo, you consent to this processing solely for profile verification. Face data is not retained beyond the verification check. See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-[#C85A72]">Privacy Policy</a>.
+          <p className="text-brand-muted text-xs leading-relaxed">
+            <span className="font-semibold text-[#1F1F1F]">Privacy:</span> Marryzen uses automated face detection on uploaded photos to confirm your main photo contains a visible face. This is biometric data under data-protection law (GDPR Article 9). By uploading a photo, you consent to this processing solely for profile verification. Face data is not retained beyond the verification check. See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-brand-pink-strong">Privacy Policy</a>.
           </p>
         </div>
 
@@ -522,7 +522,7 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
             <div className="aspect-square w-full rounded-2xl flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] to-[#F9E7EB]/40 border-2 border-dashed border-[#E6B450] p-3 text-center">
               <Crown className="w-8 h-8 text-[#E6B450] fill-[#E6B450] mb-2" />
               <span className="text-sm font-bold text-[#1F1F1F]">Add up to {MAX_PREMIUM_PHOTOS - MAX_FREE_PHOTOS} more</span>
-              <span className="text-xs text-[#706B67] mt-1">with Premium</span>
+              <span className="text-xs text-brand-muted mt-1">with Premium</span>
             </div>
           )}
         </div>
@@ -537,8 +537,8 @@ const Step2 = ({ formData = {}, updateFormData = () => {} }) => {
                 <li>Allowed formats: JPG, PNG, HEIC. Max size: 10MB.</li>
             </ul>
             
-            <div className="mt-4 pt-4 border-t border-[#CFC6BA]/30 flex items-start gap-2 text-xs text-[#706B67]">
-                <Lock className="w-3 h-3 mt-0.5 text-[#C85A72]" />
+            <div className="mt-4 pt-4 border-t border-[#CFC6BA]/30 flex items-start gap-2 text-xs text-brand-muted">
+                <Lock className="w-3 h-3 mt-0.5 text-brand-pink-strong" />
                 <p className="font-medium">
                     Your photos are visible only to other verified Marryzen members during discovery and matching. We never sell your photos or display them publicly outside the platform.
                 </p>
