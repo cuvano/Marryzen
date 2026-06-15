@@ -26,17 +26,17 @@ const NotFoundPage = () => {
 
       <div className="text-center max-w-xl">
         <div className="w-20 h-20 rounded-full bg-[#F9E7EB] flex items-center justify-center mx-auto mb-6">
-          <Heart className="w-10 h-10 text-[#C85A72]" />
+          <Heart className="w-10 h-10 text-brand-pink-strong" />
         </div>
 
-        <p className="text-sm font-semibold tracking-widest text-[#706B67] uppercase mb-3">404</p>
+        <p className="text-sm font-semibold tracking-widest text-brand-muted uppercase mb-3">404</p>
 
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1F1F1F] mb-4 tracking-tight leading-tight">
           This page doesn&rsquo;t exist
-          <span className="block text-[#C85A72] italic font-serif mt-2">but your match might.</span>
+          <span className="block text-brand-pink italic font-serif mt-2">but your match might.</span>
         </h1>
 
-        <p className="text-[#706B67] mb-10 text-base sm:text-lg leading-relaxed">
+        <p className="text-brand-muted mb-10 text-base sm:text-lg leading-relaxed">
           The link you followed may be broken, moved, or never existed. Take a moment with us, then keep going.
         </p>
 
@@ -55,16 +55,16 @@ const NotFoundPage = () => {
           </Link>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-[#E6DCD2] text-sm text-[#706B67]">
+        <div className="mt-12 pt-8 border-t border-[#E6DCD2] text-sm text-brand-muted">
           <p className="mb-2">Looking for something specific?</p>
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 font-medium">
             {/* All quick-links below are PUBLIC routes (no auth gate).
                 /help was removed — it lives inside <AuthenticatedLayout />
                 and would bounce logged-out 404 visitors to /login. */}
-            <Link to="/login" className="text-[#C85A72] hover:underline">Log in</Link>
-            <Link to="/safety" className="text-[#C85A72] hover:underline">Safety</Link>
-            <Link to="/privacy" className="text-[#C85A72] hover:underline">Privacy</Link>
-            <Link to="/community-guidelines" className="text-[#C85A72] hover:underline">Community guidelines</Link>
+            <Link to="/login" className="text-brand-pink-strong hover:underline">Log in</Link>
+            <Link to="/safety" className="text-brand-pink-strong hover:underline">Safety</Link>
+            <Link to="/privacy" className="text-brand-pink-strong hover:underline">Privacy</Link>
+            <Link to="/community-guidelines" className="text-brand-pink-strong hover:underline">Community guidelines</Link>
           </div>
         </div>
       </div>
