@@ -170,10 +170,10 @@ const LoginPage = () => {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#E6DCD2] p-8 md:p-10">
         <div className="text-center mb-10">
             <div className="w-16 h-16 bg-[#F9E7EB] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-8 h-8 text-[#C85A72] fill-current" />
+                <Heart className="w-8 h-8 text-brand-pink-strong fill-current" />
             </div>
             <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome Back</h1>
-            <p className="text-[#706B67] mt-2">Log in to continue your journey.</p>
+            <p className="text-brand-muted mt-2">Log in to continue your journey.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -192,7 +192,7 @@ const LoginPage = () => {
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="password">Password</Label>
-                    <Link to="/forgot-password" className="text-xs text-[#C85A72] font-medium hover:underline">Forgot password?</Link>
+                    <Link to="/forgot-password" className="text-xs text-brand-pink-strong font-medium hover:underline">Forgot password?</Link>
                 </div>
                 <Input 
                     id="password" 
@@ -210,9 +210,9 @@ const LoginPage = () => {
             </Button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-[#706B67]">
+        <div className="mt-8 text-center text-sm text-brand-muted">
             Don't have an account yet?{' '}
-            <button onClick={() => navigate('/onboarding')} className="text-[#C85A72] font-bold hover:underline">
+            <button onClick={() => navigate('/onboarding')} className="text-brand-pink-strong font-bold hover:underline">
                 Create Profile
             </button>
         </div>
