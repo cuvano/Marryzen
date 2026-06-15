@@ -144,26 +144,26 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-[#706B67]">Loading...</p>
+            <p className="text-sm text-brand-muted">Loading...</p>
           ) : counts.invited === 0 ? (
             <div className="text-center py-8 bg-[#FAF7F2] rounded-lg border border-dashed border-[#E6DCD2]">
               <p className="text-[#1F1F1F] font-medium mb-1">Your invites will appear here.</p>
-              <p className="text-sm text-[#706B67]">Send your first one - it takes 10 seconds.</p>
+              <p className="text-sm text-brand-muted">Send your first one - it takes 10 seconds.</p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.invited}</div>
-                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Invited</div>
+                  <div className="text-center text-xs text-brand-muted uppercase tracking-wide font-medium mt-1">Invited</div>
                 </div>
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.verified}</div>
-                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Verified</div>
+                  <div className="text-center text-xs text-brand-muted uppercase tracking-wide font-medium mt-1">Verified</div>
                 </div>
                 <div className="text-center p-4 bg-[#FAF7F2] rounded-lg border border-[#E6DCD2]">
                   <div className="text-3xl font-bold text-[#1F1F1F]">{counts.paid}</div>
-                  <div className="text-center text-xs text-[#706B67] uppercase tracking-wide font-medium mt-1">Subscribed</div>
+                  <div className="text-center text-xs text-brand-muted uppercase tracking-wide font-medium mt-1">Subscribed</div>
                 </div>
               </div>
               <div className="bg-[#FFFBEB] border border-[#E6B450] rounded-lg p-4">
@@ -173,7 +173,7 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
                     : 'No rewards yet - keep sharing.'}
                 </p>
                 {nextMilestone && (
-                  <p className="text-xs text-[#706B67] mt-1">
+                  <p className="text-xs text-brand-muted mt-1">
                     Next milestone: {nextMilestone} month{nextMilestone === 1 ? '' : 's'}.
                   </p>
                 )}
@@ -207,13 +207,13 @@ const ReferralEnhancements = ({ referralLink, shareCopy }) => {
                 >
                   <span className="font-semibold text-sm text-[#1F1F1F] pr-3">{item.q}</span>
                   {openFaq === i ? (
-                    <ChevronUp className="w-4 h-4 text-[#706B67] flex-shrink-0" />
+                    <ChevronUp className="w-4 h-4 text-brand-muted flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#706B67] flex-shrink-0" />
+                    <ChevronDown className="w-4 h-4 text-brand-muted flex-shrink-0" />
                   )}
                 </button>
                 {openFaq === i && (
-                  <p className="text-sm text-[#706B67] leading-relaxed pb-4 px-2">{item.a}</p>
+                  <p className="text-sm text-brand-muted leading-relaxed pb-4 px-2">{item.a}</p>
                 )}
               </div>
             ))}
