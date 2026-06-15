@@ -127,7 +127,7 @@ const SampleProfileCard = ({ photo, name, age, faithLabel, city, occupation, bio
           {occupation}
         </span>
       </div>
-      <p className="text-sm text-[#706B67] italic leading-snug">
+      <p className="text-sm text-brand-muted italic leading-snug">
         &ldquo;{bio}&rdquo;
       </p>
     </div>
@@ -233,7 +233,7 @@ const LandingPage = () => {
             <span className="block text-[#C85A72] mt-3 text-3xl md:text-5xl font-serif italic">Where Serious Marriages Begin</span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-[#706B67] mb-10 max-w-3xl mx-auto leading-relaxed font-medium">
+          <p className="text-xl md:text-2xl text-brand-muted mb-10 max-w-3xl mx-auto leading-relaxed font-medium">
             A private, values-based marriage platform for those seeking lifelong commitment. 
             No casual dating. No endless swiping. Just real connections.
           </p>
@@ -241,7 +241,7 @@ const LandingPage = () => {
           {/* Trust Bullets */}
           <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-12 text-[#333333] text-sm md:text-base font-semibold">
             <div className="flex items-center gap-2 bg-white px-5 py-3 rounded-full border border-[#E6DCD2] shadow-sm">
-                <Heart className="w-5 h-5 text-[#C85A72]" /> Serious Marriage Only
+                <Heart className="w-5 h-5 text-brand-pink-strong" /> Serious Marriage Only
             </div>
             <div className="flex items-center gap-2 bg-white px-5 py-3 rounded-full border border-[#E6DCD2] shadow-sm">
                 <BadgeCheck className="w-5 h-5 text-[#E6B450]" /> Identity-Verified
@@ -250,7 +250,7 @@ const LandingPage = () => {
                 <Users className="w-5 h-5 text-[#E6B450]" /> Culture & Values Matching
             </div>
             <div className="flex items-center gap-2 bg-white px-5 py-3 rounded-full border border-[#E6DCD2] shadow-sm">
-                <Shield className="w-5 h-5 text-[#C85A72]" /> Safe & Family-Approved
+                <Shield className="w-5 h-5 text-brand-pink-strong" /> Safe & Family-Approved
             </div>
           </div>
 
@@ -304,7 +304,7 @@ const LandingPage = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">
               What Your Matches Look Like
             </h2>
-            <p className="text-lg text-[#706B67] max-w-2xl mx-auto">
+            <p className="text-lg text-brand-muted max-w-2xl mx-auto">
               Faith-first, verified members seeking lifelong commitment — across denominations, cities, and stages of life.
             </p>
           </div>
@@ -315,7 +315,7 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <p className="text-center text-sm text-[#706B67] mt-10 italic opacity-80">
+          <p className="text-center text-sm text-brand-muted mt-10 italic opacity-80">
             Illustrative examples, not real members. Actual member profiles are private and visible only to mutual matches.
           </p>
         </div>
@@ -326,15 +326,15 @@ const LandingPage = () => {
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
                 <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-4">How Marryzen Works</h2>
-                <p className="text-[#706B67] text-lg max-w-2xl mx-auto">Your journey to marriage is simple, structured, and safe.</p>
+                <p className="text-brand-muted text-lg max-w-2xl mx-auto">Your journey to marriage is simple, structured, and safe.</p>
             </div>
             
             <div className="grid md:grid-cols-4 gap-8">
                 {[
                     { title: "Create Real Profile", desc: "Share your values, family background, and what you're looking for.", icon: UserCheck, color: "text-[#E6B450]" },
-                    { title: "Verify Identity", desc: "We check every profile to ensure you're meeting real people.", icon: BadgeCheck, color: "text-[#C85A72]" },
+                    { title: "Verify Identity", desc: "We check every profile to ensure you're meeting real people.", icon: BadgeCheck, color: "text-brand-pink-strong" },
                     { title: "Get Compatibility Matches", desc: "Receive matches based on deep compatibility, not just looks.", icon: Heart, color: "text-[#E6B450]" },
-                    { title: "Start Respectful Conversation", desc: "Connect with purpose. No games, just serious intent.", icon: MessageCircle, color: "text-[#C85A72]" }
+                    { title: "Start Respectful Conversation", desc: "Connect with purpose. No games, just serious intent.", icon: MessageCircle, color: "text-brand-pink-strong" }
                 ].map((step, i) => (
                     <motion.div 
                         key={i}
@@ -348,7 +348,7 @@ const LandingPage = () => {
                             <step.icon size={32} />
                         </div>
                         <h3 className="text-xl font-bold text-[#1F1F1F] mb-4">{step.title}</h3>
-                        <p className="text-[#706B67] text-base leading-relaxed">{step.desc}</p>
+                        <p className="text-brand-muted text-base leading-relaxed">{step.desc}</p>
                     </motion.div>
                 ))}
             </div>
@@ -361,7 +361,7 @@ const LandingPage = () => {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
                 <div>
                     <h2 className="text-3xl md:text-5xl font-bold text-[#1F1F1F] mb-8 leading-tight">
-                        What Makes <br/> <span className="text-[#C85A72] font-serif italic">Marryzen Different?</span>
+                        What Makes <br/> <span className="text-brand-pink font-serif italic">Marryzen Different?</span>
                     </h2>
                     <div className="space-y-6">
                         {[
@@ -372,7 +372,7 @@ const LandingPage = () => {
                             "Private & Respectful Community Standards"
                         ].map((item, i) => (
                             <div key={i} className="flex items-start gap-4 text-[#333333]">
-                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#C85A72] shrink-0 mt-1 border border-[#C85A72]/20 shadow-sm">
+                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-brand-pink-strong shrink-0 mt-1 border border-[#C85A72]/20 shadow-sm">
                                     <CheckCircle size={18} />
                                 </div>
                                 <span className="text-lg font-medium">{item}</span>
@@ -436,7 +436,7 @@ const LandingPage = () => {
                                 "Weekly Curated Introductions"
                             ].map((feat, i) => (
                                 <li key={i} className="flex items-center gap-4 text-[#333333] text-lg">
-                                    <CheckCircle className="text-[#C85A72] shrink-0" size={20} /> {feat}
+                                    <CheckCircle className="text-brand-pink-strong shrink-0" size={20} /> {feat}
                                 </li>
                             ))}
                         </ul>
@@ -476,7 +476,7 @@ const LandingPage = () => {
       {/* --- SAFETY & PRIVACY PROMISE (SAFETY BLUE) --- */}
       <section className="section-pad bg-[#EAF2F7] separator-line">
         <div className="container mx-auto px-4 text-center">
-            <Shield className="w-16 h-16 text-[#C85A72] mx-auto mb-6 opacity-90" />
+            <Shield className="w-16 h-16 text-brand-pink-strong mx-auto mb-6 opacity-90" />
             <h2 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-6">Our Safety & Privacy Promise</h2>
             <p className="text-[#333333] text-xl max-w-3xl mx-auto mb-12">We take your safety as seriously as your marriage search. Our platform is rigorously moderated.</p>
             
@@ -512,7 +512,7 @@ const LandingPage = () => {
                         <p className="text-[#333333] text-lg italic mb-8 pt-6 relative z-10 leading-relaxed">{story.quote}</p>
                         <div className="border-t border-[#FAF7F2] pt-6">
                             <p className="text-[#1F1F1F] font-bold text-lg">{story.name}</p>
-                            <p className="text-[#706B67] text-sm">{story.loc}</p>
+                            <p className="text-brand-muted text-sm">{story.loc}</p>
                         </div>
                     </div>
                 ))}
@@ -524,7 +524,7 @@ const LandingPage = () => {
       <section className="section-pad bg-gradient-to-b from-[#F9E7EB] to-[#FAF7F2]">
          <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1F1F1F] mb-6">Start Your Marriage Journey Today</h2>
-            <p className="text-xl text-[#706B67] mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-brand-muted mb-12 max-w-3xl mx-auto leading-relaxed">
                 Your partner is out there looking for you too. Don't wait for chance.
             </p>
             <Button 
@@ -534,7 +534,7 @@ const LandingPage = () => {
             >
                 Create My Marriage Profile
             </Button>
-            <p className="mt-8 text-[#706B67] text-sm font-medium opacity-80">
+            <p className="mt-8 text-brand-muted text-sm font-medium opacity-80">
                 *By joining, you agree to our Code of Conduct. Serious intent required.
             </p>
          </div>
