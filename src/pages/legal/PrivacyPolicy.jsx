@@ -26,8 +26,11 @@ const PrivacyPolicy = () => {
   const isAuthenticated = !!localStorage.getItem('userProfile');
 
   return (
-    <div className="min-h-screen p-4 md:p-8 pb-20 bg-[#FAF7F2] text-[#333333]">
-      <Helmet><title>Privacy Policy — Marryzen</title></Helmet>
+    <main className="min-h-screen p-4 md:p-8 pb-20 bg-[#FAF7F2] text-[#333333]">
+      <Helmet>
+        <title>Privacy Policy — Marryzen</title>
+        <link rel="canonical" href="https://www.marryzen.com/privacy" />
+      </Helmet>
       <div className="max-w-4xl mx-auto">
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center mb-8">
@@ -74,7 +77,7 @@ const PrivacyPolicy = () => {
 
         <Footer />
       </div>
-    </div>
+    </main>
   );
 };
 
