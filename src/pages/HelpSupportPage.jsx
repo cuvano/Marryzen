@@ -262,7 +262,7 @@ const HelpSupportPage = () => {
             <HelpCircle className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-[#1F1F1F] mb-4">Help & Support</h1>
-          <p className="text-lg text-[#706B67] max-w-2xl mx-auto">
+          <p className="text-lg text-brand-muted max-w-2xl mx-auto">
             We're here to help! Find answers to common questions or contact our support team.
           </p>
         </div>
@@ -384,7 +384,7 @@ const HelpSupportPage = () => {
                       <AccordionTrigger className="text-left text-[#1F1F1F] hover:text-[#E6B450]">
                         {faq.q}
                       </AccordionTrigger>
-                      <AccordionContent className="text-[#706B67] pt-2">
+                      <AccordionContent className="text-brand-muted pt-2">
                         {faq.a}
                       </AccordionContent>
                     </AccordionItem>
