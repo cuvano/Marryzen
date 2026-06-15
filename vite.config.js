@@ -70,13 +70,41 @@ export default defineConfig({
 		},
 	},
 	build: {
+		// Bundle Z (2026-06-15) — perf code-splitting.
+		// Force a few high-value vendor chunks so they cache independently of
+		// the main app bundle. Without manualChunks, Rollup tends to inline
+		// vendor libs into the page chunks that import them, producing
+		// large per-page chunks and worse cache hit rates across deploys.
 		rollupOptions: {
 			external: [
 				'@babel/parser',
 				'@babel/traverse',
 				'@babel/generator',
 				'@babel/types'
-			]
-		}
-	}
+			],
+			output: {
+				manualChunks(id) {
+					if (!id.includes('node_modules')) return undefined;
+					// React core stays together — almost every page needs it.
+					if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/') || id.includes('/node_modules/react-router-dom/') || id.includes('/node_modules/scheduler/')) {
+						return 'react-vendor';
+					}
+					// Supabase JS client is large (~80KB gz) and used across every authed route.
+					if (id.includes('@supabase/')) {
+						return 'supabase-vendor';
+					}
+					// Animation lib — used on landing + onboarding + a few page transitions.
+					if (id.includes('/node_modules/framer-motion/')) {
+						return 'framer-vendor';
+					}
+					// Lucide tree-shakes per-icon — letting Rollup distribute
+					// icon code naturally across page chunks gives better
+					// per-route weight than forcing a single icons-vendor chunk.
+					// Intentionally NOT a manualChunks entry.
+					// Everything else in node_modules gets its own bucket so it doesn't bloat any single page chunk.
+					return 'vendor';
+				},
+			},
+		},
+	},
 });
