@@ -28,10 +28,11 @@ const PressKitPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] py-12 px-4">
+    <main className="min-h-screen bg-[#FAF7F2] py-12 px-4">
       <Helmet>
         <title>Press & Media — Marryzen</title>
         <meta name="description" content="Press kit, logos, factsheet, and media contact for Marryzen — a marriage-intent matchmaking platform." />
+        <link rel="canonical" href="https://www.marryzen.com/press" />
       </Helmet>
 
       <div className="max-w-4xl mx-auto">
@@ -206,7 +207,7 @@ const PressKitPage = () => {
         </section>
 
       </div>
-    </div>
+    </main>
   );
 };
 
