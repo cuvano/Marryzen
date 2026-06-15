@@ -39,13 +39,13 @@ const PressKitPage = () => {
 
         {/* Header */}
         <div className="mb-12">
-          <Link to="/" className="inline-flex items-center text-[#706B67] hover:text-[#1F1F1F] text-sm mb-6 transition-colors">
+          <Link to="/" className="inline-flex items-center text-brand-muted hover:text-[#1F1F1F] text-sm mb-6 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" /> Home
           </Link>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-[#1F1F1F] tracking-tight mb-3">
             Press &amp; Media
           </h1>
-          <p className="text-[#706B67] text-lg max-w-2xl">
+          <p className="text-brand-muted text-lg max-w-2xl">
             Resources for journalists, podcasters, and analysts writing about Marryzen.
           </p>
         </div>
@@ -72,7 +72,7 @@ const PressKitPage = () => {
           <dl className="grid sm:grid-cols-[180px_1fr] gap-x-6 gap-y-4">
             {factSheet.map((row) => (
               <React.Fragment key={row.label}>
-                <dt className="text-sm font-bold text-[#706B67] uppercase tracking-wider">{row.label}</dt>
+                <dt className="text-sm font-bold text-brand-muted uppercase tracking-wider">{row.label}</dt>
                 <dd className="text-[#1F1F1F] text-base leading-relaxed">{row.value}</dd>
               </React.Fragment>
             ))}
@@ -82,7 +82,7 @@ const PressKitPage = () => {
         {/* Logos */}
         <section className="bg-white border border-[#E6DCD2] rounded-[14px] p-8 mb-8 shadow-sm">
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-2">Logos &amp; brand assets</h2>
-          <p className="text-sm text-[#706B67] mb-6">
+          <p className="text-sm text-brand-muted mb-6">
             The logo includes a stylistic period (&ldquo;Marryzen.&rdquo;) on visual surfaces only.
             In running copy, please write &ldquo;Marryzen&rdquo; without the period.
           </p>
@@ -97,10 +97,10 @@ const PressKitPage = () => {
                 <ImageIcon className="w-5 h-5 text-[#E6B450]" />
                 <span>
                   <span className="block text-sm font-bold text-[#1F1F1F]">Favicon (SVG)</span>
-                  <span className="block text-xs text-[#706B67]">Vector mark</span>
+                  <span className="block text-xs text-brand-muted">Vector mark</span>
                 </span>
               </span>
-              <Download className="w-4 h-4 text-[#706B67] group-hover:text-[#1F1F1F]" />
+              <Download className="w-4 h-4 text-brand-muted group-hover:text-[#1F1F1F]" />
             </a>
 
             <a
@@ -112,10 +112,10 @@ const PressKitPage = () => {
                 <ImageIcon className="w-5 h-5 text-[#E6B450]" />
                 <span>
                   <span className="block text-sm font-bold text-[#1F1F1F]">Wordmark card (SVG)</span>
-                  <span className="block text-xs text-[#706B67]">1200&times;630 vector</span>
+                  <span className="block text-xs text-brand-muted">1200&times;630 vector</span>
                 </span>
               </span>
-              <Download className="w-4 h-4 text-[#706B67] group-hover:text-[#1F1F1F]" />
+              <Download className="w-4 h-4 text-brand-muted group-hover:text-[#1F1F1F]" />
             </a>
 
             <a
@@ -127,10 +127,10 @@ const PressKitPage = () => {
                 <ImageIcon className="w-5 h-5 text-[#E6B450]" />
                 <span>
                   <span className="block text-sm font-bold text-[#1F1F1F]">Wordmark card (PNG)</span>
-                  <span className="block text-xs text-[#706B67]">1200&times;630 raster</span>
+                  <span className="block text-xs text-brand-muted">1200&times;630 raster</span>
                 </span>
               </span>
-              <Download className="w-4 h-4 text-[#706B67] group-hover:text-[#1F1F1F]" />
+              <Download className="w-4 h-4 text-brand-muted group-hover:text-[#1F1F1F]" />
             </a>
 
             <a
@@ -142,30 +142,30 @@ const PressKitPage = () => {
                 <ImageIcon className="w-5 h-5 text-[#E6B450]" />
                 <span>
                   <span className="block text-sm font-bold text-[#1F1F1F]">Wordmark square (PNG)</span>
-                  <span className="block text-xs text-[#706B67]">1200&times;1200 raster</span>
+                  <span className="block text-xs text-brand-muted">1200&times;1200 raster</span>
                 </span>
               </span>
-              <Download className="w-4 h-4 text-[#706B67] group-hover:text-[#1F1F1F]" />
+              <Download className="w-4 h-4 text-brand-muted group-hover:text-[#1F1F1F]" />
             </a>
           </div>
 
           <div className="mt-6 grid sm:grid-cols-3 gap-3 text-sm">
             <div className="p-3 rounded-lg bg-[#FAF7F2] border border-[#E6DCD2]">
-              <div className="text-xs font-bold text-[#706B67] uppercase mb-1">Primary</div>
+              <div className="text-xs font-bold text-brand-muted uppercase mb-1">Primary</div>
               <div className="flex items-center gap-2 text-[#1F1F1F]">
                 <span className="inline-block w-4 h-4 rounded bg-[#C85A72]"></span>
                 #C85A72 Rose
               </div>
             </div>
             <div className="p-3 rounded-lg bg-[#FAF7F2] border border-[#E6DCD2]">
-              <div className="text-xs font-bold text-[#706B67] uppercase mb-1">Accent</div>
+              <div className="text-xs font-bold text-brand-muted uppercase mb-1">Accent</div>
               <div className="flex items-center gap-2 text-[#1F1F1F]">
                 <span className="inline-block w-4 h-4 rounded bg-[#E6B450]"></span>
                 #E6B450 Gold
               </div>
             </div>
             <div className="p-3 rounded-lg bg-[#FAF7F2] border border-[#E6DCD2]">
-              <div className="text-xs font-bold text-[#706B67] uppercase mb-1">Background</div>
+              <div className="text-xs font-bold text-brand-muted uppercase mb-1">Background</div>
               <div className="flex items-center gap-2 text-[#1F1F1F]">
                 <span className="inline-block w-4 h-4 rounded bg-[#FAF7F2] border border-[#E6DCD2]"></span>
                 #FAF7F2 Cream
@@ -180,9 +180,9 @@ const PressKitPage = () => {
             press@. Avoids the awkwardness of empty greyboxes pre-launch. */}
         <section className="bg-white border border-[#E6DCD2] rounded-[14px] p-8 mb-8 shadow-sm">
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-2">Product screenshots</h2>
-          <p className="text-sm text-[#706B67] leading-relaxed">
+          <p className="text-sm text-brand-muted leading-relaxed">
             High-resolution product screenshots are available on request. Email{' '}
-            <a href="mailto:press@marryzen.com" className="text-[#C85A72] hover:underline">press@marryzen.com</a>{' '}
+            <a href="mailto:press@marryzen.com" className="text-brand-pink-strong hover:underline">press@marryzen.com</a>{' '}
             with the publication, deadline, and intended angle, and we&rsquo;ll send a curated
             set within 24 hours.
           </p>
@@ -190,7 +190,7 @@ const PressKitPage = () => {
 
         {/* Contact */}
         <section className="bg-[#F9E7EB] border border-[#E6DCD2] rounded-[14px] p-8 text-center">
-          <Mail className="w-10 h-10 text-[#C85A72] mx-auto mb-4" />
+          <Mail className="w-10 h-10 text-brand-pink-strong mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#1F1F1F] mb-2">Press contact</h2>
           <p className="text-[#1F1F1F] mb-4">
             For interviews, fact-checks, custom data, or comment requests:
@@ -201,7 +201,7 @@ const PressKitPage = () => {
           >
             press@marryzen.com
           </a>
-          <p className="text-xs text-[#706B67] mt-4">
+          <p className="text-xs text-brand-muted mt-4">
             We aim to respond within one business day.
           </p>
         </section>
