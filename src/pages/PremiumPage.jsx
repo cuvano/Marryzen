@@ -363,14 +363,14 @@ const PremiumPage = () => {
       <Helmet><title>Premium ... Marryzen</title></Helmet>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] mb-4 pl-0">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="text-brand-muted hover:text-[#1F1F1F] mb-4 pl-0">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
             <div className="text-center max-w-3xl mx-auto">
                 <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-3">
                   {isPremium ? 'Extend Your Premium Subscription' : 'Upgrade to Marryzen Premium'}
                 </h1>
-                <p className="text-xl text-[#706B67] mb-4 font-medium">
+                <p className="text-xl text-brand-muted mb-4 font-medium">
                   {isPremium 
                     ? premiumExpiresAt 
                       ? `Your premium expires on ${new Date(premiumExpiresAt).toLocaleDateString()}. Extend your subscription to continue enjoying all premium features.`
@@ -403,7 +403,7 @@ const PremiumPage = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">See everyone who liked you</h3>
-                <p className="text-xs text-[#706B67] leading-relaxed">No more waiting for a mutual match before you can act.</p>
+                <p className="text-xs text-brand-muted leading-relaxed">No more waiting for a mutual match before you can act.</p>
               </div>
             </div>
             <div className="bg-white border border-[#E6DCD2] rounded-2xl p-5 flex items-start gap-3 shadow-sm">
@@ -412,7 +412,7 @@ const PremiumPage = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">Unlimited likes &amp; messaging</h3>
-                <p className="text-xs text-[#706B67] leading-relaxed">Never hit the daily cap. Reach out to anyone, any time.</p>
+                <p className="text-xs text-brand-muted leading-relaxed">Never hit the daily cap. Reach out to anyone, any time.</p>
               </div>
             </div>
             <div className="bg-white border border-[#E6DCD2] rounded-2xl p-5 flex items-start gap-3 shadow-sm">
@@ -421,7 +421,7 @@ const PremiumPage = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#1F1F1F] mb-1">Up to 12 photos</h3>
-                <p className="text-xs text-[#706B67] leading-relaxed">Show every side of who you are.</p>
+                <p className="text-xs text-brand-muted leading-relaxed">Show every side of who you are.</p>
               </div>
             </div>
           </motion.div>
@@ -496,7 +496,7 @@ const PremiumPage = () => {
         {/* Feature Comparison */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl overflow-hidden mb-12 border border-[#E6DCD2] shadow-sm">
             <div className="grid grid-cols-3 p-4 border-b border-[#E6DCD2] bg-[#FAF7F2]">
-                <div className="text-[#706B67] font-bold text-sm uppercase tracking-wider flex items-center">Features</div>
+                <div className="text-brand-muted font-bold text-sm uppercase tracking-wider flex items-center">Features</div>
                 <div className="text-center font-bold text-[#1F1F1F]">Free</div>
                 <div className="text-center font-bold text-[#E6B450]">Premium</div>
             </div>
@@ -504,7 +504,7 @@ const PremiumPage = () => {
                 {features.map((feature, idx) => (
                     <div key={idx} className="grid grid-cols-3 p-4 items-center hover:bg-[#FAF7F2]/50 transition-colors">
                         <div className="text-[#333333] text-sm font-semibold">{feature.name}</div>
-                        <div className="text-center text-[#706B67] text-sm flex justify-center font-medium">
+                        <div className="text-center text-brand-muted text-sm flex justify-center font-medium">
                             {feature.free === false ? (
                                 <X className="w-5 h-5 text-gray-300" />
                             ) : feature.free === true ? (
@@ -539,7 +539,7 @@ const PremiumPage = () => {
             />
             <span className="text-sm text-[#1F1F1F] leading-relaxed">
               <strong>I understand</strong> my Marryzen Premium subscription will automatically renew at the plan price (monthly, quarterly, or annual) until I cancel. I will receive a reminder email 7 days and 24 hours before each renewal. I can cancel at any time in one click from my{' '}
-              <Link to="/billing" className="text-[#C85A72] underline">Billing</Link>{' '}page, with no phone call or retention conversation required.
+              <Link to="/billing" className="text-brand-pink-strong underline">Billing</Link>{' '}page, with no phone call or retention conversation required.
             </span>
           </label>
         </div>
@@ -565,9 +565,9 @@ const PremiumPage = () => {
                     )}
                     <div className="text-center mb-6">
                         <h3 className="text-lg font-bold text-[#1F1F1F] mb-1">{plan.name}</h3>
-                        <p className="text-[#706B67] text-sm font-medium">{plan.description}</p>
+                        <p className="text-brand-muted text-sm font-medium">{plan.description}</p>
                         <div className="mt-4 text-3xl font-bold text-[#1F1F1F]">{plan.price}</div>
-                        <div className="text-[#706B67] text-xs font-medium">billed every {plan.duration}</div>
+                        <div className="text-brand-muted text-xs font-medium">billed every {plan.duration}</div>
                     </div>
                     <div className="mt-auto">
                         {profileCheckLoading ? (
@@ -611,7 +611,7 @@ const PremiumPage = () => {
                                 ? `Auto-renews at ${plan.price} every 3 months until canceled.`
                                 : `Auto-renews at ${plan.price} every month until canceled.`}
                               {' '}
-                              <Link to="/billing" className="underline text-[#C85A72]">Cancel anytime</Link>.
+                              <Link to="/billing" className="underline text-brand-pink-strong">Cancel anytime</Link>.
                             </p>
                           </>
                         )}
@@ -621,10 +621,10 @@ const PremiumPage = () => {
         </div>
 
         {/* Footer info */}
-        <div className="text-center text-[#706B67] text-xs max-w-xl mx-auto font-medium mb-12">
+        <div className="text-center text-brand-muted text-xs max-w-xl mx-auto font-medium mb-12">
             <div className="flex justify-center gap-4 mb-4">
                 <span className="flex items-center gap-1"><Lock className="w-3 h-3"/> Secure Payment via Stripe</span>
-                <Link to="/billing" className="flex items-center gap-1 hover:text-[#C85A72] hover:underline transition-colors"><ShieldCheck className="w-3 h-3"/> Cancel Anytime</Link>
+                <Link to="/billing" className="flex items-center gap-1 hover:text-brand-pink-strong hover:underline transition-colors"><ShieldCheck className="w-3 h-3"/> Cancel Anytime</Link>
             </div>
             <p>By subscribing, you agree to our <Link to="/terms" className="underline">Terms</Link> and <Link to="/billing-terms" className="underline">Billing Policy</Link>.</p>
         </div>
