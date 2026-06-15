@@ -17,6 +17,22 @@ module.exports = {
 		},
 		extend: {
 			colors: {
+			brand: {
+				// Marryzen palette tokens (2026-06-14 WCAG AA contrast pass)
+				// Per board (Perf/Eng + Brand + Growth):
+				//   text-brand-pink         display: logo dot, headings (>=18pt), large buttons
+				//   text-brand-pink-strong  body/inline links/small UI labels (>=4.5:1 on white/cream)
+				//   text-brand-muted        default body-secondary (was #706B67, now #5F5A56)
+				//   text-brand-muted-soft   explicit opt-in for de-emphasized (footnotes, disabled)
+				pink: '#C85A72',
+				pinkStrong: '#B14961',
+				gold: '#E6B450',
+				ink: '#1F1F1F',
+				muted: '#5F5A56',
+				mutedSoft: '#706B67',
+				cream: '#FAF7F2',
+				linkVisited: '#8B3A4E',
+			},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
