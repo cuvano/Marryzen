@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Lock, Mail, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, CreditCard } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, CreditCard, Heart } from 'lucide-react';
 import Footer from '@/components/Footer';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { Download, Trash2 } from 'lucide-react';
+import MatchPreferencesCard from '@/components/MatchPreferencesCard';
+import AgePreferencesCard from '@/components/AgePreferencesCard';
 import EmailPreferencesCard from '@/components/EmailPreferencesCard';
+import { funnel } from '@/lib/analytics';
 
 const AccountSettingsPage = () => {
   const navigate = useNavigate();
@@ -29,8 +32,20 @@ const AccountSettingsPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState({});
 
+  // Phase 41a — Match preferences (deal-breakers). Loaded from profiles row,
+  // persisted on toggle change. All defaults false (opt-in only).
+  const [profileForPrefs, setProfileForPrefs] = useState(null);
+  const [dealbreakers, setDealbreakers] = useState({
+    dealbreaker_faith: false,
+    dealbreaker_marital_status: false,
+    dealbreaker_has_children: false,
+    dealbreaker_relationship_goal: false,
+  });
+  const [dealbreakersSaving, setDealbreakersSaving] = useState(false);
+
   useEffect(() => {
     fetchUserInfo();
+    fetchMatchPreferences();
   }, []);
 
   const fetchUserInfo = async () => {
@@ -49,6 +64,92 @@ const AccountSettingsPage = () => {
         description: "Failed to load account information.",
         variant: "destructive"
       });
+    }
+  };
+
+  // Phase 41a — load the profile row with the 4 deal-breaker columns + the
+  // context fields the MatchPreferencesCard uses to show "Currently: X" hints.
+  const fetchMatchPreferences = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('religious_affiliation, marital_status, has_children, relationship_goal, dealbreaker_faith, dealbreaker_marital_status, dealbreaker_has_children, dealbreaker_relationship_goal')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (error) {
+        // PGRST116 = no rows. Acceptable for very new accounts that haven't
+        // finished onboarding; the toggles are still functional and will
+        // persist on save.
+        if (error.code && error.code !== 'PGRST116') throw error;
+      }
+      if (data) {
+        setProfileForPrefs({
+          religious_affiliation: data.religious_affiliation,
+          marital_status: data.marital_status,
+          has_children: data.has_children,
+          relationship_goal: data.relationship_goal,
+        });
+        setDealbreakers({
+          dealbreaker_faith: !!data.dealbreaker_faith,
+          dealbreaker_marital_status: !!data.dealbreaker_marital_status,
+          dealbreaker_has_children: !!data.dealbreaker_has_children,
+          dealbreaker_relationship_goal: !!data.dealbreaker_relationship_goal,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching match preferences:', err);
+    }
+  };
+
+  // Phase 41a — persist deal-breaker changes immediately. Optimistic update +
+  // toast feedback. Emits a `dealbreakers_changed` PostHog event so we can
+  // track the north-star metric (Day-7 return rate by dealbreakers_set_count).
+  const handleDealbreakersChange = async (next) => {
+    const prev = dealbreakers;
+    setDealbreakers(next);
+    setDealbreakersSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Revert + error toast
+        setDealbreakers(prev);
+        toast({
+          title: 'Not signed in',
+          description: 'Please sign in to update your match preferences.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update(next)
+        .eq('id', session.user.id);
+      if (error) {
+        setDealbreakers(prev); // revert on failure
+        throw error;
+      }
+      // Telemetry — emit a single event with the full from/to snapshot so we
+      // can reconstruct preference evolution in PostHog.
+      try {
+        const activeCount = Object.values(next).filter(Boolean).length;
+        funnel.dealbreakersChanged({
+          from: prev,
+          to: next,
+          trigger: 'settings',
+          active_count: activeCount,
+        });
+      } catch (_) {}
+    } catch (err) {
+      console.error('Error saving match preferences:', err);
+      toast({
+        title: 'Save failed',
+        description: err.message || 'Could not save your match preferences. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDealbreakersSaving(false);
     }
   };
 
@@ -100,20 +201,12 @@ const AccountSettingsPage = () => {
     setLoading(true);
 
     try {
-      // Single Supabase call: supabase-js v2.102+ accepts `current_password`
-      // and verifies it server-side before applying the new password. The
-      // previous two-step (signInWithPassword then updateUser) failed because
-      // signInWithPassword swapped the session token, after which updateUser
-      // triggered Supabase's "Current password required when setting new
-      // password" enforcement on the server. The single-call form avoids that.
       const { error: updateError } = await supabase.auth.updateUser({
         current_password: currentPassword,
         password: newPassword,
       });
 
       if (updateError) {
-        // Distinguish "wrong current password" from other failures so we can
-        // surface the right field-level message + toast.
         const msg = (updateError.message || '').toLowerCase();
         if (
           msg.includes('current password') ||
@@ -133,7 +226,6 @@ const AccountSettingsPage = () => {
         throw updateError;
       }
 
-      // Clear form
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -211,9 +303,6 @@ const AccountSettingsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Email preferences (CAN-SPAM + GDPR Art. 21 marketing opt-out) — 2026-06-14 */}
-        <EmailPreferencesCard />
-
         <Card className="mb-6 border-[#E6DCD2]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#1F1F1F]">
@@ -232,6 +321,27 @@ const AccountSettingsPage = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* 2026-06-14 — Email preferences (CAN-SPAM + GDPR Art. 21 marketing opt-out) */}
+        <EmailPreferencesCard />
+
+        {/* Phase 41f — Preferred age range (closes 1b loop from Phase 41e) */}
+        <div id="age-preference" className="mb-6">
+          <AgePreferencesCard />
+        </div>
+
+        {/* Phase 41a — Match preferences (deal-breakers) */}
+        <div id="match-preferences" className="mb-6">
+          <MatchPreferencesCard
+            value={dealbreakers}
+            onChange={handleDealbreakersChange}
+            profile={profileForPrefs}
+            compact={false}
+          />
+          {dealbreakersSaving && (
+            <p className="text-xs text-[#706B67] mt-2 ml-2">Saving&hellip;</p>
+          )}
+        </div>
 
         {/* Change Password Card */}
         <Card className="mb-6 border-[#E6DCD2]">
