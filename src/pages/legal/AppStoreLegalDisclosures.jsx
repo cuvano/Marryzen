@@ -13,7 +13,7 @@ const AppStoreLegalDisclosures = () => {
       <div className="max-w-4xl mx-auto">
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center mb-8">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="text-[#706B67] hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="text-brand-muted hover:text-[#1F1F1F] hover:bg-[#E6DCD2]/50 pl-0 font-medium">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
             <div className="flex gap-2">
@@ -31,7 +31,7 @@ const AppStoreLegalDisclosures = () => {
         {/* Header */}
         <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#1F1F1F] mb-2">App Store Legal Disclosures – Marryzen</h1>
-            <p className="text-[#706B67] font-medium">Document Version: 2.0 • Last Updated: June 3, 2026</p>
+            <p className="text-brand-muted font-medium">Document Version: 2.0 • Last Updated: June 3, 2026</p>
         </div>
 
         {/* Status banner — current reality */}
@@ -77,10 +77,10 @@ const AppStoreLegalDisclosures = () => {
 
             <div className="space-y-4">
                 <h2 className="text-xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                    <Scale className="w-5 h-5 text-[#C85A72]" /> 3. Premium &amp; Subscriptions
+                    <Scale className="w-5 h-5 text-brand-pink-strong" /> 3. Premium &amp; Subscriptions
                 </h2>
                 <p className="text-[#333333] leading-relaxed italic">
-                    <strong>Today (web):</strong> Premium subscriptions are billed on the web via our payment processor in US Dollars. See the <a href="/billing-terms" className="text-[#C85A72] underline">Billing Terms</a> and <a href="/refund-policy" className="text-[#C85A72] underline">Refund Policy</a> for the policies that apply now.
+                    <strong>Today (web):</strong> Premium subscriptions are billed on the web via our payment processor in US Dollars. See the <a href="/billing-terms" className="text-brand-pink-strong underline">Billing Terms</a> and <a href="/refund-policy" className="text-brand-pink-strong underline">Refund Policy</a> for the policies that apply now.
                 </p>
                 <p className="text-[#333333] leading-relaxed">
                     <strong>When mobile apps launch:</strong> Auto-renewable subscriptions purchased inside an iOS or Android app will follow the app-store rules below.
@@ -90,14 +90,14 @@ const AppStoreLegalDisclosures = () => {
                     <li><strong>Renewal:</strong> Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.</li>
                     <li><strong>Management:</strong> Subscriptions managed in the user's App Store / Google Play account settings after purchase.</li>
                 </ul>
-                <p className="text-xs italic text-[#706B67]">
-                    Full details for web subscriptions are in our <a href="/terms" className="text-[#C85A72] underline">Terms of Service</a> and <a href="/billing-terms" className="text-[#C85A72] underline">Billing Terms</a>.
+                <p className="text-xs italic text-brand-muted">
+                    Full details for web subscriptions are in our <a href="/terms" className="text-brand-pink-strong underline">Terms of Service</a> and <a href="/billing-terms" className="text-brand-pink-strong underline">Billing Terms</a>.
                 </p>
             </div>
 
             <div className="space-y-4">
                 <h2 className="text-xl font-bold text-[#1F1F1F] flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-green-600" /> 4. User Safety &amp; Moderation (UGC)
+                    <ShieldCheck className="w-5 h-5 text-green-700" /> 4. User Safety &amp; Moderation (UGC)
                 </h2>
                 <p className="text-[#333333] leading-relaxed">
                     Marryzen includes User Generated Content (UGC). To meet App Store guidelines (when mobile apps publish) and our own standards (today on web), we implement:
