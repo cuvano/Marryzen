@@ -92,7 +92,7 @@ const PromptsEditorModal = ({ isOpen, onClose, currentPrompts = [], onSaved }) =
             <X className="w-5 h-5" />
           </button>
           <h2 className="text-2xl font-bold text-[#1F1F1F] mb-1">Your prompts</h2>
-          <p className="text-sm text-[#706B67] mb-4">
+          <p className="text-sm text-brand-muted mb-4">
             Pick three. Skip the small talk. The people you'll want to hear from will recognize themselves in your answers.
           </p>
 
@@ -103,7 +103,7 @@ const PromptsEditorModal = ({ isOpen, onClose, currentPrompts = [], onSaved }) =
                 key={r}
                 onClick={() => setRound(r)}
                 className={`pb-2 px-3 text-sm font-semibold transition-colors ${
-                  round === r ? 'text-[#1F1F1F] border-b-2 border-[#E6B450]' : 'text-[#706B67] hover:text-[#1F1F1F]'
+                  round === r ? 'text-[#1F1F1F] border-b-2 border-[#E6B450]' : 'text-brand-muted hover:text-[#1F1F1F]'
                 }`}
               >
                 Round {r}{picks[r] && validateAnswer(answers[r]).ok ? ' ✓' : ''}
@@ -154,14 +154,14 @@ const PromptsEditorModal = ({ isOpen, onClose, currentPrompts = [], onSaved }) =
                 className="w-full px-3 py-2 border border-[#E6DCD2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E6B450] text-sm"
               />
               <div className="mt-1 text-xs flex justify-between">
-                <span className={validation.ok ? 'text-green-600' : 'text-[#706B67]'}>
+                <span className={validation.ok ? 'text-green-700' : 'text-brand-muted'}>
                   {validation.ok
                     ? '✓ Good length'
                     : validation.reason === 'too_short'
                       ? `${validation.remaining} more characters to go`
                       : `${validation.over} too many characters`}
                 </span>
-                <span className="text-[#706B67]">{currentAnswer.length} / {PROMPT_MAX_CHARS}</span>
+                <span className="text-brand-muted">{currentAnswer.length} / {PROMPT_MAX_CHARS}</span>
               </div>
             </div>
           )}
