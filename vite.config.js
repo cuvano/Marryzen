@@ -70,41 +70,35 @@ export default defineConfig({
 		},
 	},
 	build: {
-		// Bundle Z (2026-06-15) — perf code-splitting.
-		// Force a few high-value vendor chunks so they cache independently of
-		// the main app bundle. Without manualChunks, Rollup tends to inline
-		// vendor libs into the page chunks that import them, producing
-		// large per-page chunks and worse cache hit rates across deploys.
+		// Bundle Z hotfix (2026-06-15): manualChunks REMOVED.
+		//
+		// Earlier this same date, Bundle Z added a manualChunks function that
+		// split react-vendor / supabase-vendor / framer-vendor / generic vendor
+		// chunks for cache-stability across deploys. That split SHIPPED BROKEN:
+		// libraries like react-helmet landed in the generic `vendor` chunk and
+		// referenced `React.createContext()` at module-evaluation time. Because
+		// the `vendor` chunk and `react-vendor` chunk are async-loaded by the
+		// browser's module loader, there's no guarantee react-vendor evaluates
+		// before vendor — and on first deploy after the change, the live error
+		// was: "Uncaught TypeError: Cannot read properties of undefined
+		// (reading 'createContext') at vendor-5c61cada.js:19:246". React was
+		// undefined because react-vendor hadn't initialized yet.
+		//
+		// Reverting to Rollup's auto-chunking. Rollup hoists React-dependent
+		// modules into the same chunks that consume them, eliminating the
+		// cross-chunk init dependency. We lose the cache-stability bonus but
+		// the site works.
+		//
+		// Future re-attempt: use a plugin like `vite-plugin-react-vendor`
+		// that handles the React init-order correctly, or configure the entry
+		// to import react-vendor synchronously before any consumer code runs.
 		rollupOptions: {
 			external: [
 				'@babel/parser',
 				'@babel/traverse',
 				'@babel/generator',
 				'@babel/types'
-			],
-			output: {
-				manualChunks(id) {
-					if (!id.includes('node_modules')) return undefined;
-					// React core stays together — almost every page needs it.
-					if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/') || id.includes('/node_modules/react-router-dom/') || id.includes('/node_modules/scheduler/')) {
-						return 'react-vendor';
-					}
-					// Supabase JS client is large (~80KB gz) and used across every authed route.
-					if (id.includes('@supabase/')) {
-						return 'supabase-vendor';
-					}
-					// Animation lib — used on landing + onboarding + a few page transitions.
-					if (id.includes('/node_modules/framer-motion/')) {
-						return 'framer-vendor';
-					}
-					// Lucide tree-shakes per-icon — letting Rollup distribute
-					// icon code naturally across page chunks gives better
-					// per-route weight than forcing a single icons-vendor chunk.
-					// Intentionally NOT a manualChunks entry.
-					// Everything else in node_modules gets its own bucket so it doesn't bloat any single page chunk.
-					return 'vendor';
-				},
-			},
-		},
-	},
+			]
+		}
+	}
 });
