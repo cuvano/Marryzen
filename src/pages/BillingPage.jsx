@@ -156,12 +156,12 @@ const BillingPage = () => {
             <CardContent>
               {profile.is_premium ? (
                   <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-green-600 font-medium">
+                      <div className="flex items-center gap-2 text-green-700 font-medium">
                           <CheckCircle className="w-5 h-5" />
                           All Premium Features Unlocked
                       </div>
                       {profile.premium_expires_at && (
-                          <p className="text-sm text-[#706B67]">
+                          <p className="text-sm text-brand-muted">
                               Premium expires: <span className="font-semibold text-[#1F1F1F]">{new Date(profile.premium_expires_at).toLocaleDateString()}</span>
                           </p>
                       )}
@@ -202,12 +202,12 @@ const BillingPage = () => {
                         Open Billing Portal
                     </Button>
                     {!profile.stripe_customer_id && (
-                        <p className="text-sm text-[#706B67] self-center">
+                        <p className="text-sm text-brand-muted self-center">
                             No billing history found.
                         </p>
                     )}
                 </div>
-                <p className="text-xs text-[#706B67] mt-4">
+                <p className="text-xs text-brand-muted mt-4">
                     You will be redirected to our secure payment partner, Stripe, to manage your details.
                 </p>
             </CardContent>
