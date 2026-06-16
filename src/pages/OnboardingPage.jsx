@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -11,14 +11,26 @@ import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
 import { checkRateLimit } from '@/lib/rateLimit';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
-import Step1a from '@/components/onboarding/Step1a';
-import Step1b from '@/components/onboarding/Step1b';
-import Step1c from '@/components/onboarding/Step1c';
-import Step2 from '@/components/onboarding/Step2';
-import Step3a from '@/components/onboarding/Step3a';
-import Step3b from '@/components/onboarding/Step3b';
-import Step4 from '@/components/onboarding/Step4';
-import Step5 from '@/components/onboarding/Step5';
+// Bundle Z2 (2026-06-15): step components are large (~2000 lines combined)
+// and only one is rendered at a time. Lazy-load each so users on Step 1
+// don't download Step 2-5 until they advance. ~120KB shaved from initial
+// /onboarding payload on first visit.
+const Step1a = lazy(() => import('@/components/onboarding/Step1a'));
+const Step1b = lazy(() => import('@/components/onboarding/Step1b'));
+const Step1c = lazy(() => import('@/components/onboarding/Step1c'));
+const Step2 = lazy(() => import('@/components/onboarding/Step2'));
+const Step3a = lazy(() => import('@/components/onboarding/Step3a'));
+const Step3b = lazy(() => import('@/components/onboarding/Step3b'));
+const Step4 = lazy(() => import('@/components/onboarding/Step4'));
+const Step5 = lazy(() => import('@/components/onboarding/Step5'));
+
+// Inline cream-bg spinner shown while a Step chunk downloads.
+// Matches the AuthenticatedLayout/App loading state.
+const StepSuspenseFallback = () => (
+  <div className="min-h-[400px] flex items-center justify-center" aria-hidden="true">
+    <div className="w-10 h-10 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 // L3 hardening 2026-06-09: persist consent acceptance timestamps on profiles.
 // Bump these strings when the corresponding legal text changes; OnboardingPage
@@ -1097,7 +1109,9 @@ const OnboardingPage = () => {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              {renderStep()}
+              <Suspense fallback={<StepSuspenseFallback />}>
+                {renderStep()}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
 
