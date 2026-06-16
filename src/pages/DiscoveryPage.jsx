@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,7 +16,20 @@ import { isIdVerifiedPublic } from '@/lib/identityVerification';
 import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import { calculateScore, getMatchLabel } from '@/lib/matchmaking';
 import Footer from '@/components/Footer';
-import FilterPanel from '@/components/discovery/FilterPanel';
+// Bundle Z2 (2026-06-15): FilterPanel is the heaviest non-route component
+// in the app (large country list, language picker, religion picker, etc.).
+// Most Discovery visitors never open the filter sheet, so defer its
+// download until they click the Filter button. ~40KB shaved from initial
+// /discovery payload.
+const FilterPanel = lazy(() => import('@/components/discovery/FilterPanel'));
+
+// Tiny spinner shown while the FilterPanel chunk downloads (typically
+// invisible on warm caches; visible only on first filter-open after deploy).
+const FilterPanelFallback = () => (
+  <div className="min-h-[400px] flex items-center justify-center bg-[#FAF7F2]" aria-hidden="true">
+    <div className="w-8 h-8 border-4 border-[#E6B450] border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 import { checkRateLimit } from '@/lib/rateLimit';
 import { displayReligion, displayFaithLifestyle, getReligionFilterValues } from '@/lib/religionLabels';
 import { displayMaritalStatus, displayEducation, displaySmoking, displayDrinking, displayRelationshipGoal, displayHasChildren, displayFamilyGoals } from '@/lib/profileDisplayLabels';
@@ -1140,7 +1153,7 @@ const DiscoveryPage = () => {
         
         {/* Desktop Filter Sidebar */}
         <div className={`hidden lg:block w-80 fixed top-16 bottom-0 left-0 z-20 transition-transform duration-300 ${isFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-            <FilterPanel 
+            <Suspense fallback={<FilterPanelFallback />}><FilterPanel 
                 filters={filters} 
                 setFilters={setFilters} 
                 isPremium={currentUser?.is_premium} 
@@ -1155,14 +1168,14 @@ const DiscoveryPage = () => {
                     setPremiumModalFeature(feature);
                     setPremiumModalOpen(true);
                 }}
-            />
+            /></Suspense>
         </div>
 
         {/* Mobile Filter Drawer */}
         {isFilterOpen && (
             <div className="lg:hidden fixed inset-0 z-50 bg-black/50 flex justify-end">
                 <div className="w-[85%] max-w-sm h-full animate-in slide-in-from-right">
-                    <FilterPanel 
+                    <Suspense fallback={<FilterPanelFallback />}><FilterPanel 
                         filters={filters} 
                         setFilters={setFilters} 
                         isPremium={currentUser?.is_premium} 
@@ -1181,7 +1194,7 @@ const DiscoveryPage = () => {
                             setPremiumModalFeature(feature);
                             setPremiumModalOpen(true);
                         }}
-                    />
+                    /></Suspense>
                 </div>
             </div>
         )}
