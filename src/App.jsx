@@ -58,6 +58,7 @@ const CookiePolicy = lazy(() => import('@/pages/legal/CookiePolicy'));
 const AppStoreLegalDisclosures = lazy(() => import('@/pages/legal/AppStoreLegalDisclosures'));
 const InvestorLegalSummary = lazy(() => import('@/pages/legal/InvestorLegalSummary'));
 const ReferralTerms = lazy(() => import('@/pages/legal/ReferralTerms'));
+const FoundingMemberTerms = lazy(() => import('@/pages/legal/FoundingMemberTerms'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Admin Pages (whole admin tree split — only loaded if user navigates to /admin)
@@ -137,6 +138,7 @@ function App() {
                           <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
                           <Route path="/investor-legal" element={<InvestorLegalSummary />} />
                           <Route path="/referral-terms" element={<ReferralTerms />} />
+                          <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
                           {/* Admin Routes - Protected by AdminLayout logic */}
                           <Route path="/admin" element={<AdminLayout />}>
