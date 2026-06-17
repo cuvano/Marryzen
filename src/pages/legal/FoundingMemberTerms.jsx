@@ -5,7 +5,7 @@ import { ArrowLeft, BadgeCheck, Calendar, CreditCard, Home, LayoutDashboard, Shi
 import Footer from '@/components/Footer';
 
 // ===========================================================================
-// B15 — Promo T&Cs standalone page for the Founding-Member 500/2-month offer
+// B15 — Promo T&Cs standalone page for the Founding-Member 500/6-month offer (2026-06-15: bumped from 2mo to 6mo)
 // ===========================================================================
 // Required content (from launch-blocker checklist + FTC negative-option +
 // CA AB-390 guidance baked into Termly templates):
@@ -72,7 +72,7 @@ const FoundingMemberTerms = () => {
             Founding Member Terms & Conditions
           </h1>
           <p className="text-brand-muted font-medium">
-            500 founding members · 2 months free Premium · Verified-only.
+            500 founding members · 6 months free Premium · Verified-only.
           </p>
           <p className="text-xs text-[#8A857D] mt-3">
             Effective: August 15, 2026 · Read time: under 2 minutes
@@ -89,7 +89,7 @@ const FoundingMemberTerms = () => {
             </h2>
             <p>
               The first <strong>500 people</strong> who complete identity verification on Marryzen
-              receive <strong>2 months of Marryzen Premium for free</strong>, after which their
+              receive <strong>6 months of Marryzen Premium for free</strong>, after which their
               subscription automatically renews at the standard Premium price of
               <strong> $24.99 per month</strong> unless they cancel.
             </p>
@@ -149,10 +149,10 @@ const FoundingMemberTerms = () => {
           {/* 4. The free period */}
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-[#1F1F1F] flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-[#E6B450]" /> The 2-month free period
+              <Calendar className="w-6 h-6 text-[#E6B450]" /> The 6-month free period
             </h2>
             <p>
-              Your 2-month free Premium begins on the day your identity verification is approved
+              Your 6-month free Premium begins on the day your identity verification is approved
               and ends exactly 60 days later. The exact end date is shown on your account billing
               page once Premium activates.
             </p>
