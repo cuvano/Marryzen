@@ -181,6 +181,30 @@ const Step5 = ({ formData, updateFormData, isEditMode = false }) => {
           </div>
         </div>
 
+        {/* Bundle Q (2026-06-15) — optional 1-sentence marriage-vision intake.
+            Soft trust signal + matchmaking color; not a gate. Max 240 chars
+            enforced client + DB (marriage_vision_max_240 CHECK). Persisted
+            via OnboardingPage save handler. */}
+        <div className="pt-6 border-t border-[#F3E8D9]">
+          <Label htmlFor="marriageVision" className="text-[#333333] font-bold text-base mb-2 block">
+            In one sentence, what does a good marriage look like to you? <span className="font-normal text-brand-muted">(optional)</span>
+          </Label>
+          <p className="text-sm text-brand-muted mb-3">This shows on your profile to other members. Helps them know you a little before they reach out.</p>
+          <textarea
+            id="marriageVision"
+            value={formData.marriageVision || ''}
+            onChange={(e) => {
+              const v = e.target.value.slice(0, 240);
+              updateFormData('marriageVision', v);
+            }}
+            maxLength={240}
+            rows={3}
+            placeholder="e.g. Two people walking the same path of faith, growing toward each other over a lifetime."
+            className="w-full px-4 py-3 rounded-xl border border-[#E6DCD2] bg-white text-[#1F1F1F] placeholder:text-brand-muted/70 focus:outline-none focus:ring-2 focus:ring-[#E6B450] focus:border-[#E6B450] resize-none"
+          />
+          <div className="mt-1 text-xs text-brand-muted text-right">{(formData.marriageVision || '').length} / 240</div>
+        </div>
+
         <div className="space-y-6 pt-6 border-t border-[#F3E8D9]">
           <div className="flex items-start space-x-3">
             <Checkbox
