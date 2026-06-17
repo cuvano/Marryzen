@@ -41,7 +41,6 @@ const Footer = ({ isProfileFooter = false }) => {
             <Link to="/app-store-disclosures" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">App Store Disclosures</Link>
             <Link to="/press" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Press</Link>
             <Link to="/help" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Help & Support</Link>
-            <Link to="/trust/incident" className="text-[#E6B450] hover:text-[#D0A23D] hover:underline">Report an incident</Link>
         </div>
         <p className="text-xs text-brand-muted">
           © {new Date().getFullYear()} Marryzen. All rights reserved. Users are responsible for their own conduct. We facilitate introductions; we are not responsible for offline interactions. You must be 18+ to use this service.
