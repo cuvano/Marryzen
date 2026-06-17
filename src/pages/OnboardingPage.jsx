@@ -112,6 +112,7 @@ const OnboardingPage = () => {
     willingToRelocate: '',
     familyGoals: '',
     relationshipGoal: '',
+    marriageVision: '',
     confirmMarriageIntent: false,
     agreeToTermsV2: false,
     isPremium: false,
@@ -226,6 +227,7 @@ const OnboardingPage = () => {
                     willingToRelocate: profile.willing_to_relocate || '',
                     familyGoals: profile.family_goals || '',
                     relationshipGoal: profile.relationship_goal || '',
+                    marriageVision: profile.marriage_vision || '',
                     isPremium: profile.is_premium || false,
                     smoking: profile.smoking || '',
                     drinking: profile.drinking || '',
@@ -873,6 +875,7 @@ const OnboardingPage = () => {
              // flow can re-stamp via a separate code path later).
              const step6Update = {
                  relationship_goal: formData.relationshipGoal,
+                 marriage_vision: (formData.marriageVision || '').trim() || null,
                  onboarding_step: 6,
              };
 
