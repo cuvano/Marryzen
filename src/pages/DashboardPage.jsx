@@ -534,12 +534,11 @@ const DashboardPage = () => {
   const userRole = userProfile?.role?.toLowerCase();
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   
-  const marriageTools = [
-    { icon: Search, title: 'Find Marriage Matches', description: 'View compatible profiles', action: () => navigate('/discovery'), bg: 'bg-[#EAF2F7]', iconColor: 'text-[#3B82F6]', disabled: false },
-    { icon: MessageCircle, title: 'Conversations', description: 'Continue meaningful discussions', action: () => navigate('/chat'), bg: 'bg-[#F0FDF4]', iconColor: 'text-[#22C55E]', disabled: false },
-    { icon: Send, title: 'Send Introduction', description: 'Express sincere interest', action: () => navigate('/discovery'), bg: 'bg-[#FDF2F8]', iconColor: 'text-[#EC4899]', disabled: false },
-    { icon: Crown, title: 'Upgrade for Serious Features', description: 'Unlock advanced filters', action: () => navigate('/premium'), bg: 'bg-[#FFFBEB]', iconColor: 'text-[#F59E0B]', disabled: false }
-  ];
+  // Marriage Tools section was removed 2026-06-23 per founder review: the 4 cards
+  // duplicated the 4 stat cards above (same actions, different framing) - they
+  // were dashboard visual noise without adding navigation value. The Premium
+  // upgrade nudge that was the 4th tool now lives in the Profile Interest card
+  // (non-premium branch) + the global header Crown icon.
 
   const handleClaimCredit = async (creditId) => {
     if (claimingCredit) return;
@@ -572,7 +571,7 @@ const DashboardPage = () => {
             <div>
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
               <p className="text-brand-muted mt-1">
-                Marryzen is building a community of marriage-minded members. Serious about marriage, every profile verified.
+                Find a spouse who shares your faith, values, and commitment to marriage. Every member is ID verified.
               </p>
             </div>
           </div>
@@ -886,7 +885,7 @@ const DashboardPage = () => {
           </button>
         </motion.div>
 
-        {/* Two Column Layout: Next Steps + Marriage Tools */}
+        {/* Next Steps widget (Marriage Tools removed 2026-06-23) */}
         <div className="space-y-6 mb-8">
           {/* Next Steps Widget */}
           {nextSteps.length > 0 && (
@@ -924,37 +923,10 @@ const DashboardPage = () => {
             </motion.div>
           )}
 
-          {/* Marriage Tools */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.35 }}
-            className=""
-          >
-          <h2 className="text-2xl font-bold text-[#1F1F1F] mb-6">Marriage Tools</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {marriageTools.map((tool, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={!tool.disabled ? { scale: 1.02 } : {}}
-                  whileTap={!tool.disabled ? { scale: 0.98 } : {}}
-                  className={`bg-white border border-[#E6DCD2] rounded-2xl p-6 cursor-pointer shadow-sm transition-all ${
-                    tool.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-                  }`}
-                  onClick={tool.disabled ? undefined : tool.action}
-                >
-                  <div className={`w-12 h-12 rounded-full ${tool.bg} flex items-center justify-center mb-4`}>
-                    <tool.icon className={`w-6 h-6 ${tool.iconColor}`} />
-                  </div>
-                <h3 className="text-lg font-bold text-[#1F1F1F] mb-1">{tool.title}</h3>
-                <p className="text-brand-muted text-sm font-medium">{tool.description}</p>
-                  {tool.disabled && (
-                    <p className="text-xs text-orange-600 mt-2 font-medium">Requires profile approval</p>
-                  )}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+          {/* Marriage Tools section removed 2026-06-23 (founder review):
+              the 4 cards duplicated the 4 stat cards above (same actions, same
+              destinations, different framing) - visual noise without
+              additional navigation value. */}
         </div>
 
         {/* Suggested Profiles (only show if approved) */}
@@ -1027,10 +999,16 @@ const DashboardPage = () => {
             ))}
               </div>
             ) : (
+              {/* Empty-state copy refresh 2026-06-23 per board (Brand+Product):
+                  reframe "zero" as "in progress" + add a daily-return hook so
+                  the dashboard becomes a habit, not a one-time visit. Density-
+                  honest pre-launch: never claims a specific cohort size, just
+                  acknowledges that new members arrive daily (true even at small
+                  scale). */}
               <div className="bg-white rounded-2xl border border-[#E6DCD2] p-12 text-center">
                 <Search className="w-12 h-12 text-brand-muted mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-[#1F1F1F] mb-2">No suggestions right now</h3>
-                <p className="text-brand-muted mb-6">Check back soon for new profiles!</p>
+                <h3 className="text-xl font-bold text-[#1F1F1F] mb-2">More matches coming</h3>
+                <p className="text-brand-muted mb-6">Marryzen members join daily. Check back tomorrow to see who&rsquo;s new &mdash; or browse Discovery now.</p>
                 <Button onClick={() => navigate('/discovery')} className="bg-[#E6B450] hover:bg-[#D0A23D] text-[#1F1F1F]">
                   Browse Discovery
                 </Button>
