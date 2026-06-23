@@ -13,6 +13,7 @@ import { Download, Trash2 } from 'lucide-react';
 import MatchPreferencesCard from '@/components/MatchPreferencesCard';
 import AgePreferencesCard from '@/components/AgePreferencesCard';
 import EmailPreferencesCard from '@/components/EmailPreferencesCard';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 import { funnel } from '@/lib/analytics';
 
 const AccountSettingsPage = () => {
@@ -324,6 +325,13 @@ const AccountSettingsPage = () => {
 
         {/* 2026-06-14 — Email preferences (CAN-SPAM + GDPR Art. 21 marketing opt-out) */}
         <EmailPreferencesCard />
+
+        {/* 2026-06-23 — Push notifications (PWA Tier 3). Self-hides on browsers
+            that don't support Web Push, on iOS until the PWA is home-screen
+            installed, and when push permission has been previously denied. */}
+        <div className="mb-6">
+          <PushNotificationToggle />
+        </div>
 
         {/* Phase 41f — Preferred age range (closes 1b loop from Phase 41e) */}
         <div id="age-preference" className="mb-6">
