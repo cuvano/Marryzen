@@ -5,6 +5,7 @@ import '@/index.css';
 import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
 import { captureAndStoreUTM } from '@/lib/utm';
+import { registerServiceWorker, initInstallPromptCapture } from '@/lib/pwa';
 
 // ============================================================================
 // UTM attribution capture — runs synchronously before React mounts so we
@@ -19,6 +20,15 @@ import { captureAndStoreUTM } from '@/lib/utm';
 // cookie, not a marketing tracker).
 // ============================================================================
 captureAndStoreUTM();
+
+// ============================================================================
+// PWA install-prompt capture (2026-06-23) — listens for the browser's
+// beforeinstallprompt event and stashes it for InstallPromptBanner to fire
+// on user click. Synchronous + cheap: just an addEventListener call. Must
+// run BEFORE React mounts so we don't miss the event (browsers fire it
+// early, often before first paint completes).
+// ============================================================================
+initInstallPromptCapture();
 
 // ============================================================================
 // Sentry: error tracking + perf. Init before anything renders so we capture
@@ -89,6 +99,18 @@ if (POSTHOG_KEY) {
     setTimeout(initPostHog, 3000);
   }
 }
+
+// ============================================================================
+// Service worker registration (2026-06-23) — deferred to idle so the SW
+// install doesn't compete with first paint, PostHog, or Termly. Only runs
+// in production builds (Vite dev server doesn't ship the static files the
+// SW would cache, and a stale SW in dev would mask source changes).
+//
+// The SW handles: app-shell caching for instant repeat-visit loads, offline
+// fallback to a cached index.html, and push-notification rendering when a
+// VAPID-signed push arrives. See public/sw.js for the routing logic.
+// ============================================================================
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <Sentry.ErrorBoundary fallback={<div style={{padding:'2rem',textAlign:'center'}}>Something went wrong. Please refresh the page.</div>}>
