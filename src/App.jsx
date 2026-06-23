@@ -6,6 +6,7 @@ import { PremiumModalContext } from '@/contexts/PremiumModalContext';
 import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import FloatingNotificationBadge from '@/components/FloatingNotificationBadge';
+import InstallPromptBanner from '@/components/InstallPromptBanner';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
 import { GeoProvider } from '@/contexts/GeoContext';
 import ChunkErrorBoundary from '@/components/ChunkErrorBoundary';
@@ -16,7 +17,8 @@ import ChunkErrorBoundary from '@/components/ChunkErrorBoundary';
 // downloads only when the route is visited. Eager imports remain for the
 // shell pieces (AuthProvider, GeoProvider, AuthenticatedLayout,
 // PremiumUpgradeModal, Toaster, the modal context, the floating badge,
-// ChunkErrorBoundary) — those are needed before any route renders.
+// ChunkErrorBoundary, InstallPromptBanner) — those are needed before any
+// route renders.
 //
 // Suspense fallback is a small cream-bg spinner that matches the brand;
 // ChunkErrorBoundary wraps everything to recover gracefully if a chunk
@@ -26,6 +28,11 @@ import ChunkErrorBoundary from '@/components/ChunkErrorBoundary';
 // Geo+UTM Phase 2 (2026-06-22) — GeoProvider wraps Router so any page can
 // call useGeo() for IP-derived city/country (powers geo-aware UI copy
 // variants on landing, dashboard, and discovery surfaces).
+//
+// PWA (2026-06-23) — InstallPromptBanner is mounted at the shell level
+// (outside the Routes tree) so it's available on every page. It self-hides
+// when the user has already installed, on unsupported browsers, or after
+// the user dismisses it (30-day TTL).
 // ============================================================================
 
 // Public Pages
@@ -165,6 +172,7 @@ function App() {
                     </ChunkErrorBoundary>
                     <Toaster />
                     <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+                    <InstallPromptBanner />
                 </div>
             </Router>
           </GeoProvider>
