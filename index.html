@@ -72,6 +72,149 @@
     <meta name="twitter:image:alt" content="Marryzen — Marriage-intent. Faith-first. Verified." />
 
     <!-- reCAPTCHA v3 will be loaded dynamically -->
+
+    <!-- ============================================================ -->
+    <!-- Termly cookie banner — Marryzen brand override (2026-06-23)   -->
+    <!-- Built into index.html so the styling is version-controlled in -->
+    <!-- git and survives Termly Custom Theme UI regressions / resets. -->
+    <!-- Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.     -->
+    <!-- ============================================================ -->
+    <style>
+/* ============================================================
+ * Termly cookie banner — Marryzen brand override (2026-06-23)
+ * Built into index.html so the styling is version-controlled
+ * in git and survives Termly UI regressions / dashboard resets.
+ * Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.
+ * ============================================================ */
+
+/* Banner root + modal — multi-namespace coverage for Termly's
+   modern + legacy class systems */
+.t-banner,
+.t-modal,
+.t-preferenceModalDialog,
+#termly-code-snippet-support,
+[id^="termly-"][role="dialog"],
+[class*="termly-cmp"]:not([class*="link"]),
+body > div[data-termly] {
+  background-color: #1F1F1F !important;
+  color: #FAF7F2 !important;
+  font-family: inherit !important;
+  border-color: #E6B450 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Headings + body text inside banner */
+.t-banner h1, .t-banner h2, .t-banner h3, .t-banner h4, .t-banner p, .t-banner li, .t-banner span:not(.t-icon),
+.t-modal h1, .t-modal h2, .t-modal h3, .t-modal h4, .t-modal p, .t-modal li, .t-modal span:not(.t-icon),
+.t-preferenceModalDialog h1, .t-preferenceModalDialog h2, .t-preferenceModalDialog h3, .t-preferenceModalDialog p, .t-preferenceModalDialog li,
+[class*="termly-cmp"] h1, [class*="termly-cmp"] h2, [class*="termly-cmp"] h3, [class*="termly-cmp"] p, [class*="termly-cmp"] li {
+  color: #FAF7F2 !important;
+}
+
+/* Links inside banner — gold */
+.t-banner a, .t-modal a, .t-preferenceModalDialog a, [class*="termly-cmp"] a {
+  color: #E6B450 !important;
+  text-decoration: underline !important;
+}
+.t-banner a:hover, .t-modal a:hover, .t-preferenceModalDialog a:hover, [class*="termly-cmp"] a:hover {
+  color: #FAF7F2 !important;
+}
+
+/* Primary CTA (Accept All) — gold pill, dark text */
+.t-banner button[class*="accept"],
+.t-banner button[class*="primary"],
+.t-modal button[class*="accept"],
+.t-preferenceModalDialog button[class*="accept"],
+.t-preferenceModalDialog button[class*="save"],
+[class*="termly-cmp"] button[class*="accept"],
+[class*="termly-cmp"] button[class*="save"] {
+  background-color: #E6B450 !important;
+  color: #1F1F1F !important;
+  border: 1px solid #E6B450 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+}
+.t-banner button[class*="accept"]:hover,
+.t-modal button[class*="accept"]:hover,
+[class*="termly-cmp"] button[class*="accept"]:hover,
+[class*="termly-cmp"] button[class*="save"]:hover {
+  background-color: #D0A23D !important;
+  border-color: #D0A23D !important;
+  color: #1F1F1F !important;
+}
+
+/* Secondary CTAs (Decline All / Preferences) — outlined cream */
+.t-banner button[class*="decline"],
+.t-banner button[class*="secondary"],
+.t-banner button[class*="preferences"],
+.t-banner button[class*="reject"],
+.t-modal button[class*="decline"],
+.t-modal button[class*="secondary"],
+.t-modal button[class*="preferences"],
+.t-modal button[class*="reject"],
+.t-preferenceModalDialog button[class*="decline"],
+.t-preferenceModalDialog button[class*="cancel"],
+[class*="termly-cmp"] button[class*="decline"],
+[class*="termly-cmp"] button[class*="reject"],
+[class*="termly-cmp"] button[class*="preferences"] {
+  background-color: transparent !important;
+  color: #FAF7F2 !important;
+  border: 1px solid #FAF7F2 !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+}
+.t-banner button[class*="decline"]:hover,
+.t-banner button[class*="preferences"]:hover,
+[class*="termly-cmp"] button[class*="decline"]:hover,
+[class*="termly-cmp"] button[class*="preferences"]:hover {
+  background-color: rgba(230, 180, 80, 0.12) !important;
+  border-color: #E6B450 !important;
+  color: #E6B450 !important;
+}
+
+/* Modal/overlay backdrop */
+.t-overlay,
+.termly-cmp-overlay,
+[class*="termly"] [class*="overlay"] {
+  background-color: rgba(31, 31, 31, 0.78) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+/* Preference modal — category rows */
+.t-preferenceModalDialog table,
+[class*="termly-cmp"] table {
+  border-color: rgba(230, 180, 80, 0.3) !important;
+}
+.t-preferenceModalDialog th,
+.t-preferenceModalDialog td,
+[class*="termly-cmp"] th,
+[class*="termly-cmp"] td {
+  color: #FAF7F2 !important;
+  border-color: rgba(230, 180, 80, 0.3) !important;
+}
+
+/* Toggle switches inside preferences */
+.t-preferenceModalDialog [role="switch"][aria-checked="true"],
+[class*="termly-cmp"] [role="switch"][aria-checked="true"] {
+  background-color: #E6B450 !important;
+}
+
+/* Close (X) button */
+.t-banner button[aria-label*="close" i],
+.t-modal button[aria-label*="close" i],
+.t-preferenceModalDialog button[aria-label*="close" i],
+[class*="termly-cmp"] button[aria-label*="close" i] {
+  color: #FAF7F2 !important;
+}
+.t-banner button[aria-label*="close" i]:hover {
+  color: #E6B450 !important;
+}
+
+    </style>
+
       <style>html, body { overflow-x: hidden; }</style>
   </head>
   <body>
