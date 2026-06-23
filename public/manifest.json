@@ -1,0 +1,71 @@
+{
+  "name": "Marryzen",
+  "short_name": "Marryzen",
+  "description": "A private, values-based platform for serious, long-term marriage. Verified profiles, marriage-intent only \u2014 no casual dating.",
+  "start_url": "/?utm_source=pwa&utm_medium=installed&utm_campaign=home_screen",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF7F2",
+  "theme_color": "#E6B450",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "lifestyle",
+    "social"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discovery",
+      "short_name": "Discover",
+      "description": "Browse new matches",
+      "url": "/discovery?utm_source=pwa&utm_medium=shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Chat",
+      "description": "Open your conversations",
+      "url": "/chat?utm_source=pwa&utm_medium=shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "id": "/",
+  "prefer_related_applications": false
+}
