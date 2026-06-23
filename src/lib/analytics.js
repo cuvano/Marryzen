@@ -7,6 +7,7 @@
 // reporting + optimization gets per-conversion-value signal.
 import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
+import { formatReferralSource } from '@/lib/utm';
 
 export function track(event, props = {}) {
   try {
@@ -34,10 +35,23 @@ function fbPixel(eventName, params = {}) {
 
 export function identify(userId, props = {}) {
   try {
-    if (typeof posthog?.identify === 'function') {
-      posthog.identify(userId, props);
+    // Phase 2 UTM (2026-06-22): auto-enrich the PostHog identify call with
+    // the captured attribution source (formatReferralSource pulls from the
+    // mz_utm_v1 cookie set on first visit). This makes the source available
+    // as a PostHog person-property so we can cohort by acquisition channel
+    // in the analytics dashboard ("show me Day-7 retention by referral_source").
+    // Null when the user arrived direct, which is fine — PostHog handles
+    // null properties cleanly.
+    const enrichedProps = { ...props };
+    if (!('referral_source' in enrichedProps)) {
+      const src = formatReferralSource();
+      if (src) enrichedProps.referral_source = src;
     }
-    Sentry.setUser({ id: userId, ...props });
+
+    if (typeof posthog?.identify === 'function') {
+      posthog.identify(userId, enrichedProps);
+    }
+    Sentry.setUser({ id: userId, ...enrichedProps });
   } catch (_) {}
 }
 
@@ -50,7 +64,13 @@ export function reset() {
 
 export const funnel = {
   signupCompleted: (props) => {
-    track('signup_completed', props);
+    // Phase 2 UTM (2026-06-22): include the captured referral_source on the
+    // signup_completed event so we can attribute first-conversion events to
+    // their inbound channel without needing a join against the profiles
+    // table in downstream PostHog reports.
+    const src = formatReferralSource();
+    const enriched = src ? { ...props, referral_source: src } : props;
+    track('signup_completed', enriched);
     fbPixel('Lead');
   },
   emailVerified: (props) => track('email_verified', props),
