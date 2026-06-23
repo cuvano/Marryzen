@@ -28,6 +28,150 @@
     <!-- ============================================================ -->
     <script async src="https://app.termly.io/resource-blocker/04874b92-554a-4fee-9d8f-2becf5ed2d06?autoBlock=on"></script>
 
+    <!-- ============================================================ -->
+    <!-- Termly banner brand-color injector (2026-06-23, follow-up)    -->
+    <!-- Termly's modern CMP renders in Shadow DOM — external <style> -->
+    <!-- in <head> can't pierce the boundary, so we walk shadow roots  -->
+    <!-- and append the brand CSS INSIDE each one Termly creates.       -->
+    <!-- ============================================================ -->
+    <script>
+/* Marryzen — Termly banner shadow-DOM brand-color injector (2026-06-23)
+ *
+ * Termly's modern CMP renders the cookie banner inside a Shadow DOM
+ * (typically <termly-consent-banner> or similar custom elements). CSS in the
+ * host document cannot reach inside a shadow root — that's CSS isolation
+ * by design. To brand the banner without using Termly's dashboard Custom
+ * Theme picker (which our team keeps regressing), we inject our brand
+ * stylesheet directly INTO each shadow root Termly creates.
+ *
+ * Approach:
+ *   1. Run after Termly's resource-blocker has loaded (placed late in <head>)
+ *   2. MutationObserver watches body for added nodes
+ *   3. When any element with .shadowRoot AND a Termly tag-name appears,
+ *      we append our <style> to its shadowRoot
+ *   4. Same logic re-runs if the user re-opens the preferences modal
+ *      (Termly mounts a NEW shadow root for that, not reuses the banner one)
+ *
+ * Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.
+ */
+(function () {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  var BRAND_CSS = [
+    /* root surface */
+    ':host, :host(*) { font-family: inherit; }',
+    'div, section, aside, dialog { background-color: #1F1F1F !important; color: #FAF7F2 !important; border-color: #E6B450 !important; border-radius: 12px !important; }',
+    'p, h1, h2, h3, h4, h5, h6, li, span, label { color: #FAF7F2 !important; }',
+    'a { color: #E6B450 !important; text-decoration: underline !important; }',
+    'a:hover { color: #FAF7F2 !important; }',
+
+    /* primary CTA (Accept) — gold pill */
+    'button { font-family: inherit !important; border-radius: 8px !important; padding: 10px 20px !important; font-weight: 500 !important; transition: all .15s ease !important; }',
+    'button[class*="accept" i], button[class*="primary" i], button[aria-label*="accept" i], button[data-action*="accept" i] {',
+    '  background-color: #E6B450 !important;',
+    '  color: #1F1F1F !important;',
+    '  border: 1px solid #E6B450 !important;',
+    '  font-weight: 600 !important;',
+    '}',
+    'button[class*="accept" i]:hover, button[class*="primary" i]:hover, button[aria-label*="accept" i]:hover {',
+    '  background-color: #D0A23D !important;',
+    '  border-color: #D0A23D !important;',
+    '}',
+
+    /* secondary CTAs (Decline / Preferences) — outlined cream */
+    'button[class*="decline" i], button[class*="reject" i], button[class*="secondary" i], button[class*="preferences" i], button[aria-label*="decline" i], button[aria-label*="reject" i], button[aria-label*="preferences" i] {',
+    '  background-color: transparent !important;',
+    '  color: #FAF7F2 !important;',
+    '  border: 1px solid #FAF7F2 !important;',
+    '}',
+    'button[class*="decline" i]:hover, button[class*="reject" i]:hover, button[class*="preferences" i]:hover {',
+    '  background-color: rgba(230, 180, 80, 0.12) !important;',
+    '  border-color: #E6B450 !important;',
+    '  color: #E6B450 !important;',
+    '}',
+
+    /* close X button */
+    'button[aria-label*="close" i] { color: #FAF7F2 !important; background: transparent !important; border: none !important; padding: 4px !important; }',
+    'button[aria-label*="close" i]:hover { color: #E6B450 !important; }',
+
+    /* preference modal — table rows + toggle switches */
+    'table { border-color: rgba(230, 180, 80, 0.3) !important; }',
+    'th, td { color: #FAF7F2 !important; border-color: rgba(230, 180, 80, 0.3) !important; background-color: transparent !important; }',
+    '[role="switch"][aria-checked="true"], input[type="checkbox"]:checked + * { background-color: #E6B450 !important; }',
+  ].join('\n');
+
+  function injectInto(shadowRoot) {
+    if (!shadowRoot || shadowRoot._mzBranded) return;
+    try {
+      var style = document.createElement('style');
+      style.setAttribute('data-mz-brand', '1');
+      style.textContent = BRAND_CSS;
+      shadowRoot.appendChild(style);
+      shadowRoot._mzBranded = true;
+    } catch (_) { /* shadow may be 'closed' — fail silently */ }
+  }
+
+  function isTermlyHost(el) {
+    if (!el || !el.shadowRoot) return false;
+    var tag = (el.tagName || '').toLowerCase();
+    var id = (el.id || '').toLowerCase();
+    var cls = (el.className && el.className.toString ? el.className.toString() : '').toLowerCase();
+    if (tag.indexOf('termly') > -1) return true;
+    if (id.indexOf('termly') > -1) return true;
+    if (cls.indexOf('termly') > -1) return true;
+    // Fallback: inspect shadow content for Termly markers
+    try {
+      var text = (el.shadowRoot.textContent || '').toLowerCase();
+      if (text.indexOf('cookie policy') > -1 || text.indexOf('use essential cookies') > -1) return true;
+      var html = el.shadowRoot.innerHTML || '';
+      if (html.indexOf('termly') > -1) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  function scanAndInject(root) {
+    root = root || document;
+    var all = root.querySelectorAll('*');
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].shadowRoot && isTermlyHost(all[i])) {
+        injectInto(all[i].shadowRoot);
+      }
+    }
+  }
+
+  /* Initial scan on a delay so Termly script has time to load */
+  setTimeout(function () { scanAndInject(); }, 500);
+  setTimeout(function () { scanAndInject(); }, 1500);
+  setTimeout(function () { scanAndInject(); }, 3500);
+
+  /* Observe for new shadow hosts added later (e.g. preferences modal opens) */
+  var observer = new MutationObserver(function (mutations) {
+    for (var m = 0; m < mutations.length; m++) {
+      var added = mutations[m].addedNodes;
+      for (var n = 0; n < added.length; n++) {
+        var node = added[n];
+        if (node.nodeType !== 1) continue;
+        if (node.shadowRoot && isTermlyHost(node)) injectInto(node.shadowRoot);
+        if (node.querySelectorAll) {
+          var hosts = node.querySelectorAll('*');
+          for (var k = 0; k < hosts.length; k++) {
+            if (hosts[k].shadowRoot && isTermlyHost(hosts[k])) injectInto(hosts[k].shadowRoot);
+          }
+        }
+      }
+    }
+  });
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+})();
+
+    </script>
+
     <link rel="canonical" href="https://www.marryzen.com/" />
 
     <!-- ============================================================ -->
