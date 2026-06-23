@@ -28,150 +28,6 @@
     <!-- ============================================================ -->
     <script async src="https://app.termly.io/resource-blocker/04874b92-554a-4fee-9d8f-2becf5ed2d06?autoBlock=on"></script>
 
-    <!-- ============================================================ -->
-    <!-- Termly banner brand-color injector (2026-06-23, follow-up)    -->
-    <!-- Termly's modern CMP renders in Shadow DOM — external <style> -->
-    <!-- in <head> can't pierce the boundary, so we walk shadow roots  -->
-    <!-- and append the brand CSS INSIDE each one Termly creates.       -->
-    <!-- ============================================================ -->
-    <script>
-/* Marryzen — Termly banner shadow-DOM brand-color injector (2026-06-23)
- *
- * Termly's modern CMP renders the cookie banner inside a Shadow DOM
- * (typically <termly-consent-banner> or similar custom elements). CSS in the
- * host document cannot reach inside a shadow root — that's CSS isolation
- * by design. To brand the banner without using Termly's dashboard Custom
- * Theme picker (which our team keeps regressing), we inject our brand
- * stylesheet directly INTO each shadow root Termly creates.
- *
- * Approach:
- *   1. Run after Termly's resource-blocker has loaded (placed late in <head>)
- *   2. MutationObserver watches body for added nodes
- *   3. When any element with .shadowRoot AND a Termly tag-name appears,
- *      we append our <style> to its shadowRoot
- *   4. Same logic re-runs if the user re-opens the preferences modal
- *      (Termly mounts a NEW shadow root for that, not reuses the banner one)
- *
- * Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.
- */
-(function () {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-
-  var BRAND_CSS = [
-    /* root surface */
-    ':host, :host(*) { font-family: inherit; }',
-    'div, section, aside, dialog { background-color: #1F1F1F !important; color: #FAF7F2 !important; border-color: #E6B450 !important; border-radius: 12px !important; }',
-    'p, h1, h2, h3, h4, h5, h6, li, span, label { color: #FAF7F2 !important; }',
-    'a { color: #E6B450 !important; text-decoration: underline !important; }',
-    'a:hover { color: #FAF7F2 !important; }',
-
-    /* primary CTA (Accept) — gold pill */
-    'button { font-family: inherit !important; border-radius: 8px !important; padding: 10px 20px !important; font-weight: 500 !important; transition: all .15s ease !important; }',
-    'button[class*="accept" i], button[class*="primary" i], button[aria-label*="accept" i], button[data-action*="accept" i] {',
-    '  background-color: #E6B450 !important;',
-    '  color: #1F1F1F !important;',
-    '  border: 1px solid #E6B450 !important;',
-    '  font-weight: 600 !important;',
-    '}',
-    'button[class*="accept" i]:hover, button[class*="primary" i]:hover, button[aria-label*="accept" i]:hover {',
-    '  background-color: #D0A23D !important;',
-    '  border-color: #D0A23D !important;',
-    '}',
-
-    /* secondary CTAs (Decline / Preferences) — outlined cream */
-    'button[class*="decline" i], button[class*="reject" i], button[class*="secondary" i], button[class*="preferences" i], button[aria-label*="decline" i], button[aria-label*="reject" i], button[aria-label*="preferences" i] {',
-    '  background-color: transparent !important;',
-    '  color: #FAF7F2 !important;',
-    '  border: 1px solid #FAF7F2 !important;',
-    '}',
-    'button[class*="decline" i]:hover, button[class*="reject" i]:hover, button[class*="preferences" i]:hover {',
-    '  background-color: rgba(230, 180, 80, 0.12) !important;',
-    '  border-color: #E6B450 !important;',
-    '  color: #E6B450 !important;',
-    '}',
-
-    /* close X button */
-    'button[aria-label*="close" i] { color: #FAF7F2 !important; background: transparent !important; border: none !important; padding: 4px !important; }',
-    'button[aria-label*="close" i]:hover { color: #E6B450 !important; }',
-
-    /* preference modal — table rows + toggle switches */
-    'table { border-color: rgba(230, 180, 80, 0.3) !important; }',
-    'th, td { color: #FAF7F2 !important; border-color: rgba(230, 180, 80, 0.3) !important; background-color: transparent !important; }',
-    '[role="switch"][aria-checked="true"], input[type="checkbox"]:checked + * { background-color: #E6B450 !important; }',
-  ].join('\n');
-
-  function injectInto(shadowRoot) {
-    if (!shadowRoot || shadowRoot._mzBranded) return;
-    try {
-      var style = document.createElement('style');
-      style.setAttribute('data-mz-brand', '1');
-      style.textContent = BRAND_CSS;
-      shadowRoot.appendChild(style);
-      shadowRoot._mzBranded = true;
-    } catch (_) { /* shadow may be 'closed' — fail silently */ }
-  }
-
-  function isTermlyHost(el) {
-    if (!el || !el.shadowRoot) return false;
-    var tag = (el.tagName || '').toLowerCase();
-    var id = (el.id || '').toLowerCase();
-    var cls = (el.className && el.className.toString ? el.className.toString() : '').toLowerCase();
-    if (tag.indexOf('termly') > -1) return true;
-    if (id.indexOf('termly') > -1) return true;
-    if (cls.indexOf('termly') > -1) return true;
-    // Fallback: inspect shadow content for Termly markers
-    try {
-      var text = (el.shadowRoot.textContent || '').toLowerCase();
-      if (text.indexOf('cookie policy') > -1 || text.indexOf('use essential cookies') > -1) return true;
-      var html = el.shadowRoot.innerHTML || '';
-      if (html.indexOf('termly') > -1) return true;
-    } catch (_) {}
-    return false;
-  }
-
-  function scanAndInject(root) {
-    root = root || document;
-    var all = root.querySelectorAll('*');
-    for (var i = 0; i < all.length; i++) {
-      if (all[i].shadowRoot && isTermlyHost(all[i])) {
-        injectInto(all[i].shadowRoot);
-      }
-    }
-  }
-
-  /* Initial scan on a delay so Termly script has time to load */
-  setTimeout(function () { scanAndInject(); }, 500);
-  setTimeout(function () { scanAndInject(); }, 1500);
-  setTimeout(function () { scanAndInject(); }, 3500);
-
-  /* Observe for new shadow hosts added later (e.g. preferences modal opens) */
-  var observer = new MutationObserver(function (mutations) {
-    for (var m = 0; m < mutations.length; m++) {
-      var added = mutations[m].addedNodes;
-      for (var n = 0; n < added.length; n++) {
-        var node = added[n];
-        if (node.nodeType !== 1) continue;
-        if (node.shadowRoot && isTermlyHost(node)) injectInto(node.shadowRoot);
-        if (node.querySelectorAll) {
-          var hosts = node.querySelectorAll('*');
-          for (var k = 0; k < hosts.length; k++) {
-            if (hosts[k].shadowRoot && isTermlyHost(hosts[k])) injectInto(hosts[k].shadowRoot);
-          }
-        }
-      }
-    }
-  });
-  if (document.body) {
-    observer.observe(document.body, { childList: true, subtree: true });
-  } else {
-    document.addEventListener('DOMContentLoaded', function () {
-      observer.observe(document.body, { childList: true, subtree: true });
-    });
-  }
-})();
-
-    </script>
-
     <link rel="canonical" href="https://www.marryzen.com/" />
 
     <!-- ============================================================ -->
@@ -218,143 +74,261 @@
     <!-- reCAPTCHA v3 will be loaded dynamically -->
 
     <!-- ============================================================ -->
-    <!-- Termly cookie banner — Marryzen brand override (2026-06-23)   -->
-    <!-- Built into index.html so the styling is version-controlled in -->
-    <!-- git and survives Termly Custom Theme UI regressions / resets. -->
-    <!-- Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.     -->
+    <!-- Termly cookie banner — Marryzen brand v5 (compact, on-brand) -->
+    <!-- Cream surface matches marryzen.com page bg; gold Accept       -->
+    <!-- matches hero CTA; ~30% smaller footprint than v4.             -->
     <!-- ============================================================ -->
     <style>
 /* ============================================================
- * Termly cookie banner — Marryzen brand override (2026-06-23)
- * Built into index.html so the styling is version-controlled
- * in git and survives Termly UI regressions / dashboard resets.
- * Brand palette: dark #1F1F1F, cream #FAF7F2, gold #E6B450.
+ * Termly cookie banner — Marryzen brand v5 (2026-06-23)
+ *
+ * Combines v3's color richness with v4's readability,
+ * compacted ~30% to feel less obtrusive. Surface matches
+ * marryzen.com's actual page bg (#FAF7F2 cream). Primary
+ * CTA = gold (matches the site's hero button pattern).
+ *
+ * Palette: cream #FAF7F2 (surface), dark #1F1F1F (text),
+ *          warm muted #5F5A56 (body), gold #E6B450 (primary),
+ *          gold-hover #D0A23D (active).
  * ============================================================ */
 
-/* Banner root + modal — multi-namespace coverage for Termly's
-   modern + legacy class systems */
-.t-banner,
-.t-modal,
-.t-preferenceModalDialog,
-#termly-code-snippet-support,
-[id^="termly-"][role="dialog"],
-[class*="termly-cmp"]:not([class*="link"]),
-body > div[data-termly] {
-  background-color: #1F1F1F !important;
-  color: #FAF7F2 !important;
-  font-family: inherit !important;
-  border-color: #E6B450 !important;
+/* ---------- Banner card — compact, cream, soft border ---------- */
+[class*="termly-styles-module-root-"],
+[class*="termly-styles-module-content-"],
+[class*="termly-styles-module-shadowBox-"] {
+  background: #FAF7F2 !important;
+  color: #1F1F1F !important;
+  border: 1px solid rgba(230, 180, 80, 0.35) !important;
   border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 8px 28px rgba(31, 31, 31, 0.12), 0 2px 6px rgba(31, 31, 31, 0.06) !important;
+  font-family: inherit !important;
+  padding: 16px 20px !important;
+  max-width: 980px !important;
+  margin: 0 auto !important;
 }
 
-/* Headings + body text inside banner */
-.t-banner h1, .t-banner h2, .t-banner h3, .t-banner h4, .t-banner p, .t-banner li, .t-banner span:not(.t-icon),
-.t-modal h1, .t-modal h2, .t-modal h3, .t-modal h4, .t-modal p, .t-modal li, .t-modal span:not(.t-icon),
-.t-preferenceModalDialog h1, .t-preferenceModalDialog h2, .t-preferenceModalDialog h3, .t-preferenceModalDialog p, .t-preferenceModalDialog li,
-[class*="termly-cmp"] h1, [class*="termly-cmp"] h2, [class*="termly-cmp"] h3, [class*="termly-cmp"] p, [class*="termly-cmp"] li {
-  color: #FAF7F2 !important;
+/* ---------- Title — smaller, brand-warm ---------- */
+[class*="termly-styles-module-title-"] {
+  color: #1F1F1F !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  margin: 0 0 6px 0 !important;
 }
 
-/* Links inside banner — gold */
-.t-banner a, .t-modal a, .t-preferenceModalDialog a, [class*="termly-cmp"] a {
-  color: #E6B450 !important;
+/* ---------- Body text — compact, warm muted ---------- */
+[class*="termly-styles-message-"],
+[class*="termly-styles-module-content-"] p,
+[class*="termly-styles-module-content-"] li {
+  color: #5F5A56 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* ---------- Links — brand gold underlined ---------- */
+[class*="termly-styles-link-"],
+[class*="termly-styles-module-content-"] a {
+  color: #1F1F1F !important;
   text-decoration: underline !important;
+  text-decoration-color: #E6B450 !important;
+  text-decoration-thickness: 1.5px !important;
+  text-underline-offset: 2px !important;
+  font-weight: 500 !important;
+  transition: color .15s ease !important;
 }
-.t-banner a:hover, .t-modal a:hover, .t-preferenceModalDialog a:hover, [class*="termly-cmp"] a:hover {
-  color: #FAF7F2 !important;
+[class*="termly-styles-link-"]:hover,
+[class*="termly-styles-module-content-"] a:hover {
+  color: #E6B450 !important;
 }
 
-/* Primary CTA (Accept All) — gold pill, dark text */
-.t-banner button[class*="accept"],
-.t-banner button[class*="primary"],
-.t-modal button[class*="accept"],
-.t-preferenceModalDialog button[class*="accept"],
-.t-preferenceModalDialog button[class*="save"],
-[class*="termly-cmp"] button[class*="accept"],
-[class*="termly-cmp"] button[class*="save"] {
-  background-color: #E6B450 !important;
+/* ---------- Buttons container — tighter spacing ---------- */
+[class*="termly-styles-module-buttons-"] {
+  gap: 8px !important;
+  margin-top: 12px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+}
+
+/* ---------- Button base — compact ---------- */
+[class*="termly-styles-module-acceptButton-"],
+[class*="termly-styles-module-prefsButton-"],
+[class*="termly-styles-module-solid-"],
+[class*="termly-styles-module-outline-"] {
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.005em !important;
+  border-radius: 8px !important;
+  padding: 9px 18px !important;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+
+/* ---------- Primary CTA: Accept All ---------- gold pill (matches hero CTA on the site) */
+[class*="termly-styles-module-acceptButton-"],
+[class*="termly-styles-module-solid-"][class*="termly-styles-module-primary-"] {
+  background: #E6B450 !important;
   color: #1F1F1F !important;
   border: 1px solid #E6B450 !important;
-  font-weight: 600 !important;
-  border-radius: 8px !important;
-  padding: 10px 20px !important;
+  font-weight: 700 !important;
 }
-.t-banner button[class*="accept"]:hover,
-.t-modal button[class*="accept"]:hover,
-[class*="termly-cmp"] button[class*="accept"]:hover,
-[class*="termly-cmp"] button[class*="save"]:hover {
-  background-color: #D0A23D !important;
+[class*="termly-styles-module-acceptButton-"]:hover,
+[class*="termly-styles-module-solid-"][class*="termly-styles-module-primary-"]:hover {
+  background: #D0A23D !important;
   border-color: #D0A23D !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(230, 180, 80, 0.32) !important;
+}
+[class*="termly-styles-module-acceptButton-"]:active,
+[class*="termly-styles-module-solid-"][class*="termly-styles-module-primary-"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 4px rgba(230, 180, 80, 0.2) !important;
+}
+
+/* ---------- Secondary: Decline / non-primary solid ---------- outlined dark (quieter than primary) */
+[class*="termly-styles-module-solid-"]:not([class*="termly-styles-module-primary-"]) {
+  background: #FFFFFF !important;
   color: #1F1F1F !important;
+  border: 1px solid #1F1F1F !important;
+  font-weight: 600 !important;
+}
+[class*="termly-styles-module-solid-"]:not([class*="termly-styles-module-primary-"]):hover {
+  background: #1F1F1F !important;
+  color: #FAF7F2 !important;
+  border-color: #1F1F1F !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(31, 31, 31, 0.18) !important;
 }
 
-/* Secondary CTAs (Decline All / Preferences) — outlined cream */
-.t-banner button[class*="decline"],
-.t-banner button[class*="secondary"],
-.t-banner button[class*="preferences"],
-.t-banner button[class*="reject"],
-.t-modal button[class*="decline"],
-.t-modal button[class*="secondary"],
-.t-modal button[class*="preferences"],
-.t-modal button[class*="reject"],
-.t-preferenceModalDialog button[class*="decline"],
-.t-preferenceModalDialog button[class*="cancel"],
-[class*="termly-cmp"] button[class*="decline"],
-[class*="termly-cmp"] button[class*="reject"],
-[class*="termly-cmp"] button[class*="preferences"] {
-  background-color: transparent !important;
-  color: #FAF7F2 !important;
-  border: 1px solid #FAF7F2 !important;
+/* ---------- Tertiary: Preferences ---------- text-style, quiet */
+[class*="termly-styles-module-prefsButton-"],
+[class*="termly-styles-module-outline-"] {
+  background: transparent !important;
+  color: #5F5A56 !important;
+  border: 1px solid transparent !important;
   font-weight: 500 !important;
-  border-radius: 8px !important;
-  padding: 10px 20px !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(95, 90, 86, 0.4) !important;
+  text-underline-offset: 3px !important;
+  padding: 9px 12px !important;
 }
-.t-banner button[class*="decline"]:hover,
-.t-banner button[class*="preferences"]:hover,
-[class*="termly-cmp"] button[class*="decline"]:hover,
-[class*="termly-cmp"] button[class*="preferences"]:hover {
-  background-color: rgba(230, 180, 80, 0.12) !important;
+[class*="termly-styles-module-prefsButton-"]:hover,
+[class*="termly-styles-module-outline-"]:hover {
+  background: transparent !important;
+  color: #1F1F1F !important;
+  text-decoration-color: #E6B450 !important;
+  border-color: transparent !important;
+}
+
+/* ---------- Close X ---------- subtle */
+[class*="termly-styles-closeButton-"] {
+  color: #5F5A56 !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 1.2rem !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  transition: all .15s ease !important;
+}
+[class*="termly-styles-closeButton-"]:hover {
+  color: #1F1F1F !important;
+  background: rgba(31, 31, 31, 0.05) !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Preference modal — checkbox + checked states ---------- */
+[class*="termly-styles-module-checkbox-"] {
+  border: 1.5px solid rgba(31, 31, 31, 0.3) !important;
+  background: #FFFFFF !important;
+  border-radius: 4px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+[class*="termly-styles-module-checked-"] {
+  background: #E6B450 !important;
   border-color: #E6B450 !important;
+}
+[class*="termly-styles-module-checked-"] svg,
+[class*="termly-styles-module-checked-"] path {
+  color: #1F1F1F !important;
+  fill: #1F1F1F !important;
+  stroke: #1F1F1F !important;
+}
+
+/* ---------- Icons ---------- gold accent */
+[class*="termly-styles-icon-"] {
   color: #E6B450 !important;
+  fill: #E6B450 !important;
 }
 
-/* Modal/overlay backdrop */
-.t-overlay,
-.termly-cmp-overlay,
-[class*="termly"] [class*="overlay"] {
-  background-color: rgba(31, 31, 31, 0.78) !important;
-  backdrop-filter: blur(2px) !important;
+/* ---------- Disabled state ---------- */
+[class*="termly-styles-module-disabled-"] {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
 }
 
-/* Preference modal — category rows */
-.t-preferenceModalDialog table,
-[class*="termly-cmp"] table {
-  border-color: rgba(230, 180, 80, 0.3) !important;
+/* ---------- Floating preferences button (persistent post-consent icon) ---------- */
+.floating-preferences-button,
+[class*="floating-preferences-button"] {
+  background: #FAF7F2 !important;
+  color: #1F1F1F !important;
+  border: 2px solid #E6B450 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 16px rgba(31, 31, 31, 0.15) !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all .2s ease !important;
 }
-.t-preferenceModalDialog th,
-.t-preferenceModalDialog td,
-[class*="termly-cmp"] th,
-[class*="termly-cmp"] td {
-  color: #FAF7F2 !important;
-  border-color: rgba(230, 180, 80, 0.3) !important;
+.floating-preferences-button:hover,
+[class*="floating-preferences-button"]:hover {
+  background: #E6B450 !important;
+  color: #1F1F1F !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(230, 180, 80, 0.35) !important;
 }
 
-/* Toggle switches inside preferences */
-.t-preferenceModalDialog [role="switch"][aria-checked="true"],
-[class*="termly-cmp"] [role="switch"][aria-checked="true"] {
-  background-color: #E6B450 !important;
+/* ---------- Entry animation — gentle slide-up ---------- */
+@keyframes mz-banner-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+[class*="termly-styles-module-shadowBox-"] {
+  animation: mz-banner-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Close (X) button */
-.t-banner button[aria-label*="close" i],
-.t-modal button[aria-label*="close" i],
-.t-preferenceModalDialog button[aria-label*="close" i],
-[class*="termly-cmp"] button[aria-label*="close" i] {
-  color: #FAF7F2 !important;
+/* ---------- Preference modal table — compact ---------- */
+[class*="termly-styles-module-content-"] table {
+  border-color: rgba(230, 180, 80, 0.25) !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-size: 0.85rem !important;
 }
-.t-banner button[aria-label*="close" i]:hover {
-  color: #E6B450 !important;
+[class*="termly-styles-module-content-"] th,
+[class*="termly-styles-module-content-"] td {
+  color: #1F1F1F !important;
+  border-color: rgba(230, 180, 80, 0.2) !important;
+  background: transparent !important;
+  padding: 10px 8px !important;
+}
+[class*="termly-styles-module-content-"] th {
+  font-weight: 600 !important;
+  color: #5F5A56 !important;
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.05em !important;
 }
 
     </style>
