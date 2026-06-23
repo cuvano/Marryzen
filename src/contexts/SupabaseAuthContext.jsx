@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
+import { unsubscribeFromPush } from '@/lib/pushNotifications';
 
 const AuthContext = createContext(undefined);
 
@@ -105,6 +106,16 @@ export const AuthProvider = ({ children }) => {
   }, [toast]);
 
   const signOut = useCallback(async () => {
+    // PWA Tier 3 — privacy fix (2026-06-23): tear down the device's push
+    // subscription BEFORE invalidating the session, so the DELETE row write
+    // succeeds (push_subscriptions RLS requires auth.uid() = user_id). Without
+    // this, a shared device where the previous user installed Marryzen would
+    // keep receiving the previous user's match notifications until the push
+    // service expires the endpoint (potentially weeks). The unsubscribe call
+    // is wrapped in try/catch so a network failure or absent subscription
+    // never blocks sign-out itself.
+    try { await unsubscribeFromPush(); } catch (_) {}
+
     const { error } = await supabase.auth.signOut();
     // Clear stored admin role and user profile so a new account in same browser doesn't inherit them
     try {
