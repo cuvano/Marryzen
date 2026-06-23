@@ -7,20 +7,25 @@ import PremiumUpgradeModal from '@/components/PremiumUpgradeModal';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import FloatingNotificationBadge from '@/components/FloatingNotificationBadge';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
+import { GeoProvider } from '@/contexts/GeoContext';
 import ChunkErrorBoundary from '@/components/ChunkErrorBoundary';
 
 // ============================================================================
 // Bundle Z (2026-06-15) — perf code-splitting.
 // Every Route element is lazily imported via React.lazy so its JS chunk
 // downloads only when the route is visited. Eager imports remain for the
-// shell pieces (AuthProvider, AuthenticatedLayout, PremiumUpgradeModal,
-// Toaster, the modal context, the floating badge, ChunkErrorBoundary) —
-// those are needed before any route renders.
+// shell pieces (AuthProvider, GeoProvider, AuthenticatedLayout,
+// PremiumUpgradeModal, Toaster, the modal context, the floating badge,
+// ChunkErrorBoundary) — those are needed before any route renders.
 //
 // Suspense fallback is a small cream-bg spinner that matches the brand;
 // ChunkErrorBoundary wraps everything to recover gracefully if a chunk
 // fails to load (network blip, deploy mid-session). The boundary offers
 // a reload action that re-fetches the chunk.
+//
+// Geo+UTM Phase 2 (2026-06-22) — GeoProvider wraps Router so any page can
+// call useGeo() for IP-derived city/country (powers geo-aware UI copy
+// variants on landing, dashboard, and discovery surfaces).
 // ============================================================================
 
 // Public Pages
@@ -92,75 +97,77 @@ function App() {
       </Helmet>
       <AuthProvider>
         <PremiumModalContext.Provider value={{ openPremiumModal: () => setIsModalOpen(true) }}>
-          <Router>
-              <div className="min-h-screen bg-[#FAF7F2]">
-                  <FloatingNotificationBadge />
-                  <ChunkErrorBoundary>
-                    <Suspense fallback={<RouteSuspenseFallback />}>
-                      <Routes>
-                          {/* Public Routes */}
-                          <Route path="/" element={<LandingPage />} />
-                          <Route path="/login" element={<LoginPage />} />
-                          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                          <Route path="/reset-password" element={<ResetPasswordPage />} />
-                          <Route path="/auth/verify" element={<AuthVerifyPage />} />
-                          <Route path="/join" element={<OnboardingPage />} />
-                          <Route path="/onboarding" element={<OnboardingPage />} />
-                          <Route path="/press" element={<PressKitPage />} />
+          <GeoProvider>
+            <Router>
+                <div className="min-h-screen bg-[#FAF7F2]">
+                    <FloatingNotificationBadge />
+                    <ChunkErrorBoundary>
+                      <Suspense fallback={<RouteSuspenseFallback />}>
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route path="/" element={<LandingPage />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                            <Route path="/reset-password" element={<ResetPasswordPage />} />
+                            <Route path="/auth/verify" element={<AuthVerifyPage />} />
+                            <Route path="/join" element={<OnboardingPage />} />
+                            <Route path="/onboarding" element={<OnboardingPage />} />
+                            <Route path="/press" element={<PressKitPage />} />
 
-                          {/* Authenticated Routes with Global Header */}
-                          <Route element={<AuthenticatedLayout />}>
-                              <Route path="/verify-email" element={<VerifyEmailPage />} />
-                              <Route path="/dashboard" element={<DashboardPage />} />
-                              <Route path="/profile" element={<ProfilePage />} />
-                                <Route path="/discovery" element={<DiscoveryPage />} />
-                                <Route path="/matches" element={<MatchesPage />} />
-                                <Route path="/chat" element={<ChatPage />} />
-                                <Route path="/chat/:conversationId" element={<ChatPage />} />
-                                <Route path="/profile/:userId" element={<ProfilePage />} />
-                              <Route path="/premium" element={<PremiumPage />} />
-                              <Route path="/billing" element={<BillingPage />} />
-                              <Route path="/referrals" element={<ReferralPage />} />
-                              <Route path="/rewards" element={<RewardsPage />} />
-                              <Route path="/notifications" element={<NotificationsPage />} />
-                              <Route path="/account-settings" element={<AccountSettingsPage />} />
-                              <Route path="/help" element={<HelpSupportPage />} />
-                          </Route>
+                            {/* Authenticated Routes with Global Header */}
+                            <Route element={<AuthenticatedLayout />}>
+                                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                                <Route path="/dashboard" element={<DashboardPage />} />
+                                <Route path="/profile" element={<ProfilePage />} />
+                                  <Route path="/discovery" element={<DiscoveryPage />} />
+                                  <Route path="/matches" element={<MatchesPage />} />
+                                  <Route path="/chat" element={<ChatPage />} />
+                                  <Route path="/chat/:conversationId" element={<ChatPage />} />
+                                  <Route path="/profile/:userId" element={<ProfilePage />} />
+                                <Route path="/premium" element={<PremiumPage />} />
+                                <Route path="/billing" element={<BillingPage />} />
+                                <Route path="/referrals" element={<ReferralPage />} />
+                                <Route path="/rewards" element={<RewardsPage />} />
+                                <Route path="/notifications" element={<NotificationsPage />} />
+                                <Route path="/account-settings" element={<AccountSettingsPage />} />
+                                <Route path="/help" element={<HelpSupportPage />} />
+                            </Route>
 
-                          {/* Legal Routes */}
-                          <Route path="/terms" element={<TermsOfService />} />
-                          <Route path="/privacy" element={<PrivacyPolicy />} />
-                          <Route path="/community-guidelines" element={<CommunityGuidelines />} />
-                          <Route path="/safety" element={<SafetyDisclaimer />} />
-                          <Route path="/billing-terms" element={<BillingTerms />} />
-                          <Route path="/refund-policy" element={<RefundPolicy />} />
-                          <Route path="/cookie-policy" element={<CookiePolicy />} />
-                          <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
-                          <Route path="/investor-legal" element={<InvestorLegalSummary />} />
-                          <Route path="/referral-terms" element={<ReferralTerms />} />
-                          <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
+                            {/* Legal Routes */}
+                            <Route path="/terms" element={<TermsOfService />} />
+                            <Route path="/privacy" element={<PrivacyPolicy />} />
+                            <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+                            <Route path="/safety" element={<SafetyDisclaimer />} />
+                            <Route path="/billing-terms" element={<BillingTerms />} />
+                            <Route path="/refund-policy" element={<RefundPolicy />} />
+                            <Route path="/cookie-policy" element={<CookiePolicy />} />
+                            <Route path="/app-store-disclosures" element={<AppStoreLegalDisclosures />} />
+                            <Route path="/investor-legal" element={<InvestorLegalSummary />} />
+                            <Route path="/referral-terms" element={<ReferralTerms />} />
+                            <Route path="/founding-member-terms" element={<FoundingMemberTerms />} />
 
-                          {/* Admin Routes - Protected by AdminLayout logic */}
-                          <Route path="/admin" element={<AdminLayout />}>
-                              <Route index element={<AdminDashboard />} />
-                              <Route path="dashboard" element={<AdminDashboard />} />
-                              <Route path="users" element={<UserManagement />} />
-                              <Route path="reports" element={<SafetyPanel />} />
-                              <Route path="verification" element={<VerificationQueue />} />
-                              <Route path="matching" element={<MatchingSettings />} />
-                              <Route path="settings" element={<PlatformSettings />} />
-                              <Route path="audit-logs" element={<AuditLogsPage />} />
-                              <Route path="activity" element={<ActivityDashboard />} />
-                          </Route>
-                        {/* 404 catch-all */}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-                    </Suspense>
-                  </ChunkErrorBoundary>
-                  <Toaster />
-                  <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-              </div>
-          </Router>
+                            {/* Admin Routes - Protected by AdminLayout logic */}
+                            <Route path="/admin" element={<AdminLayout />}>
+                                <Route index element={<AdminDashboard />} />
+                                <Route path="dashboard" element={<AdminDashboard />} />
+                                <Route path="users" element={<UserManagement />} />
+                                <Route path="reports" element={<SafetyPanel />} />
+                                <Route path="verification" element={<VerificationQueue />} />
+                                <Route path="matching" element={<MatchingSettings />} />
+                                <Route path="settings" element={<PlatformSettings />} />
+                                <Route path="audit-logs" element={<AuditLogsPage />} />
+                                <Route path="activity" element={<ActivityDashboard />} />
+                            </Route>
+                          {/* 404 catch-all */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+                      </Suspense>
+                    </ChunkErrorBoundary>
+                    <Toaster />
+                    <PremiumUpgradeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+                </div>
+            </Router>
+          </GeoProvider>
         </PremiumModalContext.Provider>
       </AuthProvider>
     </>
