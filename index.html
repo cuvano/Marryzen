@@ -3,11 +3,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Primary -->
-    <title>Marryzen - A platform for serious marriage</title>
-    <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only - no casual dating." />
+    <title>Marryzen ... A platform for serious marriage</title>
+    <meta name="description" content="Marryzen is a private, values-based platform for people seeking serious, long-term marriage. Verified profiles, marriage-intent only ... no casual dating." />
     <meta name="theme-color" content="#E6B450" />
 
     <!-- ============================================================ -->
@@ -30,9 +30,25 @@
 
     <link rel="canonical" href="https://www.marryzen.com/" />
 
-    <!-- Favicon -->
+    <!-- ============================================================ -->
+    <!-- PWA — Add to Home Screen capability (2026-06-23)              -->
+    <!-- Manifest: full app metadata (name, icons, theme, start_url).  -->
+    <!-- Apple meta tags: iOS Safari ignores manifest for some props,  -->
+    <!-- needs these legacy meta names to render correctly when a user -->
+    <!-- adds Marryzen to the iOS home screen.                         -->
+    <!-- ============================================================ -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="application-name" content="Marryzen" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Marryzen" />
+
+    <!-- Favicon + iOS home screen icon. apple-touch-icon.png is the   -->
+    <!-- PWA-spec PNG that iOS picks up; the SVG favicon stays for     -->
+    <!-- modern browsers that prefer vector.                           -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Open Graph (Phase 38: og-image.jpg -> og-image.png, file now exists in /public) -->
     <meta property="og:type" content="website" />
