@@ -9,6 +9,7 @@ import { funnel } from '@/lib/analytics';
 import { executeRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
 import { SANCTIONED_RESIDENCE } from '@/lib/sanctionedJurisdictions';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { formatReferralSource } from '@/lib/utm';
 
 import ProgressIndicator from '@/components/onboarding/ProgressIndicator';
 // Bundle Z2 (2026-06-15): step components are large (~2000 lines combined)
@@ -694,6 +695,13 @@ const OnboardingPage = () => {
                   // L3 2026-06-09: stamp Terms acceptance at signup row creation
                   terms_accepted_at: formData.agreeToTerms ? new Date().toISOString() : null,
                   terms_accepted_version: formData.agreeToTerms ? TERMS_VERSION : null,
+                  // Phase 2b UTM (2026-06-22): persist the inbound attribution
+                  // source captured at first visit into profiles.referral_source.
+                  // Format: "source/medium/campaign" (e.g. "instagram/bio/launch").
+                  // Null when the user arrived direct. Read once here and never
+                  // touched again — the column is admin/analytics-only and is
+                  // NOT exposed in any member-facing UI.
+                  referral_source: formatReferralSource(),
                           onboarding_step: 2,
                           status: 'pending_review'
                       });
