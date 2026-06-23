@@ -16,10 +16,16 @@ import { getPotentialMatchesCount } from '@/lib/matchStats';
 import { Helmet } from 'react-helmet';
 import PromptsEditorModal from '@/components/PromptsEditorModal';
 import { funnel } from '@/lib/analytics';
+import { useGeo, formatCountry } from '@/contexts/GeoContext';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
+  // Phase 2b geo (2026-06-22): IP-derived country for honest pre-launch
+  // welcome personalisation. Per board (Brand + Growth + Compliance), we
+  // ONLY surface country-level acknowledgment, never city-level — city
+  // density gating waits until we cross ~200 verified per metro.
+  const { country: geoCountry } = useGeo();
   const { openPremiumModal } = useContext(PremiumModalContext);
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState(null);
@@ -571,7 +577,11 @@ const DashboardPage = () => {
           <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
-              <p className="text-brand-muted mt-1">A marriage-focused platform for serious relationships.</p>
+              <p className="text-brand-muted mt-1">
+                {geoCountry
+                  ? `Marryzen is building a community of marriage-minded members across ${formatCountry(geoCountry)}.`
+                  : 'A marriage-focused platform for serious relationships.'}
+              </p>
             </div>
           </div>
 
