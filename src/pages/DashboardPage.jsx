@@ -999,12 +999,11 @@ const DashboardPage = () => {
             ))}
               </div>
             ) : (
-              {/* Empty-state copy refresh 2026-06-23 per board (Brand+Product):
-                  reframe "zero" as "in progress" + add a daily-return hook so
-                  the dashboard becomes a habit, not a one-time visit. Density-
-                  honest pre-launch: never claims a specific cohort size, just
-                  acknowledges that new members arrive daily (true even at small
-                  scale). */}
+              // Empty-state copy refresh 2026-06-23 per board (Brand+Product):
+              // reframe "zero" as "in progress" + daily-return hook so the
+              // dashboard becomes a habit, not a one-time visit. Density-honest
+              // pre-launch: never claims cohort size; just acknowledges that new
+              // members arrive daily (true even at small scale).
               <div className="bg-white rounded-2xl border border-[#E6DCD2] p-12 text-center">
                 <Search className="w-12 h-12 text-brand-muted mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-[#1F1F1F] mb-2">More matches coming</h3>
