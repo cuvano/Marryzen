@@ -16,16 +16,10 @@ import { getPotentialMatchesCount } from '@/lib/matchStats';
 import { Helmet } from 'react-helmet';
 import PromptsEditorModal from '@/components/PromptsEditorModal';
 import { funnel } from '@/lib/analytics';
-import { useGeo, formatCountry } from '@/contexts/GeoContext';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
-  // Phase 2b geo (2026-06-22): IP-derived country for honest pre-launch
-  // welcome personalisation. Per board (Brand + Growth + Compliance), we
-  // ONLY surface country-level acknowledgment, never city-level — city
-  // density gating waits until we cross ~200 verified per metro.
-  const { country: geoCountry } = useGeo();
   const { openPremiumModal } = useContext(PremiumModalContext);
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState(null);
@@ -578,9 +572,7 @@ const DashboardPage = () => {
             <div>
               <h1 className="text-3xl font-bold text-[#1F1F1F]">Welcome to Marryzen</h1>
               <p className="text-brand-muted mt-1">
-                {geoCountry
-                  ? `Marryzen is building a community of marriage-minded members across ${formatCountry(geoCountry)}.`
-                  : 'A marriage-focused platform for serious relationships.'}
+                Marryzen is building a community of marriage-minded members. Serious about marriage, every profile verified.
               </p>
             </div>
           </div>
@@ -825,14 +817,12 @@ const DashboardPage = () => {
             onClick={() => navigate('/discovery')}
             className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#C85A72] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#C85A72]/40"
           >
+            {/* T&S 2026-06-23: exact-count disclosure removed. n=28 verified makes
+                "12 profiles for you" a stalker-triangulation vector via filter binary
+                search (Grindr-class inference attack). No count surfaced; CTA-only. */}
             <Heart className="w-8 h-8 text-brand-pink-strong mx-auto mb-2" />
-            <div className="text-3xl font-bold text-[#1F1F1F]">{stats.potentialMatches}</div>
-            <div className="text-brand-muted text-sm font-medium">
-              {stats.potentialMatches === 0 ? 'Find profiles' : 'Profiles for you'}
-            </div>
-            <div className="text-brand-pink-strong text-xs font-semibold mt-1">
-              {stats.potentialMatches === 0 ? 'Get started →' : 'Browse now →'}
-            </div>
+            <div className="text-xl font-bold text-[#1F1F1F] mt-2">Profiles for you</div>
+            <div className="text-brand-pink-strong text-sm font-semibold mt-3">Browse today →</div>
           </button>
           <button
             type="button"
@@ -840,13 +830,8 @@ const DashboardPage = () => {
             className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#3B82F6] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/40"
           >
             <MessageCircle className="w-8 h-8 text-[#3B82F6] mx-auto mb-2" />
-            <div className="text-3xl font-bold text-[#1F1F1F]">{stats.conversations}</div>
-            <div className="text-brand-muted text-sm font-medium">
-              {stats.conversations === 0 ? 'Start chatting' : 'Conversations'}
-            </div>
-            <div className="text-[#3B82F6] text-xs font-semibold mt-1">
-              {stats.conversations === 0 ? 'Find someone →' : 'Open inbox →'}
-            </div>
+            <div className="text-xl font-bold text-[#1F1F1F] mt-2">Conversations</div>
+            <div className="text-[#3B82F6] text-sm font-semibold mt-3">Open inbox →</div>
           </button>
           <button
             type="button"
@@ -854,13 +839,8 @@ const DashboardPage = () => {
             className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#EC4899] hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#EC4899]/40"
           >
             <Send className="w-8 h-8 text-[#EC4899] mx-auto mb-2" />
-            <div className="text-3xl font-bold text-[#1F1F1F]">{stats.introductionsSent}</div>
-            <div className="text-brand-muted text-sm font-medium">
-              {stats.introductionsSent === 0 ? 'Send your first' : 'Introductions'}
-            </div>
-            <div className="text-[#EC4899] text-xs font-semibold mt-1">
-              {stats.introductionsSent === 0 ? 'Get started →' : 'Send another →'}
-            </div>
+            <div className="text-xl font-bold text-[#1F1F1F] mt-2">Introductions</div>
+            <div className="text-[#EC4899] text-sm font-semibold mt-3">Say hello →</div>
           </button>
           <button
             type="button"
@@ -868,11 +848,24 @@ const DashboardPage = () => {
             className="bg-white border border-[#E6DCD2] rounded-2xl p-4 sm:p-6 text-center shadow-sm cursor-pointer hover:border-[#E6B450] hover:shadow-md transition-all relative focus:outline-none focus:ring-2 focus:ring-[#E6B450]/40"
           >
             <Star className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
+            {/* T&S 2026-06-23: exact Profile Interest count + timestamp combo enabled
+                a polling oracle — refresh after browsing, watch counter tick, correlate
+                to who you just viewed = near-deterministic at n=28. Replaced exact int
+                with bucketed label so triangulation is no longer possible. Threshold
+                widths chosen so a single new like never crosses a bucket boundary. */}
             {userProfile?.is_premium ? (
               <>
-                <div className="text-3xl font-bold text-[#1F1F1F]">{stats.profileInterest}</div>
-                <div className="text-brand-muted text-sm font-medium">Profile Interest</div>
-                <div className="text-[#E6B450] text-xs font-semibold mt-1">View matches →</div>
+                <div className="text-xl font-bold text-[#1F1F1F] mt-2">Profile Interest</div>
+                <div className="text-brand-muted text-sm">
+                  {(() => {
+                    const n = stats.profileInterest || 0;
+                    if (n === 0) return 'No interests yet';
+                    if (n <= 5) return 'A few interested';
+                    if (n <= 20) return 'Several interested';
+                    return 'Many interested';
+                  })()}
+                </div>
+                <div className="text-[#E6B450] text-xs font-semibold mt-2">View matches →</div>
               </>
             ) : (
               <>
