@@ -4,6 +4,21 @@ import App from '@/App';
 import '@/index.css';
 import posthog from 'posthog-js';
 import * as Sentry from '@sentry/react';
+import { captureAndStoreUTM } from '@/lib/utm';
+
+// ============================================================================
+// UTM attribution capture — runs synchronously before React mounts so we
+// never miss a first-visit utm_source. Cheap (~1ms): just reads URL params,
+// writes one cookie if any utm_* present, idempotent on subsequent loads.
+//
+// First-visit-wins: if a cookie already exists from a prior visit, this is
+// a no-op. We intentionally don't defer to requestIdleCallback because the
+// user could click "Sign up" before idle fires.
+//
+// See src/lib/utm.js for the cookie format + GDPR posture (functional
+// cookie, not a marketing tracker).
+// ============================================================================
+captureAndStoreUTM();
 
 // ============================================================================
 // Sentry: error tracking + perf. Init before anything renders so we capture
