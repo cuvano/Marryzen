@@ -93,9 +93,6 @@ export default function PushNotificationToggle() {
 
   // ----- Render branches -----
 
-  // Don't take up space on browsers where this is impossible.
-  if (uiState === 'unsupported' || uiState === 'not-configured') return null;
-
   return (
     <div className="bg-white rounded-2xl border border-[#E6B450]/20 p-5">
       <div className="flex items-start gap-3">
@@ -112,6 +109,24 @@ export default function PushNotificationToggle() {
 
           {uiState === 'loading' && (
             <p className="mt-3 text-sm text-[#5F5A56]">Checking…</p>
+          )}
+
+          {uiState === 'unsupported' && (
+            <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-[#FAF7F2] text-sm text-[#1F1F1F]">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#5F5A56]" aria-hidden="true" />
+              <span>
+                Push notifications aren't supported on this browser. Try Chrome or Edge on Android, or Safari on iOS 16.4+ after installing Marryzen to your home screen.
+              </span>
+            </div>
+          )}
+
+          {uiState === 'not-configured' && (
+            <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-[#FAF7F2] text-sm text-[#1F1F1F]">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#5F5A56]" aria-hidden="true" />
+              <span>
+                Push notifications are still being set up. Check back soon.
+              </span>
+            </div>
           )}
 
           {uiState === 'ios-install-required' && (
