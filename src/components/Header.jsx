@@ -373,6 +373,7 @@ const Header = () => {
               />
               <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
               <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
+              <NavItem label="Account Settings" path="/account-settings" icon={Settings} active={location.pathname === '/account-settings'} />
               {isAdmin && (
                 <button
                   onClick={() => { openAdminPanel(); setIsMenuOpen(false); }}
