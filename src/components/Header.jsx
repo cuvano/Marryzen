@@ -201,7 +201,7 @@ const Header = () => {
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
               <NavItem label="My Matches" path="/matches" icon={Heart} active={location.pathname === '/matches'} />
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
-              <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
+              <NavItem label="Invite Friends" path="/referrals" icon={UserPlus} active={location.pathname === '/referrals'} />
 
               {/* Notifications */}
               <DropdownMenu>
@@ -363,8 +363,7 @@ const Header = () => {
               <NavItem label="Dashboard" path="/dashboard" icon={LayoutDashboard} active={location.pathname === '/dashboard'} />
               <NavItem label="My Matches" path="/matches" icon={Heart} active={location.pathname === '/matches'} />
               <NavItem label="Profiles" path="/discovery" icon={Search} active={location.pathname === '/discovery'} />
-              <NavItem label="Invite Friends" path="/referrals" icon={Gift} active={location.pathname === '/referrals'} />
-              <NavItem label="Premium" path="/premium" icon={Crown} active={location.pathname === '/premium'} />
+              <NavItem label="Invite Friends" path="/referrals" icon={UserPlus} active={location.pathname === '/referrals'} />
               <NavItem
                 label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
                 path="/notifications"
@@ -372,8 +371,9 @@ const Header = () => {
                 active={location.pathname === '/notifications'}
               />
               <NavItem label="My Rewards" path="/rewards" icon={Gift} active={location.pathname === '/rewards'} />
-              <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
+              <NavItem label="Premium" path="/premium" icon={Crown} active={location.pathname === '/premium'} />
               <NavItem label="Account Settings" path="/account-settings" icon={Settings} active={location.pathname === '/account-settings'} />
+              <NavItem label="My Profile" path="/profile" icon={User} active={location.pathname === '/profile'} />
               {isAdmin && (
                 <button
                   onClick={() => { openAdminPanel(); setIsMenuOpen(false); }}
